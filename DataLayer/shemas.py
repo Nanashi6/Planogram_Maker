@@ -31,3 +31,6 @@ class Shelf(BaseModel):
     height: Optional[int] = None
     max_weight: Optional[int] = None
     shelf_unit_id: Optional[int] = None
+
+class ShelfUnit(BaseModel):
+    shelf_unit_number: Optional[int] = None
