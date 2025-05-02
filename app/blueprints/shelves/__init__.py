@@ -60,8 +60,8 @@ async def update(id: int):
 
 @shelves_bp.route('/delete/<int:id>', methods=['DELETE'])
 async def delete(id: int):
-    product = ShelfDAO.get_by_id(id)
-    if not product:
+    shelf = ShelfDAO.get_by_id(id)
+    if not shelf:
         return "Shelf not found", 404
 
     ShelfDAO.delete_by_id(id)

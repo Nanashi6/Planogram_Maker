@@ -50,8 +50,8 @@ async def update(id: int):
 
 @shelfUnits_bp.route('/delete/<int:id>', methods=['DELETE'])
 async def delete(id: int):
-    product = ShelfUnitDAO.get_by_id(id)
-    if not product:
+    shelfUnit = ShelfUnitDAO.get_by_id(id)
+    if not shelfUnit:
         return "ShelfUnit not found", 404
 
     ShelfUnitDAO.delete_by_id(id)

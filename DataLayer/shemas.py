@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from DataLayer.enums import RatingEnum, SegmentEnum
+from datetime import datetime
 
 class Brand(BaseModel):
     name: Optional[str] = None
@@ -40,3 +41,8 @@ class PlacedProduct(BaseModel):
     product_id: Optional[int] = None
     planogram_id: Optional[int] = None
     position: Optional[int] = None
+    
+class Planogram(BaseModel):
+    name: Optional[str] = None
+    created_at: Optional[datetime] = None
+    shelf_unit_id: Optional[int] = None
