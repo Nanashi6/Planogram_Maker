@@ -12,5 +12,7 @@ from DataLayer import models
 from app import routes
 
 from app.blueprints.brands import brands_bp
+from app.blueprints.categories import categories_bp
 
 app.register_blueprint(brands_bp)
+app.register_blueprint(categories_bp)

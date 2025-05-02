@@ -44,4 +44,4 @@ async def delete(id: int):
         return "Brand not found", 404
     
     BrandDAO.delete_by_id(id)
-    return redirect(url_for('brandList'))
+    return redirect(url_for('.read_all'))
