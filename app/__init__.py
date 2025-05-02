@@ -14,7 +14,9 @@ from app import routes
 from app.blueprints.brands import brands_bp
 from app.blueprints.categories import categories_bp
 from app.blueprints.products import products_bp
+from app.blueprints.shelves import shelves_bp
 
 app.register_blueprint(brands_bp)
 app.register_blueprint(categories_bp)
 app.register_blueprint(products_bp)
+app.register_blueprint(shelves_bp)

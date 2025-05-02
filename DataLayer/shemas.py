@@ -23,3 +23,11 @@ class Product(BaseModel):
     price: Optional[float] = None
     category_id: Optional[int] = None
     brand_id: Optional[int] = None
+
+class Shelf(BaseModel):
+    shelf_number: Optional[int] = None
+    length: Optional[int] = None
+    depth: Optional[int] = None
+    height: Optional[int] = None
+    max_weight: Optional[int] = None
+    shelf_unit_id: Optional[int] = None
