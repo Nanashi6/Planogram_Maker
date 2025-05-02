@@ -34,3 +34,9 @@ class Shelf(BaseModel):
 
 class ShelfUnit(BaseModel):
     shelf_unit_number: Optional[int] = None
+
+class PlacedProduct(BaseModel):
+    shelf_id: Optional[int] = None
+    product_id: Optional[int] = None
+    planogram_id: Optional[int] = None
+    position: Optional[int] = None

@@ -9,11 +9,11 @@ shelfUnits_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_f
 @shelfUnits_bp.route('', methods=['GET'])
 @shelfUnits_bp.route('/', methods=['GET'])
 async def read_all():
-    return render_template(f'{BASE_URL}/index.html', products = ShelfUnitDAO.get_all())
+    return render_template(f'{BASE_URL}/index.html', shelfUnits = ShelfUnitDAO.get_all())
 
 @shelfUnits_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):
-    return render_template(f'{BASE_URL}/item.html', products = ShelfUnitDAO.get_by_id(id))
+    return render_template(f'{BASE_URL}/item.html', shelfUnits = ShelfUnitDAO.get_by_id(id))
 
 @shelfUnits_bp.route('/create', methods=['GET', 'POST'])
 async def create():
