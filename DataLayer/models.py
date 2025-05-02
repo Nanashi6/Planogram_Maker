@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, declared_attr, class_mapper, mapped_column, r
 from sqlalchemy.sql import func
 from typing import Optional
 import json
-from enums import RatingEnum, SegmentEnum
+from DataLayer.enums import RatingEnum, SegmentEnum
 
 class Base(db.Model):
     '''
