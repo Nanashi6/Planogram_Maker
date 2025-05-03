@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Update Shelf Unit</h1>
+<form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="id" value="{{ form.id.data }}">
+
+    <p>
+        {{ form.shelf_unit_number.label }} <br>
+        {{ form.shelf_unit_number() }} <br>
+        {% for error in form.shelf_unit_number.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Create Shelf</h1>
+<form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <p>
+        {{ form.shelf_number.label }} <br>
+        {{ form.shelf_number() }} <br>
+        {% for error in form.shelf_number.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.length.label }} <br>
+        {{ form.length() }} <br>
+        {% for error in form.length.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.depth.label }} <br>
+        {{ form.depth() }} <br>
+        {% for error in form.depth.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.height.label }} <br>
+        {{ form.height() }} <br>
+        {% for error in form.height.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.max_weight.label }} <br>
+        {{ form.max_weight() }} <br>
+        {% for error in form.max_weight.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.shelf_unit_id.label }} <br>
+        {{ form.shelf_unit_id() }} <br>
+        {% for error in form.shelf_unit_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

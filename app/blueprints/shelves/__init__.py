@@ -58,7 +58,7 @@ async def update(id: int):
             return redirect(url_for('.update', id=id))
     return render_template(f'{BASE_URL}/update.html', title='Update Shelf', form=form)
 
-@shelves_bp.route('/delete/<int:id>', methods=['DELETE'])
+@shelves_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     shelf = ShelfDAO.get_by_id(id)
     if not shelf:

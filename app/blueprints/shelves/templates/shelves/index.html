@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Shelves</h1>
+<div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Shelf Number</th>
+                <th>Length</th>
+                <th>Depth</th>
+                <th>Height</th>
+                <th>Max Weight</th>
+                <th>Shelf Unit ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for shelf in shelves %}
+            <tr>
+                <td>{{ shelf.id }}</td>
+                <td>{{ shelf.shelf_number }}</td>
+                <td>{{ shelf.length }}</td>
+                <td>{{ shelf.depth }}</td>
+                <td>{{ shelf.height }}</td>
+                <td>{{ shelf.max_weight }}</td>
+                <td>Стеллаж № {{ shelf.shelf_unit.shelf_unit_number }}</td>
+                <td>
+                    <a href="{{ url_for('.update', id=shelf.id) }}">Update</a>
+                    <a href="{{ url_for('.delete', id=shelf.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('.create') }}">Create Shelf</a>
+</div>
+{% endblock %}

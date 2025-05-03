@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Brands</h1>
+<div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Rating</th>
+                <th>Share</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for brand in brands %}
+            <tr>
+                <td>{{ brand.id }}</td>
+                <td>{{ brand.name }}</td>
+                <td>
+                    {{ brand.rating.value }}
+                </td>
+                <td>
+                    {% if brand.share is not none %}
+                        {{ brand.share }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('.update', id=brand.id) }}">Update</a>
+                    <a href="{{ url_for('.delete', id=brand.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('.create') }}">Create Brand</a>
+</div>
+{% endblock %}

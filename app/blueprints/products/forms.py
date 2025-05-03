@@ -17,7 +17,7 @@ class CreateProduct(FlaskForm):
         'SKU Rating',
         validators=[DataRequired()],
         choices=[(rating.value, rating.value) for rating in RatingEnum],
-        coerce=int
+        coerce=RatingEnum
     )
     length = IntegerField('Length', validators=[DataRequired()])
     depth = IntegerField('Depth', validators=[DataRequired()])

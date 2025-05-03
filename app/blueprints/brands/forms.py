@@ -10,7 +10,7 @@ class CreateBrand(FlaskForm):
         'Rating',
         validators=[DataRequired()],
         choices=[(rating.value, rating.value) for rating in RatingEnum],
-        coerce=int
+        coerce=RatingEnum
     )
     share = DecimalField('Share', validators=[DataRequired(), NumberRange(min=0, max=100)], places=1)
     submit = SubmitField('Create')

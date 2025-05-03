@@ -48,7 +48,7 @@ async def update(id: int):
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/update.html', title='Update Placed Product', form=form)
 
-@placedProducts_bp.route('/delete/<int:id>', methods=['DELETE'])
+@placedProducts_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     product = PlacedProductDAO.get_by_id(id)
     if not product:

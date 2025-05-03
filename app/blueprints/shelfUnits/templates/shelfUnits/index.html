@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Shelf Units</h1>
+<div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Shelf Unit Number</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for shelf_unit in shelfUnits %}
+            <tr>
+                <td>{{ shelf_unit.id }}</td>
+                <td>{{ shelf_unit.shelf_unit_number }}</td>
+                <td>
+                    <a href="{{ url_for('.update', id=shelf_unit.id) }}">Update</a>
+                    <a href="{{ url_for('.delete', id=shelf_unit.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('.create') }}">Create Shelf Unit</a>
+</div>
+{% endblock %}

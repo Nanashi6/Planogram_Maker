@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Product Update</h1>
+<form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="id" value="{{ form.id.data }}">
+
+    <p>
+        {{ form.segment.label }} <br>
+        {{ form.segment() }} <br>
+        {% for error in form.segment.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.name.label }} <br>
+        {{ form.name(size=32) }} <br>
+        {% for error in form.name.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.barcode.label }} <br>
+        {{ form.barcode() }} <br>
+        {% for error in form.barcode.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.SKU_rating.label }} <br>
+        {{ form.SKU_rating() }} <br>
+        {% for error in form.SKU_rating.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.length.label }} <br>
+        {{ form.length() }} <br>
+        {% for error in form.length.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.depth.label }} <br>
+        {{ form.depth() }} <br>
+        {% for error in form.depth.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.height.label }} <br>
+        {{ form.height() }} <br>
+        {% for error in form.height.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.weight.label }} <br>
+        {{ form.weight() }} <br>
+        {% for error in form.weight.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.price.label }} <br>
+        {{ form.price() }} <br>
+        {% for error in form.price.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.category_id.label }} <br>
+        {{ form.category_id() }} <br>
+        {% for error in form.category_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>
+        {{ form.brand_id.label }} <br>
+        {{ form.brand_id() }} <br>
+        {% for error in form.brand_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

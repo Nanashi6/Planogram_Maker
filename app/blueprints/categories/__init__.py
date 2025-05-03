@@ -37,7 +37,7 @@ async def update(id: int):
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/update.html', title='Home', form=form)
 
-@categories_bp.route('/delete/<int:id>', methods=['DELETE'])
+@categories_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     category = CategoryDAO.get_by_id(id)
     if not category:

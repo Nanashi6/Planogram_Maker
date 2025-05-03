@@ -43,7 +43,7 @@ async def update(id: int):
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/update.html', title='Update Planogram', form=form)
 
-@planograms_bp.route('/delete/<int:id>', methods=['DELETE'])
+@planograms_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     planogram = PlanogramDAO.get_by_id(id)
     if not planogram:

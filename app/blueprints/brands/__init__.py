@@ -37,7 +37,7 @@ async def update(id: int):
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/update.html', title='Home', form=form)
 
-@brands_bp.route('/delete/<int:id>', methods=['DELETE'])
+@brands_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     brand = BrandDAO.get_by_id(id)
     if not brand:

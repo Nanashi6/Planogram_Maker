@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Placed Products</h1>
+<div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Shelf ID</th>
+                <th>Product</th>
+                <th>Planogram</th>
+                <th>Position</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for placed_product in placedProducts %}
+            <tr>
+                <td>{{ placed_product.id }}</td>
+                <td>Стеллаж № {{ placed_product.shelf.shelf_unit.shelf_unit_number }}. Полка № {{ placed_product.shelf.shelf_number }}</td>
+                <td>{{ placed_product.product.name }}</td>
+                <td>{{ placed_product.planogram.name }}</td>
+                <td>{{ placed_product.position }}</td>
+                <td>
+                    <a href="{{ url_for('.update', id=placed_product.id) }}">Update</a>
+                    <a href="{{ url_for('.delete', id=placed_product.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('.create') }}">Create Placed Product</a>
+</div>
+{% endblock %}
