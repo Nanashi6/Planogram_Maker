@@ -26,3 +26,13 @@ app.register_blueprint(shelves_bp)
 app.register_blueprint(shelfUnits_bp)
 app.register_blueprint(placedProducts_bp)
 app.register_blueprint(planograms_bp)
+
+import initializer
+print(app.debug)
+if app.debug:
+    with app.app_context():
+        print("INFO: Checking database initialization...")
+        try:
+            initializer.init()
+        except Exception as e:
+            print(f"ERROR: Database initialization failed: {e} {e.__traceback__}")

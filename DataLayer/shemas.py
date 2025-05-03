@@ -14,7 +14,7 @@ class Category(BaseModel):
 
 class Product(BaseModel):
     segment: Optional[SegmentEnum] = None
-    product_name: Optional[str] = None
+    name: Optional[str] = None
     barcode: Optional[int] = None
     SKU_rating: Optional[RatingEnum] = None
     length: Optional[float] = None
