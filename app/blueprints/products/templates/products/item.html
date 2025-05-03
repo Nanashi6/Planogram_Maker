@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Product Details: {{ product.name }}</h1>
+<hr>
+
+<div>
+    <div>
+        Product Information
+    </div>
+    <div>
+        <p>
+            <strong>ID:</strong> {{ product.id }} <br>
+            <strong>Name:</strong> {{ product.name }} <br>
+            <strong>Barcode:</strong> {{ product.barcode }} <br>
+            <strong>Segment:</strong> {{ product.segment.value }} <br>
+            <strong>SKU Rating:</strong> {{ product.SKU_rating.value }} <br>
+            <strong>Price:</strong> {{ "%.2f"|format(product.price) }} <br>
+        </p>
+        <p>
+            <strong>Dimensions (LxDxH):</strong>
+            {{ product.length }} x {{ product.depth }} x {{ product.height }} <br>
+            <strong>Weight:</strong> {{ product.weight }} <br>
+        </p>
+        <p>
+            <strong>Category:</strong>
+            {% if product.category %}
+                <a href="{{ url_for('categories.read', id=product.category.id) }}">{{ product.category.name }}</a> (ID: {{ product.category_id }})
+            {% else %}
+                N/A
+            {% endif %}
+            <br>
+            <strong>Brand:</strong>
+            {% if product.brand %}
+                 <a href="{{ url_for('brands.read', id=product.brand.id) }}">{{ product.brand.name }}</a> (ID: {{ product.brand_id }})
+            {% else %}
+                 N/A
+            {% endif %}
+            <br>
+        </p>
+    </div>
+</div>
+
+<div>
+    <a href="{{ url_for('.update', id=product.id) }}">Edit</a>
+    <a href="{{ url_for('.delete', id=product.id) }}">Delete</a>
+    <a href="{{ url_for('.read_all') }}">Back to List</a>
+</div>
+{% endblock %}

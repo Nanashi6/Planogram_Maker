@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Update Placed Product</h1>
+<form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="id" value="{{ form.id.data }}">
+    <p>
+        {{ form.shelf_id.label }} <br>
+        {{ form.shelf_id() }} <br>
+        {% for error in form.shelf_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>
+        {{ form.product_id.label }} <br>
+        {{ form.product_id() }} <br>
+        {% for error in form.product_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>
+        {{ form.planogram_id.label }} <br>
+        {{ form.planogram_id() }} <br>
+        {% for error in form.planogram_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>
+        {{ form.position.label }} <br>
+        {{ form.position() }} <br>
+        {% for error in form.position.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}

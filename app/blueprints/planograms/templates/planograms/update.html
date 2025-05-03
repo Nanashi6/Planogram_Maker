@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Planogram update</h1>
+<form action="" method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <input type="hidden" name="id" value="{{ form.id.data }}">
+    <p>
+        {{ form.name.label }} <br>
+        {{ form.name(size=32) }} <br>
+        {% for error in form.name.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>
+        {{ form.shelf_unit_id.label }} <br>
+        {{ form.shelf_unit_id() }} <br>
+        {% for error in form.shelf_unit_id.errors %}
+            <span style="color: red;">[{{ error }}]</span>
+        {% endfor %}
+    </p>
+    <p>{{ form.submit() }}</p>
+</form>
+{% endblock %}
