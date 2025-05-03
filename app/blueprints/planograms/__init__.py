@@ -14,7 +14,7 @@ async def read_all():
 
 @planograms_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):
-    return render_template(f'{BASE_URL}/item.html', planograms = PlanogramDAO.get_by_id(id))
+    return render_template(f'{BASE_URL}/item.html', planogram = PlanogramDAO.get_by_id(id))
 
 @planograms_bp.route('/create', methods=['GET', 'POST'])
 async def create():

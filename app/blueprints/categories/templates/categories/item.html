@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Category Details: {{ category.name }}</h1>
+<hr>
+
+<div>
+    <div>
+        Category Information
+    </div>
+    <div>
+        <p>
+            <strong>ID:</strong> {{ category.id }} <br>
+            <strong>Name:</strong> {{ category.name }} <br>
+            <strong>Share:</strong>
+            {% if category.share is not none %}
+                {{ "%.2f"|format(category.share) }}%
+            {% else %}
+                -
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div>
+    <a href="{{ url_for('.update', id=category.id) }}">Edit</a>
+    <a href="{{ url_for('.delete', id=category.id) }}">Delete</a>
+    <a href="{{ url_for('.read_all') }}">Back to List</a>
+</div>
+{% endblock %}

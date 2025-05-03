@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+{# У PlacedProduct нет своего имени, используем ID или комбинацию #}
+<h1>Placed Product Details: ID {{ placedProduct.id }}</h1>
+<hr>
+
+<div>
+    <div>
+        Placement Information
+    </div>
+    <div>
+        <p>
+            <strong>ID:</strong> {{ placedProduct.id }} <br>
+            <strong>Position on Shelf:</strong> {{ placedProduct.position }} <br>
+        </p>
+        <p>
+            <strong>Product:</strong>
+            {% if placedProduct.product %}
+                <a href="{{ url_for('products.read', id=placedProduct.product.id) }}">{{ placedProduct.product.name }}</a> (ID: {{ placedProduct.product_id }})
+            {% else %}
+                N/A
+            {% endif %}
+            <br>
+            <strong>Shelf:</strong>
+            {% if placedProduct.shelf %}
+                <a href="{{ url_for('shelves.read', id=placedProduct.shelf.id) }}">Shelf #{{ placedProduct.shelf.shelf_number }}</a> (ID: {{ placedProduct.shelf_id }})
+            {% else %}
+                N/A
+            {% endif %}
+            <br>
+            <strong>Planogram:</strong>
+            {% if placedProduct.planogram %}
+                <a href="{{ url_for('planograms.read', id=placedProduct.planogram.id) }}">{{ placedProduct.planogram.name }}</a> (ID: {{ placedProduct.planogram_id }})
+            {% else %}
+                N/A
+            {% endif %}
+            <br>
+        </p>
+    </div>
+</div>
+
+<div>
+    <a href="{{ url_for('.update', id=placedProduct.id) }}">Edit</a>
+    <a href="{{ url_for('.delete', id=placedProduct.id) }}">Delete</a>
+    <a href="{{ url_for('.read_all') }}">Back to List</a>
+</div>
+{% endblock %}

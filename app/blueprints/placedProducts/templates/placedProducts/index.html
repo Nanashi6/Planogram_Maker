@@ -16,7 +16,7 @@
         </thead>
         <tbody>
             {% for placed_product in placedProducts %}
-            <tr>
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=placed_product.id) }}">
                 <td>{{ placed_product.id }}</td>
                 <td>Стеллаж № {{ placed_product.shelf.shelf_unit.shelf_unit_number }}. Полка № {{ placed_product.shelf.shelf_number }}</td>
                 <td>{{ placed_product.product.name }}</td>
@@ -32,4 +32,6 @@
     </table>
     <a href="{{ url_for('.create') }}">Create Placed Product</a>
 </div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/clickable-row.js') }}"></script>
 {% endblock %}

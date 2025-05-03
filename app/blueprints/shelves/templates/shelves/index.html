@@ -18,7 +18,7 @@
         </thead>
         <tbody>
             {% for shelf in shelves %}
-            <tr>
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=shelf.id) }}">
                 <td>{{ shelf.id }}</td>
                 <td>{{ shelf.shelf_number }}</td>
                 <td>{{ shelf.length }}</td>
@@ -36,4 +36,6 @@
     </table>
     <a href="{{ url_for('.create') }}">Create Shelf</a>
 </div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/clickable-row.js') }}"></script>
 {% endblock %}

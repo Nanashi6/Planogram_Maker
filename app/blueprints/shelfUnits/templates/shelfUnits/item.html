@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Shelf Unit Details: Unit #{{ shelfUnit.shelf_unit_number }}</h1>
+<hr>
+
+<div>
+    <div>
+        Shelf Unit Information
+    </div>
+    <div>
+        <p>
+            <strong>ID:</strong> {{ shelfUnit.id }} <br>
+            <strong>Unit Number:</strong> {{ shelfUnit.shelf_unit_number }} <br>
+        </p>
+    </div>
+</div>
+
+<div>
+    <a href="{{ url_for('.update', id=shelfUnit.id) }}">Edit</a>
+    <a href="{{ url_for('.delete', id=shelfUnit.id) }}">Delete</a>
+    <a href="{{ url_for('.read_all') }}">Back to List</a>
+</div>
+{% endblock %}

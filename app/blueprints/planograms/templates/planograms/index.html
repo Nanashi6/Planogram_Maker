@@ -15,7 +15,7 @@
         </thead>
         <tbody>
             {% for planogram in planograms %}
-            <tr>
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=planogram.id) }}">
                 <td>{{ planogram.id }}</td>
                 <td>{{ planogram.name }}</td>
                 <td>Стеллаж № {{ planogram.shelf_unit.shelf_unit_number}}</td>
@@ -30,4 +30,6 @@
     </table>
     <a href="{{ url_for('.create') }}">Create Planogram</a>
 </div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/clickable-row.js') }}"></script>
 {% endblock %}

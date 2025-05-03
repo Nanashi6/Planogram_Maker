@@ -14,7 +14,7 @@
         </thead>
         <tbody>
             {% for category in categories %}
-            <tr>
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=category.id) }}">
                 <td>{{ category.id }}</td>
                 <td>{{ category.name }}</td>
                 <td>
@@ -34,4 +34,6 @@
     </table>
     <a href="{{ url_for('.create') }}">Create Category</a>
 </div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/clickable-row.js') }}"></script>
 {% endblock %}

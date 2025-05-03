@@ -13,7 +13,7 @@ async def read_all():
 
 @shelves_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):
-    return render_template(f'{BASE_URL}/item.html', shelves = ShelfDAO.get_by_id(id))
+    return render_template(f'{BASE_URL}/item.html', shelf = ShelfDAO.get_by_id(id))
 
 @shelves_bp.route('/create', methods=['GET', 'POST'])
 async def create():

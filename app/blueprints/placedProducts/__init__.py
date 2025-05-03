@@ -13,7 +13,7 @@ async def read_all():
 
 @placedProducts_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):
-    return render_template(f'{BASE_URL}/item.html', placedProducts = PlacedProductDAO.get_by_id(id))
+    return render_template(f'{BASE_URL}/item.html', placedProduct = PlacedProductDAO.get_by_id(id))
 
 @placedProducts_bp.route('/create', methods=['GET', 'POST'])
 async def create():

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Brand Details: {{ brand.name }}</h1>
+<hr>
+
+<div>
+    <div>
+        Brand Information
+    </div>
+    <div> 
+        <p>
+            <strong>ID:</strong> {{ brand.id }} <br>
+            <strong>Name:</strong> {{ brand.name }} <br>
+
+            <strong>Rating:</strong>
+                {{ brand.rating.value }}
+            <br>
+
+            <strong>Market Share:</strong>
+            {% if brand.share is not none %}
+                {{ "%.2f"|format(brand.share) }}%
+            {% else %}
+                -
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div>
+    <a href="{{ url_for('.update', id=brand.id) }}">Edit</a>
+    <a href="{{ url_for('.delete', id=brand.id) }}">Delete</a>
+    <a href="{{ url_for('.read_all') }}">Back to List</a>
+</div>
+{% endblock %}
