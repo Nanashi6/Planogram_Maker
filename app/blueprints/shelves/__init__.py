@@ -13,7 +13,7 @@ async def read_all():
 
 @shelves_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):
-    return render_template(f'{BASE_URL}/item.html', shelves = ShelfDAO.get_by_id(id))
+    return render_template(f'{BASE_URL}/item.html', shelf = ShelfDAO.get_by_id(id))
 
 @shelves_bp.route('/create', methods=['GET', 'POST'])
 async def create():
@@ -58,7 +58,7 @@ async def update(id: int):
             return redirect(url_for('.update', id=id))
     return render_template(f'{BASE_URL}/update.html', title='Update Shelf', form=form)
 
-@shelves_bp.route('/delete/<int:id>', methods=['DELETE'])
+@shelves_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     shelf = ShelfDAO.get_by_id(id)
     if not shelf:

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Planogram Details: {{ planogram.name }}</h1>
+<hr>
+
+<div>
+    <div>
+        Planogram Information
+    </div>
+    <div>
+        <p>
+            <strong>ID:</strong> {{ planogram.id }} <br>
+            <strong>Name:</strong> {{ planogram.name }} <br>
+            {# Форматирование даты/времени может быть полезным #}
+            <strong>Created At:</strong> {{ planogram.created_at }} <br>
+        </p>
+        <p>
+             <strong>Shelf Unit:</strong>
+             {% if planogram.shelf_unit %}
+                 <a href="{{ url_for('shelfUnits.read', id=planogram.shelf_unit.id) }}">Unit #{{ planogram.shelf_unit.shelf_unit_number }}</a> (ID: {{ planogram.shelf_unit_id }})
+             {% else %}
+                 N/A
+             {% endif %}
+        </p>
+    </div>
+</div>
+
+<div>
+    <a href="{{ url_for('.update', id=planogram.id) }}">Edit</a>
+    <a href="{{ url_for('.delete', id=planogram.id) }}">Delete</a>
+    <a href="{{ url_for('.read_all') }}">Back to List</a>
+</div>
+{% endblock %}

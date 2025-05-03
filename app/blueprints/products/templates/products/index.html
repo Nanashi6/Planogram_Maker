@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Products</h1>
+<div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Segment</th>
+                <th>Name</th>
+                <th>Barcode</th>
+                <th>SKU Rating</th>
+                <th>Length</th>
+                <th>Depth</th>
+                <th>Height</th>
+                <th>Weight</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Brand</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=product.id) }}">
+                <td>{{ product.id }}</td>
+                <td>{{ product.segment.value }}</td>
+                <td>{{ product.name }}</td>
+                <td>{{ product.barcode }}</td>
+                <td>
+                    {% if product.SKU_rating %}
+                        {{ product.SKU_rating.value }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ product.length }}</td>
+                <td>{{ product.depth }}</td>
+                <td>{{ product.height }}</td>
+                <td>{{ product.weight }}</td>
+                <td>{{ product.price }}</td>
+                <td>{{ product.category.name }}</td>
+                <td>{{ product.brand.name }}</td>
+                <td>
+                    <a href="{{ url_for('.update', id=product.id) }}">Update</a>
+                    <a href="{{ url_for('.delete', id=product.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('.create') }}">Create Product</a>
+</div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/clickable-row.js') }}"></script>
+{% endblock %}

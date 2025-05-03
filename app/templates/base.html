@@ -8,8 +8,17 @@
       {% endif %}
     </head>
     <body>
-        <div><a href="/index">Home</a></div>
-        <hr>
-        {% block content %}{% endblock %}
+      <div>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('brands.read_all') }}">Brands</a>
+        <a href="{{ url_for('categories.read_all') }}">Categories</a>
+        <a href="{{ url_for('products.read_all') }}">Products</a>
+        <a href="{{ url_for('shelves.read_all') }}">Shelves</a>
+        <a href="{{ url_for('shelfUnits.read_all') }}">ShelfUnits</a>
+        <a href="{{ url_for('placedProducts.read_all') }}">PlacedProducts</a>
+        <a href="{{ url_for('planograms.read_all') }}">Planograms</a>
+      </div>
+      <hr>
+      {% block content %}{% endblock %}
     </body>
 </html>

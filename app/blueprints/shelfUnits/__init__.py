@@ -13,7 +13,7 @@ async def read_all():
 
 @shelfUnits_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):
-    return render_template(f'{BASE_URL}/item.html', shelfUnits = ShelfUnitDAO.get_by_id(id))
+    return render_template(f'{BASE_URL}/item.html', shelfUnit = ShelfUnitDAO.get_by_id(id))
 
 @shelfUnits_bp.route('/create', methods=['GET', 'POST'])
 async def create():
@@ -48,7 +48,7 @@ async def update(id: int):
             return redirect(url_for('.update', id=id))
     return render_template(f'{BASE_URL}/update.html', title='Update Shelf Unit', form=form)
 
-@shelfUnits_bp.route('/delete/<int:id>', methods=['DELETE'])
+@shelfUnits_bp.route('/delete/<int:id>', methods=['GET', 'DELETE'])
 async def delete(id: int):
     shelfUnit = ShelfUnitDAO.get_by_id(id)
     if not shelfUnit:

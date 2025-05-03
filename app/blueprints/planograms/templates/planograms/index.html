@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Planograms</h1>
+<div>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Shelf Unit ID</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for planogram in planograms %}
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=planogram.id) }}">
+                <td>{{ planogram.id }}</td>
+                <td>{{ planogram.name }}</td>
+                <td>Стеллаж № {{ planogram.shelf_unit.shelf_unit_number}}</td>
+                <td>{{ planogram.created_at.strftime('%Y-%m-%d %H:%M:%S') if planogram.created_at else '' }}</td>
+                <td>
+                    <a href="{{ url_for('.update', id=planogram.id) }}">Update</a>
+                    <a href="{{ url_for('.delete', id=planogram.id) }}">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('.create') }}">Create Planogram</a>
+</div>
+
+<script type="text/javascript" src="{{ url_for('static', filename='js/clickable-row.js') }}"></script>
+{% endblock %}
