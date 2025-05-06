@@ -18,6 +18,7 @@ from app.blueprints.shelves import shelves_bp
 from app.blueprints.shelfUnits import shelfUnits_bp
 from app.blueprints.placedProducts import placedProducts_bp
 from app.blueprints.planograms import planograms_bp
+from app.blueprints.editor import editor_bp
 
 app.register_blueprint(brands_bp)
 app.register_blueprint(categories_bp)
@@ -26,9 +27,9 @@ app.register_blueprint(shelves_bp)
 app.register_blueprint(shelfUnits_bp)
 app.register_blueprint(placedProducts_bp)
 app.register_blueprint(planograms_bp)
+app.register_blueprint(editor_bp)
 
 import initializer
-print(app.debug)
 if app.debug:
     with app.app_context():
         print("INFO: Checking database initialization...")
