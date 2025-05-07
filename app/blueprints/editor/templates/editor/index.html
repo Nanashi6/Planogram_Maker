@@ -1,4 +1,82 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<style>
+    .container { margin: 0; overflow: hidden; font-family: sans-serif; display: flex; }
+    #c {
+        width: 80vw;
+        height: 100vh;
+        display: block;
+        outline: none;
+        cursor: default;
+    }
+    #product-list-container {
+        width: 20vw;
+        height: 100vh;
+        overflow-y: auto;
+        border-left: 1px solid #ccc;
+        padding: 10px;
+        box-sizing: border-box;
+        background-color: #f0f0f0;
+    }
+    #product-list-container h3 { margin-top: 0; }
+    .product-item {
+        border: 1px solid #ddd;
+        padding: 8px;
+        margin-bottom: 5px;
+        background-color: #fff;
+        cursor: grab;
+        user-select: none;
+    }
+    .product-item:active {
+        cursor: grabbing;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="container">
+    <div> <canvas id="c"></canvas> </div>
+    <div id="product-list-container">
+        <h3>Products</h3>
+        <div id="product-list"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const productListDiv = document.getElementById('product-list')
+    async function get_products() {
+        const apiUrl = `/editor/get_products`;
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+
+            console.log(data)
+            
+            return data;
+        } catch (error) {
+            console.error("Error loading products list:", error);
+        } finally {
+            console.log('Товары удачно загружены')
+        }
+    }
+    const products = get_products()
+
+    // Функция для заполнения HTML списка товаров
+    function populateProductList(products) {
+        productListDiv.innerHTML = "";
+        products.forEach(product => {
+            const item = document.createElement('div');
+            item.className = 'product-item';
+            item.draggable = true;
+            item.textContent = `${product.name} (${product.length}x${product.height}x${product.depth})`;
+            item.dataset.productInfo = JSON.stringify(product);
+            productListDiv.appendChild(item);
+        });
+    }
+    products.then(d => {populateProductList(d);})
+</script>
 {% endblock %}
