@@ -6,6 +6,8 @@
       {% else %}
       <title>Planogram_Maker</title>
       {% endif %}
+
+      {% block styles %}{% endblock %}
     </head>
     <body>
       <div>
@@ -17,8 +19,10 @@
         <a href="{{ url_for('shelfUnits.read_all') }}">ShelfUnits</a>
         <a href="{{ url_for('placedProducts.read_all') }}">PlacedProducts</a>
         <a href="{{ url_for('planograms.read_all') }}">Planograms</a>
+        <a href="{{ url_for('editor.index') }}">Editor</a>
       </div>
       <hr>
       {% block content %}{% endblock %}
     </body>
+    {% block scripts %}{% endblock %}    
 </html>
