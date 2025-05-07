@@ -89,6 +89,22 @@ class Product(Base):
         back_populates="products"
     )
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект Product в словарь, включая связанные category и brand."""
+        data = super().to_dict()
+
+        if self.category:
+            data['category'] = self.category.to_dict()
+        else:
+            data['category'] = None
+
+        if self.brand:
+            data['brand'] = self.brand.to_dict()
+        else:
+            data['brand'] = None
+            
+        return data
+
 class Shelf(Base):
     __tablename__ = "shelves"
 
