@@ -31,6 +31,18 @@
     .product-item:active {
         cursor: grabbing;
     }
+    #tooltip {
+        position: absolute;
+        display: none;
+        padding: 5px 10px;
+        background-color: rgba(0, 0, 0, 0.75);
+        color: white;
+        border-radius: 3px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 1001;
+        white-space: nowrap;
+    }
 </style>
 {% endblock %}
 
@@ -41,11 +53,40 @@
         <h3>Products</h3>
         <div id="product-list"></div>
     </div>
+    <div id="tooltip"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+
+    /** 
+    *   Функция для изменения размера рендерера в соответствии с размером холста
+    */
+    function resizeRendererToDisplaySize(renderer) {
+        const canvas = renderer.domElement;
+        const pixelRatio = window.devicePixelRatio;
+        const width = Math.floor(canvas.clientWidth * pixelRatio);
+        const height = Math.floor(canvas.clientHeight * pixelRatio);
+        const needResize = canvas.width !== width || canvas.height !== height;
+        if (needResize) {
+            renderer.setSize(width, height, false);
+        }
+        return needResize;
+    }
+
+
+
     const productListDiv = document.getElementById('product-list')
     async function get_products() {
         const apiUrl = `/editor/get_products`;
@@ -78,5 +119,75 @@
         });
     }
     products.then(d => {populateProductList(d);})
+
+
+    /**
+    * Основная функция приложения
+    */
+    function main() {
+        const canvas = document.querySelector('#c');
+        const tooltipElement = document.getElementById('tooltip');
+        if (!productListDiv || !tooltipElement) { console.error("КРИТИЧЕСКАЯ ОШИБКА: UI элемент не найден!"); return; }
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+        renderer.setClearColor(0xDDDDDD);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.sortObjects = true; // Важно для renderOrder
+
+        // Настройка ортографической камеры
+        const frustumSize = 700;
+        let aspect = canvas.clientWidth / canvas.clientHeight;
+        const camera = new THREE.OrthographicCamera(
+            frustumSize * aspect / -2, frustumSize * aspect / 2,
+            frustumSize / 2, frustumSize / -2, 0.1, 5000
+        );
+
+        // Переменные для управления камерой (орбита, панорамирование, зум)
+        const cameraTarget = new THREE.Vector3(0, 100, 0); // Точка, вокруг которой вращается камера
+        let cameraRadius = 800; // Расстояние от цели до камеры
+        let cameraPhi = Math.PI / 2.8; // Полярный угол
+        let cameraTheta = Math.PI / 4;  // Азимутальный угол
+        const minPhi = 0.1, maxPhi = Math.PI - 0.1; // Ограничения для полярного угла
+        const minRadius = 100, maxRadius = 2000; // Ограничения для радиуса (зума орбиты)
+        let cameraZoom = 1.0; // Зум для ортографической проекции
+        const minOrthoZoom = 0.2, maxOrthoZoom = 5.0; // Ограничения для ортографического зума
+
+        /**
+        * Функция для обновления проекции камеры (при зуме или изменении размера окна)
+        */
+        function updateCameraProjection() {
+            const DYNAMIC_FRUSTUM_SIZE = frustumSize / cameraZoom;
+            camera.left = -DYNAMIC_FRUSTUM_SIZE * aspect / 2;
+            camera.right = DYNAMIC_FRUSTUM_SIZE * aspect / 2;
+            camera.top = DYNAMIC_FRUSTUM_SIZE / 2;
+            camera.bottom = -DYNAMIC_FRUSTUM_SIZE / 2;
+            camera.updateProjectionMatrix();
+        }
+
+        // Функция для обновления позиции и ориентации камеры
+        function updateCameraPosition() {
+            camera.position.x = cameraTarget.x - cameraRadius * Math.sin(cameraPhi) * Math.sin(cameraTheta); // Изменен знак для начального вида
+            camera.position.y = cameraTarget.y + cameraRadius * Math.cos(cameraPhi);
+            camera.position.z = cameraTarget.z - cameraRadius * Math.sin(cameraPhi) * Math.cos(cameraTheta); // Изменен знак
+            camera.lookAt(cameraTarget);
+            updateCameraProjection();
+        }
+        updateCameraPosition(); // Начальная установка камеры
+
+        const scene = new THREE.Scene();
+        
+        // Цикл рендеринга
+        function render(time) {
+            time *= 0.001; // Конвертация времени в секунды
+            if (resizeRendererToDisplaySize(renderer)) { // Если размер холста изменился
+                aspect = canvas.clientWidth / canvas.clientHeight;
+                updateCameraProjection(); // Обновляем проекцию камеры
+            }
+            renderer.render(scene, camera); // Рендерим сцену
+            requestAnimationFrame(render);  // Запрашиваем следующий кадр анимации
+        }
+        requestAnimationFrame(render); // Запуск цикла рендеринга
+    }
+    document.addEventListener('DOMContentLoaded', main); // Вызов main после загрузки DOM
 </script>
 {% endblock %}
