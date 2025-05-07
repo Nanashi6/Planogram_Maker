@@ -98,10 +98,6 @@
 <script type="module">
     import * as THREE from 'three';
 
-    const scene = new THREE.Scene();
-    const SHELF_THICKNESS = 5; // Толщина доски полки
-    let currentDisplayedShelfUnit = null; // Хранит ссылку на текущий отображаемый стеллаж
-
     /** 
     *   Функция для изменения размера рендерера в соответствии с размером холста
     */
@@ -117,10 +113,12 @@
         return needResize;
     }
 
+    const SHELF_THICKNESS = 5; // Толщина доски полки
+
     /** 
     * Функция для создания 3D-модели стеллажа 
     */
-    function createShelfUnitMesh(shelfUnitData, shelfGap = 2) {
+    function createcurrentDisplayedShelfUnit(shelfUnitData, shelfGap = 2) {
         const shelfUnitGroup = new THREE.Group();
         shelfUnitGroup.name = `shelfUnit_${shelfUnitData.shelf_unit_number}`;
         shelfUnitGroup.userData.isShelfUnit = true;
@@ -169,25 +167,8 @@
         }
         return shelfUnitGroup;
     }
-    
-    /**
-    * Функция для отображения выбранного стеллажа на сцене
-    */
-    function displayShelfUnit(shelfUnitData) {
-        if (currentDisplayedShelfUnit) {
-            scene.remove(currentDisplayedShelfUnit);
-            console.log("Removed previous shelf unit:", currentDisplayedShelfUnit.name);
-        }
-
-        const newShelfUnitMesh = createShelfUnitMesh(shelfUnitData);
-        scene.add(newShelfUnitMesh);
-        currentDisplayedShelfUnit = newShelfUnitMesh;
-
-        console.log("Displayed new shelf unit:", newShelfUnitMesh.name);
-    }
 
     //#region API
-    const shelfUnitListDiv = document.getElementById('shelfUnit-list')
     async function get_shelfUnits() {
         const apiUrl = `/editor/get_shelfUnits`;
         try {
@@ -201,27 +182,7 @@
             console.log('Стеллажи удачно загружены')
         }
     }
-    const shelfUnits = get_shelfUnits();
 
-    function populateShelfUnitList(shelfUnits) {
-        shelfUnitListDiv.innerHTML = "";
-        shelfUnits.forEach(shelfUnitData => {
-            const item = document.createElement('div');
-            item.className = 'shelfUnit-item';
-            item.textContent = `Стеллаж №: ${shelfUnitData.shelf_unit_number}`;
-            item.dataset.shelfUnitInfo = JSON.stringify(shelfUnitData);
-
-            item.addEventListener('click', function() {
-                const clickedShelfUnitData = JSON.parse(this.dataset.shelfUnitInfo);
-                displayShelfUnit(clickedShelfUnitData);
-            });
-
-            shelfUnitListDiv.appendChild(item);
-        });
-    }
-    shelfUnits.then(d => {populateShelfUnitList(d);});
-
-    const productListDiv = document.getElementById('product-list')
     async function get_products() {
         const apiUrl = `/editor/get_products`;
         try {
@@ -235,30 +196,84 @@
             console.log('Товары удачно загружены')
         }
     }
-    const products = get_products();
-
-    // Функция для заполнения HTML списка товаров
-    function populateProductList(products) {
-        productListDiv.innerHTML = "";
-        products.forEach(product => {
-            const item = document.createElement('div');
-            item.className = 'product-item';
-            item.draggable = true;
-            item.textContent = `${product.name} (${product.length}x${product.height}x${product.depth})`;
-            item.dataset.productInfo = JSON.stringify(product);
-            productListDiv.appendChild(item);
-        });
-    }
-    products.then(d => {populateProductList(d);});
     //#endregion
+
+    /**
+    * Функция для создания 3D-модели товара (куба)
+    */
+    function createProductMesh(productData, isGhost = false) {
+        const geometry = new THREE.BoxGeometry(productData.length, productData.height, productData.depth);
+        if (!geometry.boundingBox) {
+            geometry.computeBoundingBox();
+        }
+        const material = new THREE.MeshBasicMaterial({
+            color: isGhost ? 0x00ff00 : Math.random() * 0xffffff, // Зеленый для "призрака", случайный для обычного
+            transparent: true,
+            opacity: isGhost ? 0.6 : 1.0
+        });
+        const productMesh = new THREE.Mesh(geometry, material);
+        productMesh.name = `product_${productData.id || Math.random().toString(16).slice(2)}`;
+        productMesh.userData = {
+            isProduct: true, isGhost: isGhost, productId: productData.id,
+            productData: { ...productData }, placedOnShelfUUID: null,
+            boundingBox: new THREE.Box3()
+        };
+        if (isGhost) productMesh.renderOrder = 1; // Призрак рендерится поверх
+        productMesh.userData.boundingBox.copy(geometry.boundingBox).applyMatrix4(productMesh.matrixWorld);
+        return productMesh;
+    }
+
+    /**
+    * Функция для проверки столкновения (пересечения) двух мешей по их bounding box
+    */
+    function checkCollision(mesh1, mesh2) {
+        return mesh1.userData.boundingBox.intersectsBox(mesh2.userData.boundingBox);
+    }
+
+    /**
+    * Функция для обновления bounding box меша в мировых координатах
+    */
+    function updateMeshBoundingBox(mesh) {
+        if (!mesh.geometry.boundingBox) {
+            mesh.geometry.computeBoundingBox();
+        }
+        mesh.userData.boundingBox.copy(mesh.geometry.boundingBox);
+        mesh.userData.boundingBox.applyMatrix4(mesh.matrixWorld);
+    }
+
+    /**
+    * Функция для создания каркасной обводки объекта
+    */
+    function createWireframeOutline(object, color = 0xff0000, scaleFactor = 1.02) {
+        const outlineGeometry = object.geometry;
+        const outlineMaterial = new THREE.MeshBasicMaterial({
+            color: color,
+            wireframe: true,
+            depthTest: false,
+            opacity: 0.8,
+            transparent: true
+        });
+        const outlineMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
+
+        outlineMesh.position.copy(object.position);
+        outlineMesh.rotation.copy(object.rotation);
+        outlineMesh.scale.copy(object.scale).multiplyScalar(scaleFactor);
+        outlineMesh.matrixAutoUpdate = true;
+        outlineMesh.renderOrder = (object.renderOrder || 0) + 1;
+        return outlineMesh;
+    }
 
     /**
     * Основная функция приложения
     */
     function main() {
         const canvas = document.querySelector('#c');
+        const productListDiv = document.querySelector('#product-list');
+        const shelfUnitListDiv = document.querySelector('#shelfUnit-list');
         const tooltipElement = document.getElementById('tooltip');
-        if (!productListDiv || !tooltipElement) { console.error("КРИТИЧЕСКАЯ ОШИБКА: UI элемент не найден!"); return; }
+        if (!productListDiv || !tooltipElement || !shelfUnitListDiv) { console.error("КРИТИЧЕСКАЯ ОШИБКА: UI элемент не найден!"); return; }
+
+        let currentDisplayedShelfUnit = NaN
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
         renderer.setClearColor(0xDDDDDD);
@@ -304,6 +319,466 @@
             updateCameraProjection();
         }
         updateCameraPosition(); // Начальная установка камеры
+
+        const raycaster = new THREE.Raycaster(); // Для определения пересечений луча с объектами
+        const mouse = new THREE.Vector2();     // Для хранения координат мыши в NDC
+        const scene = new THREE.Scene();       // Основная 3D сцена
+
+        // Переменные состояния для Drag & Drop и выбора объектов
+        let draggedProductData = null;      // Данные товара, перетаскиваемого из HTML списка
+        let productGhostMesh = null;        // "Призрак" (полупрозрачный куб) перетаскиваемого товара
+        let currentlyDraggedObject = null;  // 3D объект товара, который сейчас активно перетаскивается по сцене
+        let isDraggingExistingProduct = false; // Флаг, что перетаскивается уже размещенный товар
+        let selectedForOperation = null;    // Товар, выбранный для операции (удаления, обводки)
+        let currentOutlineMesh = null;      // Текущий меш обводки выбранного товара
+
+        // Функция для получения всех размещенных товаров на сцене (кроме исключенного)
+        function getAllPlacedProducts(excludeMesh = null) {
+            const products = [];
+            scene.traverse((object) => {
+                if (object.userData.isProduct && !object.userData.isGhost) {
+                    if (excludeMesh && object.uuid === excludeMesh.uuid) return;
+                    products.push(object);
+                }
+            });
+            return products;
+        }
+
+        let hoveredShelf = null; // Полка, над которой находится курсор
+        const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Плоскость для определения точки пересечения
+
+        // Функция для получения мировых координат точки пересечения луча мыши с заданной плоскостью
+        function getMouseWorldPosition(event, targetPlane) {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersectPoint = new THREE.Vector3();
+            if (raycaster.ray.intersectPlane(targetPlane, intersectPoint)) {
+                return intersectPoint;
+            }
+            return null;
+        }
+
+        // Общая функция для позиционирования "призрака" товара и проверки возможности его размещения
+        function positionAndValidateGhost(event, currentProductDataRef) {
+            if (!productGhostMesh || !currentProductDataRef) {
+                if(productGhostMesh) productGhostMesh.visible = false;
+                return false;
+            }
+            const currentProductData = currentProductDataRef;
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const shelfIntersects = raycaster.intersectObjects(currentDisplayedShelfUnit.children.filter(c => c.userData.isShelf), false);
+            let canPlace = false;
+
+            if (hoveredShelf) { // Сброс подсветки предыдущей полки
+                hoveredShelf.material.color.copy(hoveredShelf.userData.originalColor);
+                hoveredShelf = null;
+            }
+
+            if (shelfIntersects.length > 0) { // Если курсор над какой-либо полкой
+                const targetShelf = shelfIntersects[0].object;
+                hoveredShelf = targetShelf;
+                hoveredShelf.material.color.setHex(0xffff00); // Подсветка текущей полки
+
+                const shelfWorldPosition = new THREE.Vector3();
+                targetShelf.getWorldPosition(shelfWorldPosition); // Мировые координаты центра полки
+                const shelfTopSurfaceY = shelfWorldPosition.y + targetShelf.userData.shelfThickness / 2; // Y-координата верха полки
+                placementPlane.setComponents(0, 1, 0, -shelfTopSurfaceY); // Обновление плоскости для пересечения
+                const intersectionPointOnShelfPlane = getMouseWorldPosition(event, placementPlane); // Точка клика на плоскости полки
+
+                if (intersectionPointOnShelfPlane) {
+                    // Позиционирование призрака: по X - центр полки (глубина), по Z - где кликнули (длина)
+                    productGhostMesh.position.x = shelfWorldPosition.x;
+                    productGhostMesh.position.z = intersectionPointOnShelfPlane.z;
+                    productGhostMesh.position.y = shelfTopSurfaceY + currentProductData.height / 2; // Низ товара на верху полки
+                    productGhostMesh.visible = true;
+                    updateMeshBoundingBox(productGhostMesh); // Обновление bounding box призрака
+
+                    // Валидация размещения
+                    let isValidPlacement = true;
+                    const shelfDim = targetShelf.geometry.parameters; // Размеры полки (width - это ее "длина", depth - ее "глубина")
+                    const shelfUsableH = targetShelf.userData.usableHeight; // Полезная высота НАД полкой
+
+                    // 1. Проверка по высоте
+                    if (currentProductData.height > shelfUsableH) isValidPlacement = false;
+                    // 2. Проверка выхода за пределы полки (с учетом поворота стеллажа)
+                    // Глубина товара (productData.depth) идет вдоль глубины полки (shelfDim.depth, мировая X)
+                    // Длина товара (productData.length) идет вдоль длины полки (shelfDim.width, мировая Z)
+                    if (Math.abs(productGhostMesh.position.x - shelfWorldPosition.x) + currentProductData.depth / 2 > shelfDim.depth / 2) isValidPlacement = false;
+                    if (Math.abs(productGhostMesh.position.z - shelfWorldPosition.z) + currentProductData.length / 2 > shelfDim.width / 2) isValidPlacement = false;
+
+                    // 3. Проверка столкновений с другими товарами
+                    if (isValidPlacement) {
+                        const productsToCollideWith = getAllPlacedProducts(isDraggingExistingProduct ? currentlyDraggedObject : null);
+                        for (const otherProduct of productsToCollideWith) {
+                            updateMeshBoundingBox(otherProduct);
+                            if (checkCollision(productGhostMesh, otherProduct)) {
+                                isValidPlacement = false; break;
+                            }
+                        }
+                    }
+                    canPlace = isValidPlacement;
+                    productGhostMesh.material.color.set(canPlace ? 0x00ff00 : 0xff0000); // Зеленый или красный цвет призрака
+                } else { productGhostMesh.visible = false; } // Если нет пересечения с плоскостью полки
+            } else { if (productGhostMesh) productGhostMesh.visible = false; } // Если не над полкой
+
+            if (productGhostMesh) productGhostMesh.userData.canPlace = canPlace; // Сохранить результат валидации
+            return canPlace;
+        }
+
+        // Обработчик события 'dragover' на холсте (когда товар из HTML списка тащится НАД холстом)
+        canvas.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            if (isDraggingExistingProduct) return; // Если тащим существующий, эта логика не нужна
+            positionAndValidateGhost(event, draggedProductData);
+        });
+
+        // Обработчик события 'dragleave' на холсте (когда курсор с перетаскиваемым товаром покидает холст)
+        canvas.addEventListener('dragleave', () => {
+            if (hoveredShelf) {
+                hoveredShelf.material.color.copy(hoveredShelf.userData.originalColor);
+                hoveredShelf = null;
+            }
+        });
+
+        // Обработчик события 'drop' на холсте (когда товар из HTML списка "брошен" на холст)
+        canvas.addEventListener('drop', (event) => {
+            event.preventDefault();
+            if (isDraggingExistingProduct) return; // Если тащим существующий, эта логика не нужна
+
+            if (hoveredShelf) {
+                hoveredShelf.material.color.copy(hoveredShelf.userData.originalColor);
+            }
+            const canPlace = productGhostMesh && productGhostMesh.visible && productGhostMesh.userData.canPlace;
+
+            if (canPlace && draggedProductData) { // Если размещение возможно
+                const finalProductData = JSON.parse(event.dataTransfer.getData('application/json'));
+                const productMesh = createProductMesh(finalProductData); // Создаем финальный товар
+                productMesh.position.copy(productGhostMesh.position);    // Копируем позицию с призрака
+                updateMeshBoundingBox(productMesh);
+                scene.add(productMesh); // Добавляем в сцену
+
+                if (hoveredShelf) { // Связываем товар с полкой
+                    productMesh.userData.placedOnShelfUUID = hoveredShelf.uuid;
+                    hoveredShelf.userData.placedProductUUIDs.push(productMesh.uuid);
+                }
+            } else {
+                console.log("Размещение отменено или неверная позиция.");
+            }
+            // Очистка после drop
+            if (productGhostMesh) {
+                scene.remove(productGhostMesh); productGhostMesh.geometry.dispose(); productGhostMesh.material.dispose(); productGhostMesh = null;
+            }
+            draggedProductData = null;
+            hoveredShelf = null;
+        });
+
+        // Переменные для управления состоянием мыши (орбита, панорамирование)
+        let isOrbiting = false;
+        let isCtrlPanning = false;
+        let lastMouseX = 0, lastMouseY = 0;
+
+        // Вспомогательная функция для удаления текущей обводки
+        function removeCurrentOutline() {
+            if (currentOutlineMesh) {
+                scene.remove(currentOutlineMesh);
+                if (currentOutlineMesh.material) currentOutlineMesh.material.dispose();
+                currentOutlineMesh = null;
+            }
+        }
+
+        /**
+        * Обработчик нажатия кнопки мыши на холсте
+        */
+        canvas.addEventListener('mousedown', (event) => {
+            // Средняя кнопка мыши: орбита или Ctrl+панорамирование
+            if (event.button === 1) {
+                if (event.ctrlKey) { isCtrlPanning = true; } // Ctrl + Средняя кнопка
+                else { isOrbiting = true; }                  // Просто средняя кнопка
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+                canvas.style.cursor = 'move';
+                event.preventDefault();
+                return;
+            }
+            // Только левая кнопка мыши для выбора/перетаскивания товаров
+            if (event.button !== 0) return;
+
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const productMeshes = getAllPlacedProducts();
+            const intersects = raycaster.intersectObjects(productMeshes, false);
+            removeCurrentOutline(); // Убрать предыдущую обводку при любом клике левой кнопкой
+
+            if (intersects.length > 0) { // Если кликнули по товару
+                const clickedObject = intersects[0].object;
+                // Если уже тащим другой товар, не позволяем выбрать новый для перетаскивания
+                if (isDraggingExistingProduct && currentlyDraggedObject !== clickedObject) return;
+
+                selectedForOperation = clickedObject; // Выбираем объект для операций (удаление, обводка)
+                currentOutlineMesh = createWireframeOutline(selectedForOperation); // Создаем обводку
+                scene.add(currentOutlineMesh); // Добавляем обводку в сцену
+
+                // Начинаем перетаскивание этого объекта
+                currentlyDraggedObject = clickedObject;
+                isDraggingExistingProduct = true;
+
+                if (productGhostMesh) scene.remove(productGhostMesh); // Удаляем старый призрак
+                productGhostMesh = createProductMesh(currentlyDraggedObject.userData.productData, true); // Создаем призрак для таскаемого объекта
+                productGhostMesh.position.copy(currentlyDraggedObject.position); // Призрак на месте оригинала
+                updateMeshBoundingBox(productGhostMesh);
+                scene.add(productGhostMesh);
+                currentlyDraggedObject.visible = false; // Скрываем оригинал
+                canvas.style.cursor = 'grabbing';   // Меняем курсор
+            } else { // Клик по пустому месту
+                selectedForOperation = null; // Сбрасываем выбор
+            }
+        });
+
+        // Обработчик движения мыши над холстом
+        canvas.addEventListener('mousemove', (event) => {
+            if (isOrbiting) { // Если режим орбиты
+                const deltaX = event.clientX - lastMouseX;
+                const deltaY = event.clientY - lastMouseY;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+                cameraTheta -= deltaX * 0.005; // Вращение по горизонтали
+                cameraPhi -= deltaY * 0.005;   // Вращение по вертикали
+                cameraPhi = Math.max(minPhi, Math.min(maxPhi, cameraPhi)); // Ограничение вертикального вращения
+                 updateCameraPosition();
+            } else if (isCtrlPanning) { // Если режим Ctrl+панорамирования
+                const deltaX = event.clientX - lastMouseX;
+                lastMouseX = event.clientX;
+                const panSpeed = 0.5; // Скорость панорамирования
+                // Панорамирование вдоль стеллажа (по мировой оси Z после поворота стеллажа)
+                cameraTarget.z -= Math.sign(deltaX) * Math.abs(deltaX) * panSpeed * 0.1;
+                updateCameraPosition();
+            } else if (isDraggingExistingProduct && productGhostMesh) { // Если тащим существующий товар
+                positionAndValidateGhost(event, currentlyDraggedObject.userData.productData); // Обновляем позицию призрака
+                if (currentOutlineMesh) { // Обновляем позицию обводки, чтобы она следовала за призраком
+                    currentOutlineMesh.position.copy(productGhostMesh.position);
+                    currentOutlineMesh.rotation.copy(productGhostMesh.rotation);
+                    currentOutlineMesh.scale.copy(productGhostMesh.scale).multiplyScalar(1.02); // Масштаб с фактором
+                }
+            } else { // Если нет активных действий - логика для всплывающей подсказки
+                const rect = canvas.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / canvas.clientWidth) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / canvas.clientHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const productMeshes = getAllPlacedProducts();
+                const intersects = raycaster.intersectObjects(productMeshes, false);
+
+                if (intersects.length > 0) { // Если курсор над товаром
+                    const hoveredProduct = intersects[0].object;
+                    tooltipElement.style.display = 'block';
+                    tooltipElement.textContent = hoveredProduct.userData.productData.name;
+                    tooltipElement.style.left = `${event.clientX + 15}px`;
+                    tooltipElement.style.top = `${event.clientY - 25}px`;
+                } else { // Если курсор не над товаром
+                    tooltipElement.style.display = 'none';
+                }
+            }
+        });
+
+        // Обработчик отпускания кнопки мыши на холсте
+        canvas.addEventListener('mouseup', (event) => {
+            if (isOrbiting || isCtrlPanning) { // Завершение орбиты или Ctrl+панорамирования
+                isOrbiting = false;
+                isCtrlPanning = false;
+                canvas.style.cursor = 'default';
+                return;
+            }
+            if (event.button !== 0) return; // Только для левой кнопки
+
+            // Завершение перетаскивания существующего товара
+            if (isDraggingExistingProduct && currentlyDraggedObject && productGhostMesh) {
+                const canPlace = productGhostMesh.userData.canPlace;
+                if (canPlace) { // Если размещение возможно
+                    // Удаляем товар со старой полки
+                    if (currentlyDraggedObject.userData.placedOnShelfUUID) {
+                        const oldShelf = scene.getObjectByProperty('uuid', currentlyDraggedObject.userData.placedOnShelfUUID);
+                        if (oldShelf && oldShelf.userData.placedProductUUIDs) {
+                            const index = oldShelf.userData.placedProductUUIDs.indexOf(currentlyDraggedObject.uuid);
+                            if (index > -1) oldShelf.userData.placedProductUUIDs.splice(index, 1);
+                        }
+                    }
+                    // Устанавливаем новую позицию и связываем с новой полкой
+                    currentlyDraggedObject.position.copy(productGhostMesh.position);
+                    updateMeshBoundingBox(currentlyDraggedObject);
+                    if (hoveredShelf) {
+                        currentlyDraggedObject.userData.placedOnShelfUUID = hoveredShelf.uuid;
+                        hoveredShelf.userData.placedProductUUIDs.push(currentlyDraggedObject.uuid);
+                    } else { // Если не над полкой (не должно случиться, если canPlace=true)
+                        currentlyDraggedObject.userData.placedOnShelfUUID = null;
+                    }
+                    // Обновляем позицию обводки до финальной позиции объекта
+                    if(currentOutlineMesh && selectedForOperation === currentlyDraggedObject){
+                        currentOutlineMesh.position.copy(currentlyDraggedObject.position);
+                        currentOutlineMesh.rotation.copy(currentlyDraggedObject.rotation);
+                        currentOutlineMesh.scale.copy(currentlyDraggedObject.scale).multiplyScalar(1.02);
+                    }
+                } else { // Если размещение отменено
+                    // Обводка должна остаться на старом месте объекта
+                    if(currentOutlineMesh && selectedForOperation === currentlyDraggedObject){
+                        currentOutlineMesh.position.copy(currentlyDraggedObject.position);
+                        currentOutlineMesh.rotation.copy(currentlyDraggedObject.rotation);
+                        currentOutlineMesh.scale.copy(currentlyDraggedObject.scale).multiplyScalar(1.02);
+                    }
+                }
+                currentlyDraggedObject.visible = true; // Делаем оригинальный объект видимым
+            }
+
+            // Очистка после перетаскивания
+            if (productGhostMesh) {
+                scene.remove(productGhostMesh); productGhostMesh.geometry.dispose(); productGhostMesh.material.dispose(); productGhostMesh = null;
+            }
+            if(hoveredShelf){ // Сброс подсветки полки
+                hoveredShelf.material.color.copy(hoveredShelf.userData.originalColor);
+                hoveredShelf = null;
+            }
+            currentlyDraggedObject = null; // Сброс активно перетаскиваемого объекта
+            isDraggingExistingProduct = false; // Сброс флага перетаскивания
+            canvas.style.cursor = 'default'; // Возвращаем обычный курсор
+            // selectedForOperation не сбрасываем, чтобы объект оставался "выбранным" для удаления
+        });
+
+        // Обработчик колесика мыши для зума
+        canvas.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            // Не зумировать, если активно орбитальное вращение или Ctrl+панорамирование
+            if (isCtrlPanning || isOrbiting) return;
+
+            if (event.ctrlKey) {
+                // Можно добавить сюда другое действие на Ctrl+колесико, если нужно
+            } else { // Обычный ортографический зум
+                const zoomSpeed = 0.1;
+                const zoomFactor = event.deltaY < 0 ? (1 + zoomSpeed) : (1 - zoomSpeed);
+                cameraZoom *= zoomFactor;
+                cameraZoom = Math.max(minOrthoZoom, Math.min(maxOrthoZoom, cameraZoom)); // Ограничение зума
+                updateCameraProjection(); // Обновление проекции камеры
+            }
+        });
+
+        // Обработчик нажатия клавиш (для удаления)
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'Delete' || event.key === 'Backspace') { // Если нажата Delete или Backspace
+                if (selectedForOperation) { // И если есть выбранный для операции объект
+                    removeCurrentOutline(); // Удаляем обводку
+                    const productToDelete = selectedForOperation;
+
+                    // Удаляем товар из списка на его полке
+                    if (productToDelete.userData.placedOnShelfUUID) {
+                        const shelf = scene.getObjectByProperty('uuid', productToDelete.userData.placedOnShelfUUID);
+                        if (shelf && shelf.userData.placedProductUUIDs) {
+                            const index = shelf.userData.placedProductUUIDs.indexOf(productToDelete.uuid);
+                            if (index > -1) {
+                                shelf.userData.placedProductUUIDs.splice(index, 1);
+                            }
+                        }
+                    }
+                    // Удаляем товар из сцены
+                    scene.remove(productToDelete);
+                    // Освобождаем ресурсы геометрии и материала
+                    if (productToDelete.geometry) productToDelete.geometry.dispose();
+                    if (productToDelete.material) {
+                        if (Array.isArray(productToDelete.material)) {
+                            productToDelete.material.forEach(m => m.dispose());
+                        } else {
+                            productToDelete.material.dispose();
+                        }
+                    }
+                    selectedForOperation = null; // Сбрасываем выбор
+                    tooltipElement.style.display = 'none'; // Скрываем подсказку, если она была для этого товара
+                }
+            }
+        });
+
+        /**
+        * Функция для отображения выбранного стеллажа на сцене
+        */
+        function displayShelfUnit(shelfUnitData) {
+            if (currentDisplayedShelfUnit) {
+                scene.remove(currentDisplayedShelfUnit);
+                console.log("Removed previous shelf unit:", currentDisplayedShelfUnit.name);
+            }
+
+            const newcurrentDisplayedShelfUnit = createcurrentDisplayedShelfUnit(shelfUnitData);
+            newcurrentDisplayedShelfUnit.rotation.y = Math.PI / 2; // Поворот стеллажа на 90 градусов "лицом" к камере
+            newcurrentDisplayedShelfUnit.updateMatrixWorld();      // Обновление мировой матрицы после трансформации
+            scene.add(newcurrentDisplayedShelfUnit);
+            currentDisplayedShelfUnit = newcurrentDisplayedShelfUnit;
+
+            console.log("Displayed new shelf unit:", newcurrentDisplayedShelfUnit.name);
+        }
+            
+        /**
+        * Функция для заполнения HTML списка товаров
+        */
+        function populateProductList(products) {
+            productListDiv.innerHTML = "";
+            products.forEach(product => {
+                const item = document.createElement('div');
+                item.className = 'product-item';
+                item.draggable = true;
+                item.textContent = `${product.name} (${product.length}x${product.height}x${product.depth})`;
+                item.dataset.productInfo = JSON.stringify(product);
+
+                // Обработчик начала перетаскивания товара из HTML списка
+                item.addEventListener('dragstart', (event) => {
+                    removeCurrentOutline(); // Убрать обводку, если была
+                    draggedProductData = JSON.parse(event.target.dataset.productInfo);
+                    event.dataTransfer.setData('application/json', event.target.dataset.productInfo);
+                    event.dataTransfer.effectAllowed = 'copy';
+                    event.target.style.opacity = '0.9';
+                    if (productGhostMesh) scene.remove(productGhostMesh); // Удалить предыдущий призрак
+                    productGhostMesh = createProductMesh(draggedProductData, true);
+                    productGhostMesh.visible = false; // Сначала невидим
+                    scene.add(productGhostMesh);
+                    isDraggingExistingProduct = false; // Это новый товар, а не существующий
+                    selectedForOperation = null;    // Сбросить выбор
+                });
+
+                // Обработчик окончания перетаскивания товара из HTML списка
+                item.addEventListener('dragend', (event) => {
+                    event.target.style.opacity = '1';
+                    draggedProductData = null;
+                    if (productGhostMesh) { // Удалить призрак
+                        scene.remove(productGhostMesh);
+                        productGhostMesh.geometry.dispose();
+                        productGhostMesh.material.dispose();
+                        productGhostMesh = null;
+                    }
+                });
+                   
+                productListDiv.appendChild(item);
+            });
+        }
+        get_products().then(d => {populateProductList(d);});
+
+        function populateShelfUnitList(shelfUnits) {
+            shelfUnitListDiv.innerHTML = "";
+            shelfUnits.forEach(shelfUnitData => {
+                const item = document.createElement('div');
+                item.className = 'shelfUnit-item';
+                item.textContent = `Стеллаж №: ${shelfUnitData.shelf_unit_number}`;
+                item.dataset.shelfUnitInfo = JSON.stringify(shelfUnitData);
+        
+                item.addEventListener('click', function() {
+                    const clickedShelfUnitData = JSON.parse(this.dataset.shelfUnitInfo);
+                    displayShelfUnit(clickedShelfUnitData);
+                });
+        
+                shelfUnitListDiv.appendChild(item);
+            });
+        }
+        get_shelfUnits().then(d => {populateShelfUnitList(d);});
 
         // Цикл рендеринга
         function render(time) {
