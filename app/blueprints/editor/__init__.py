@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, jsonify
-from DataLayer.dao import ProductDAO
+from DataLayer.dao import ProductDAO, ShelfUnitDAO
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -15,3 +15,7 @@ async def get_products(): # TODO Можно получать товары по �
     products = [product.to_dict() for product in ProductDAO.get_all()]
     return jsonify(products)
 
+@editor_bp.route('/get_shelfUnits', methods=['GET'])
+async def get_shelfUnits():
+    shelfUnits = [shelfUnit.to_dict() for shelfUnit in ShelfUnitDAO.get_all()]
+    return jsonify(shelfUnits)

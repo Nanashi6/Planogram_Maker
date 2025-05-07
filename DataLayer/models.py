@@ -173,6 +173,17 @@ class ShelfUnit(Base):
         cascade="all, delete-orphan"
     )
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект Product в словарь, включая связанные category и brand."""
+        data = super().to_dict()
+
+        if self.shelves:
+            data['shelves'] = [shelf.to_dict() for shelf in self.shelves]
+        else:
+            data['shelves'] = None
+            
+        return data
+
 class Planogram(Base):
     name: Mapped[str]
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), default=func.now())
