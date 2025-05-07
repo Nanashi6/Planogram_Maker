@@ -31,6 +31,29 @@
     .product-item:active {
         cursor: grabbing;
     }
+
+    #shelfUnit-list-container {
+        width: 20vw;
+        height: 100vh;
+        overflow-y: auto;
+        border-left: 1px solid #ccc;
+        padding: 10px;
+        box-sizing: border-box;
+        background-color: #f0f0f0;
+    }
+    #shelfUnit-list-container h3 { margin-top: 0; }
+    .shelfUnit-item {
+        border: 1px solid #ddd;
+        padding: 8px;
+        margin-bottom: 5px;
+        background-color: #fff;
+        cursor: pointer;
+        user-select: none;
+    }
+    .shelfUnit-item:hover {
+        background-color: gray;
+    }
+
     #tooltip {
         position: absolute;
         display: none;
@@ -54,6 +77,11 @@
         <div id="product-list"></div>
     </div>
     <div id="tooltip"></div>
+
+    <div id="shelfUnit-list-container">
+        <h3>ShelfUnits</h3>
+        <div id="shelfUnit-list"></div>
+    </div>
 </div>
 {% endblock %}
 
@@ -70,6 +98,10 @@
 <script type="module">
     import * as THREE from 'three';
 
+    const scene = new THREE.Scene();
+    const SHELF_THICKNESS = 5; // Толщина доски полки
+    let currentDisplayedShelfUnit = null; // Хранит ссылку на текущий отображаемый стеллаж
+
     /** 
     *   Функция для изменения размера рендерера в соответствии с размером холста
     */
@@ -85,7 +117,109 @@
         return needResize;
     }
 
+    /** 
+    * Функция для создания 3D-модели стеллажа 
+    */
+    function createShelfUnitMesh(shelfUnitData, shelfGap = 2) {
+        const shelfUnitGroup = new THREE.Group();
+        shelfUnitGroup.name = `shelfUnit_${shelfUnitData.shelf_unit_number}`;
+        shelfUnitGroup.userData.isShelfUnit = true;
+        let currentY = 0;
+        const sortedShelves = [...shelfUnitData.shelves].sort((a, b) => a.shelf_number - b.shelf_number);
+        const baseColor = 0xaaaaaa;
 
+        sortedShelves.forEach((shelfData, index) => {
+            if (shelfData.length <= 0 || shelfData.depth <= 0) {
+                console.warn(`Полка ${shelfData.shelf_number} имеет неверные размеры (длина/глубина), пропускается.`);
+                return;
+            }
+            if (shelfData.height <= 0) {
+                console.warn(`Полка ${shelfData.shelf_number} имеет неверную полезную высоту, используется значение по умолчанию 50.`);
+                shelfData.height = 50;
+            }
+
+            const shelfBoardGeometry = new THREE.BoxGeometry(shelfData.length, SHELF_THICKNESS, shelfData.depth);
+            const material = new THREE.MeshBasicMaterial({
+                color: new THREE.Color(baseColor).offsetHSL(0, 0, index * 0.05),
+                opacity: 0.95, transparent: true,
+            });
+            const shelfMesh = new THREE.Mesh(shelfBoardGeometry, material);
+            shelfMesh.name = `shelf_${shelfData.shelf_number}`;
+            shelfMesh.userData = {
+                isShelf: true, shelfNumber: shelfData.shelf_number,
+                shelfUnitNumber: shelfUnitData.shelf_unit_number,
+                originalColor: material.color.clone(), placedProductUUIDs: [],
+                usableHeight: shelfData.height, shelfThickness: SHELF_THICKNESS
+            };
+            shelfMesh.position.set(0, currentY + SHELF_THICKNESS / 2, 0);
+            shelfUnitGroup.add(shelfMesh);
+            currentY += SHELF_THICKNESS + shelfData.height + shelfGap;
+        });
+
+        const maxWidth = Math.max(0, ...sortedShelves.map(s => s.length));
+        const maxDepth = Math.max(0, ...sortedShelves.map(s => s.depth));
+        const legHeight = 10;
+        if (sortedShelves.length > 0) {
+            const baseGeometry = new THREE.BoxGeometry(maxWidth, legHeight, maxDepth);
+            const baseMaterial = new THREE.MeshBasicMaterial({ color: 0x555555 });
+            const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+            baseMesh.position.set(0, -legHeight / 2, 0);
+            shelfUnitGroup.add(baseMesh);
+            shelfUnitGroup.position.y = legHeight;
+        }
+        return shelfUnitGroup;
+    }
+    
+    /**
+    * Функция для отображения выбранного стеллажа на сцене
+    */
+    function displayShelfUnit(shelfUnitData) {
+        if (currentDisplayedShelfUnit) {
+            scene.remove(currentDisplayedShelfUnit);
+            console.log("Removed previous shelf unit:", currentDisplayedShelfUnit.name);
+        }
+
+        const newShelfUnitMesh = createShelfUnitMesh(shelfUnitData);
+        scene.add(newShelfUnitMesh);
+        currentDisplayedShelfUnit = newShelfUnitMesh;
+
+        console.log("Displayed new shelf unit:", newShelfUnitMesh.name);
+    }
+
+    //#region API
+    const shelfUnitListDiv = document.getElementById('shelfUnit-list')
+    async function get_shelfUnits() {
+        const apiUrl = `/editor/get_shelfUnits`;
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error loading shelfUnits list:", error);
+        } finally {
+            console.log('Стеллажи удачно загружены')
+        }
+    }
+    const shelfUnits = get_shelfUnits();
+
+    function populateShelfUnitList(shelfUnits) {
+        shelfUnitListDiv.innerHTML = "";
+        shelfUnits.forEach(shelfUnitData => {
+            const item = document.createElement('div');
+            item.className = 'shelfUnit-item';
+            item.textContent = `Стеллаж №: ${shelfUnitData.shelf_unit_number}`;
+            item.dataset.shelfUnitInfo = JSON.stringify(shelfUnitData);
+
+            item.addEventListener('click', function() {
+                const clickedShelfUnitData = JSON.parse(this.dataset.shelfUnitInfo);
+                displayShelfUnit(clickedShelfUnitData);
+            });
+
+            shelfUnitListDiv.appendChild(item);
+        });
+    }
+    shelfUnits.then(d => {populateShelfUnitList(d);});
 
     const productListDiv = document.getElementById('product-list')
     async function get_products() {
@@ -94,9 +228,6 @@
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
-
-            console.log(data)
-            
             return data;
         } catch (error) {
             console.error("Error loading products list:", error);
@@ -104,7 +235,7 @@
             console.log('Товары удачно загружены')
         }
     }
-    const products = get_products()
+    const products = get_products();
 
     // Функция для заполнения HTML списка товаров
     function populateProductList(products) {
@@ -118,8 +249,8 @@
             productListDiv.appendChild(item);
         });
     }
-    products.then(d => {populateProductList(d);})
-
+    products.then(d => {populateProductList(d);});
+    //#endregion
 
     /**
     * Основная функция приложения
@@ -174,8 +305,6 @@
         }
         updateCameraPosition(); // Начальная установка камеры
 
-        const scene = new THREE.Scene();
-        
         // Цикл рендеринга
         function render(time) {
             time *= 0.001; // Конвертация времени в секунды
