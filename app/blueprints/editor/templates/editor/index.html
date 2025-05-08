@@ -199,6 +199,44 @@
     //#endregion
 
     /**
+     * Функция для генерации числового хеша из строки.
+     * @param {string} str - Входная строка (например, имя бренда).
+     * @returns {number} Числовой хеш.
+     */
+     function simpleStringHash(str) {
+        let hash = 0;
+        if (!str || str.length === 0) {
+            return hash;
+        }
+        for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = (hash << 5) - hash + char;
+            hash |= 0;
+        }
+        return Math.abs(hash);
+    }
+
+    /**
+     * Генерирует цвет на основе числового хеша.
+     * @param {number} hash - Числовой хеш.
+     * @returns {THREE.Color} Сгенерированный цвет.
+     */
+    function colorFromHash(hash) {
+        const r = (hash & 0xFF0000) >> 16;
+        const g = (hash & 0x00FF00) >> 8;
+        const b = hash & 0x0000FF;
+
+        const minComponent = 50;
+        const range = 255 - minComponent;
+
+        const finalR = minComponent + (r % range);
+        const finalG = minComponent + (g % range);
+        const finalB = minComponent + (b % range);
+
+        return new THREE.Color(`rgb(${finalR}, ${finalG}, ${finalB})`);
+    }
+
+    /**
     * Функция для создания 3D-модели товара (куба)
     */
     function createProductMesh(productData, isGhost = false) {
@@ -206,8 +244,18 @@
         if (!geometry.boundingBox) {
             geometry.computeBoundingBox();
         }
+
+        let productColor;
+        if (isGhost) {
+            productColor = new THREE.Color(0x00ff00); // Зеленый для "призрака"
+        } else {
+            const brandIdentifier = productData.brand.name + " " + productData.category.name || productData.name || "default_brand";
+            const brandHash = simpleStringHash(brandIdentifier);
+            productColor = colorFromHash(brandHash);
+        }
+
         const material = new THREE.MeshBasicMaterial({
-            color: isGhost ? 0x00ff00 : Math.random() * 0xffffff, // Зеленый для "призрака", случайный для обычного
+            color: productColor,
             transparent: true,
             opacity: isGhost ? 0.6 : 1.0
         });
