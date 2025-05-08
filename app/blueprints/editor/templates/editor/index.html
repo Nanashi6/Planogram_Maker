@@ -755,15 +755,32 @@
             if (currentDisplayedShelfUnit) {
                 scene.remove(currentDisplayedShelfUnit);
                 console.log("Removed previous shelf unit:", currentDisplayedShelfUnit.name);
+                currentDisplayedShelfUnit = null;
             }
 
-            const newcurrentDisplayedShelfUnit = createcurrentDisplayedShelfUnit(shelfUnitData);
-            newcurrentDisplayedShelfUnit.rotation.y = Math.PI / 2; // Поворот стеллажа на 90 градусов "лицом" к камере
-            newcurrentDisplayedShelfUnit.updateMatrixWorld();      // Обновление мировой матрицы после трансформации
-            scene.add(newcurrentDisplayedShelfUnit);
-            currentDisplayedShelfUnit = newcurrentDisplayedShelfUnit;
+            const productsToRemove = [];
+            scene.traverse((object) => {
+                if (object.userData.isProduct && !object.userData.isGhost) {
+                    productsToRemove.push(object);
+                }
+            });
 
-            console.log("Displayed new shelf unit:", newcurrentDisplayedShelfUnit.name);
+            productsToRemove.forEach(product => {
+                scene.remove(product);
+                console.log("Removed product:", product.name);
+            });
+            if(selectedForOperation && !scene.getObjectByProperty('uuid', selectedForOperation.uuid)){
+                selectedForOperation = null;
+                removeCurrentOutline();
+            }
+
+            const newShelfUnit = createcurrentDisplayedShelfUnit(shelfUnitData);
+            newShelfUnit.rotation.y = Math.PI / 2;
+            newShelfUnit.updateMatrixWorld();
+            scene.add(newShelfUnit);
+            currentDisplayedShelfUnit = newShelfUnit;
+
+            console.log("Displayed new shelf unit:", currentDisplayedShelfUnit.name);
         }
             
         /**
