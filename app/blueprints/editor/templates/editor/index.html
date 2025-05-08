@@ -289,10 +289,16 @@
             const shelfMesh = new THREE.Mesh(shelfBoardGeometry, material);
             shelfMesh.name = `shelf_${shelfData.shelf_number}`;
             shelfMesh.userData = {
-                isShelf: true, shelfNumber: shelfData.shelf_number,
+                isShelf: true,
+                shelfNumber: shelfData.shelf_number, // Порядковый номер на стеллаже
+                db_id: shelfData.id,                 
                 shelfUnitNumber: shelfUnitData.shelf_unit_number,
-                originalColor: material.color.clone(), placedProductUUIDs: [],
-                usableHeight: shelfData.height, shelfThickness: SHELF_THICKNESS
+                originalColor: material.color.clone(),
+                placedProductUUIDs: [],
+                usableHeight: shelfData.height, // Полезная высота НАД этой полкой
+                shelfThickness: SHELF_THICKNESS,
+                shelfLength: shelfData.length,
+                shelfDepthVal: shelfData.depth
             };
             shelfMesh.position.set(0, currentY + SHELF_THICKNESS / 2, 0);
             shelfUnitGroup.add(shelfMesh);
@@ -481,7 +487,7 @@
         const tooltipElement = document.getElementById('tooltip');
         if (!productListDiv || !tooltipElement || !shelfUnitListDiv || !planogramListDiv) { console.error("КРИТИЧЕСКАЯ ОШИБКА: UI элемент не найден!"); return; }
 
-        let currentDisplayedShelfUnit = NaN
+        let currentDisplayedShelfUnit = null;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
         renderer.setClearColor(0xDDDDDD);
@@ -539,6 +545,9 @@
         let isDraggingExistingProduct = false; // Флаг, что перетаскивается уже размещенный товар
         let selectedForOperation = null;    // Товар, выбранный для операции (удаления, обводки)
         let currentOutlineMesh = null;      // Текущий меш обводки выбранного товара
+
+        // Кэш для продуктов
+        const allProductsFromListCache = new Map(); // { productId: productData }
 
         // Функция для получения всех размещенных товаров на сцене (кроме исключенного)
         function getAllPlacedProducts(excludeMesh = null) {
@@ -769,6 +778,7 @@
                 cameraTarget.z -= Math.sign(deltaX) * Math.abs(deltaX) * panSpeed * 0.1;
                 updateCameraPosition();
             } else if (isDraggingExistingProduct && productGhostMesh) { // Если тащим существующий товар
+                if (!currentDisplayedShelfUnit) return;
                 positionAndValidateGhost(event, currentlyDraggedObject.userData.productData); // Обновляем позицию призрака
                 if (currentOutlineMesh) { // Обновляем позицию обводки, чтобы она следовала за призраком
                     currentOutlineMesh.position.copy(productGhostMesh.position);
@@ -942,13 +952,85 @@
 
             console.log("Displayed new shelf unit:", currentDisplayedShelfUnit.name);
         }
-            
+           
+        // Функция для отображения планограммы
+        async function displayPlanogram(planogramData) {
+            displayShelfUnit(planogramData.shelf_unit);
+
+            // Даем время на рендеринг/обновление сцены
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await new Promise(resolve => requestAnimationFrame(resolve)); // Еще один кадр для надежности
+
+            if (!currentDisplayedShelfUnit) {
+                console.error("Не удалось отобразить стеллаж для планограммы. currentDisplayedShelfUnit is null.");
+                return;
+            }
+
+            const productsByShelfDbId = {};
+            planogramData.placed_products.forEach(pp => {
+                if (!productsByShelfDbId[pp.shelf_id]) { // shelf_id здесь - это DB ID полки
+                    productsByShelfDbId[pp.shelf_id] = [];
+                }
+                productsByShelfDbId[pp.shelf_id].push(pp);
+            });
+
+            for (const shelfDbId in productsByShelfDbId) {
+                productsByShelfDbId[shelfDbId].sort((a, b) => a.position - b.position);
+            }
+
+            for (const shelfDbIdStr in productsByShelfDbId) {
+                const shelfDbId = parseInt(shelfDbIdStr);
+                const placedProductsOnThisShelf = productsByShelfDbId[shelfDbId];
+
+                const targetShelfMesh = currentDisplayedShelfUnit.children.find(
+                    child => child.userData.isShelf && child.userData.db_id === shelfDbId
+                );
+
+                if (!targetShelfMesh) {
+                    console.warn(`Полка с DB ID ${shelfDbId} не найдена на стеллаже.`);
+                    continue;
+                }
+
+                const shelfWorldPosition = new THREE.Vector3();
+                targetShelfMesh.getWorldPosition(shelfWorldPosition);
+                const shelfTopSurfaceY = shelfWorldPosition.y + targetShelfMesh.userData.shelfThickness / 2;
+                const shelfActualLength = targetShelfMesh.userData.shelfLength; // Длина полки (по Z после поворота)
+                let currentZOffset = -shelfActualLength / 2; // Начинаем с "левого" края полки (отрицательное Z)
+
+                for (const placedProductInfo of placedProductsOnThisShelf) {
+                    const productDataFromPlanogram = placedProductInfo.product;
+                    if (!productDataFromPlanogram) {
+                        console.warn(`Данные для товара (ID: ${placedProductInfo.product_id}) отсутствуют в планограмме.`);
+                        continue;
+                    }
+
+                    const productMesh = createProductMesh(productDataFromPlanogram);
+
+                    productMesh.position.y = shelfTopSurfaceY + productDataFromPlanogram.height / 2;
+                    productMesh.position.x = shelfWorldPosition.x; // Центрируем по глубине полки (мировая X)
+                    productMesh.position.z = currentZOffset + productDataFromPlanogram.depth / 2; // Размещаем по длине полки (мировая Z)
+
+                    updateMeshBoundingBox(productMesh);
+                    scene.add(productMesh);
+
+                    productMesh.userData.placedOnShelfUUID = targetShelfMesh.uuid;
+                    if (!targetShelfMesh.userData.placedProductUUIDs) targetShelfMesh.userData.placedProductUUIDs = [];
+                    targetShelfMesh.userData.placedProductUUIDs.push(productMesh.uuid);
+
+                    currentZOffset += productDataFromPlanogram.depth + 2; // FIXME + зазор
+                }
+            }
+            console.log("Планограмма отображена:", planogramData.name);
+        }
+
         /**
         * Функция для заполнения HTML списка товаров
         */
         function populateProductList(products) {
+            allProductsFromListCache.clear();
             productListDiv.innerHTML = "";
             products.forEach(product => {
+                allProductsFromListCache.set(product.id, product); // Кэшируем продукт по ID
                 const item = document.createElement('div');
                 item.className = 'product-item';
                 item.draggable = true;
