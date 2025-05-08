@@ -154,6 +154,22 @@ class PlacedProduct(Base):
 
     position: Mapped[int]
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект PlacedProduct в словарь"""
+        data = super().to_dict()
+
+        if self.shelf:
+            data['shelf'] = self.shelf.to_dict()
+        else:
+            data['shelf'] = None
+
+        if self.product:
+            data['product'] = self.product.to_dict()
+        else:
+            data['product'] = None
+            
+        return data
+
 class ShelfUnit(Base):
     __tablename__ = "shelf_units"
     
@@ -174,7 +190,7 @@ class ShelfUnit(Base):
     )
 
     def to_dict(self) -> dict:
-        """Конвертирует объект Product в словарь, включая связанные category и brand."""
+        """Конвертирует объект Shelf в словарь"""
         data = super().to_dict()
 
         if self.shelves:
@@ -201,3 +217,19 @@ class Planogram(Base):
         back_populates="planogram",
         cascade="all, delete-orphan"
     )
+
+    def to_dict(self) -> dict:
+        """Конвертирует объект Planogram в словарь"""
+        data = super().to_dict()
+
+        if self.shelf_unit:
+            data['shelf_unit'] = self.shelf_unit.to_dict()
+        else:
+            data['shelf_unit'] = None
+
+        if self.placed_products:
+            data['placed_products'] = [product.to_dict() for product in self.placed_products]
+        else:
+            data['placed_products'] = None
+            
+        return data

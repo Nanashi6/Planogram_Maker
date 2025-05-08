@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, jsonify
-from DataLayer.dao import ProductDAO, ShelfUnitDAO
+from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -19,3 +19,8 @@ async def get_products(): # TODO Можно получать товары по �
 async def get_shelfUnits():
     shelfUnits = [shelfUnit.to_dict() for shelfUnit in ShelfUnitDAO.get_all()]
     return jsonify(shelfUnits)
+
+@editor_bp.route('/get_planograms', methods=['GET'])
+async def get_planograms():
+    planograms = [planogram.to_dict() for planogram in PlanogramDAO.get_all()]
+    return jsonify(planograms)
