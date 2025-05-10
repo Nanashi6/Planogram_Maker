@@ -194,6 +194,8 @@
             <h3>Planograms</h3>
             <div id="planogram-list">
             </div>
+            <button id="save-planogram-btn" style="margin-top: 15px; padding: 8px 12px;">Save Current Planogram</button>
+            <input type="text" id="planogram-name-input" placeholder="Planogram Name" style="margin-top: 5px; width: calc(100% - 10px); padding: 5px;">
         </div>
     </div>
 
@@ -488,7 +490,12 @@
         const tooltipElement = document.getElementById('tooltip');
         if (!productListDiv || !tooltipElement || !shelfUnitListDiv || !planogramListDiv) { console.error("КРИТИЧЕСКАЯ ОШИБКА: UI элемент не найден!"); return; }
 
+        const savePlanogramButton = document.getElementById('save-planogram-btn');
+        const planogramNameInput = document.getElementById('planogram-name-input');
+
         let currentDisplayedShelfUnit = null;
+        let currentPlanogramId = null;
+        let currentShelfUnitDataForSave = null;
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
         renderer.setClearColor(0xDDDDDD);
@@ -951,12 +958,18 @@
             scene.add(newShelfUnit);
             currentDisplayedShelfUnit = newShelfUnit;
 
+            currentShelfUnitDataForSave = shelfUnitData;
+            currentPlanogramId = null; 
+
             console.log("Displayed new shelf unit:", currentDisplayedShelfUnit.name);
         }
            
         // Функция для отображения планограммы
         async function displayPlanogram(planogramData) {
             displayShelfUnit(planogramData.shelf_unit);
+
+            currentPlanogramId = planogramData.id; // Сохраняем ID загруженной планограммы
+            if(planogramNameInput) planogramNameInput.value = planogramData.name || ""; 
 
             // Даем время на рендеринг/обновление сцены
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -1111,6 +1124,106 @@
             });
         }
         get_planograms().then(d => {populatePlanogramList(d);});
+
+        function collectPlanogramDataForSave() {
+            if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
+                alert("Please select or load a shelf unit first.");
+                return null;
+            }
+    
+            const planogramName = planogramNameInput.value.trim();
+            if (!planogramName) {
+                alert("Please enter a name for the planogram.");
+                planogramNameInput.focus();
+                return null;
+            }
+    
+            const placedProductsData = [];
+            // Сгруппируем все меши товаров по их полкам (по UUID полки)
+            const productsOnShelvesMap = new Map(); // Map<shelfUUID, productMesh[]> 
+            getAllPlacedProducts().forEach(productMesh => {
+                const shelfUUID = productMesh.userData.placedOnShelfUUID;
+                if (shelfUUID) {
+                    if (!productsOnShelvesMap.has(shelfUUID)) {
+                        productsOnShelvesMap.set(shelfUUID, []);
+                    }
+                    productsOnShelvesMap.get(shelfUUID).push(productMesh);
+                }
+            });
+    
+            // Для каждой полки отсортируем товары и назначим 'position'
+            productsOnShelvesMap.forEach((productMeshesOnShelf, shelfUUID) => {
+                // Сортируем товары по Z-координате (от меньшего к большему - слева направо)
+                // Z-координата - центр товара.
+                productMeshesOnShelf.sort((a, b) => {
+                    const aLeftEdge = a.position.z - a.userData.productData.length / 2;
+                    const bLeftEdge = b.position.z - b.userData.productData.length / 2;
+                    return aLeftEdge - bLeftEdge;
+                });
+    
+                productMeshesOnShelf.forEach((productMesh, index) => {
+                    const shelfMesh = scene.getObjectByProperty('uuid', shelfUUID);
+                    if (shelfMesh && shelfMesh.userData.isShelf) {
+                        placedProductsData.push({
+                            position: index, // Порядковый номер на полке
+                            product_id: productMesh.userData.productId,
+                            shelf_id: shelfMesh.userData.db_id // ID полки
+                        });
+                    }
+                });
+            });
+    
+            const dataToSend = {
+                id: currentPlanogramId, // null для новой, или ID существующей
+                name: planogramName,
+                // shelf_unit_id: currentDisplayedShelfUnit.userData.shelfUnitNumber, // или ID юнита из БД, если есть
+                shelf_unit_id: currentShelfUnitDataForSave.id, // Используем ID стеллажа из БД
+                placed_products: placedProductsData
+            };
+    
+            return dataToSend;
+        }
+
+        async function sendSavePlanogramRequest(planogramPayload) {
+            if (!planogramPayload) return;
+    
+            console.log("Sending to save:", JSON.stringify(planogramPayload, null, 2));
+            try {
+                const response = await fetch('/editor/save_planogram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(planogramPayload),
+                });
+    
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP error ${response.status}: ${errorData.error || 'Failed to save planogram'}`);
+                }
+    
+                const result = await response.json();
+                console.log('Planogram saved successfully:', result);
+                // alert(`Planogram "${result.name}" saved with ID: ${result.id}`);
+                if (result.id) { // Обновить currentPlanogramId, если это была новая планограмма
+                    currentPlanogramId = result.id; 
+                }
+                get_planograms().then(d => { if (d) populatePlanogramList(d); }); // Перезагрузить список планограмм
+    
+            } catch (error) {
+                console.error('Error saving planogram:', error);
+                // alert(`Error saving planogram: ${error.message}`);
+            }
+        }
+    
+        if (savePlanogramButton) {
+            savePlanogramButton.addEventListener('click', () => {
+                const planogramDataToSave = collectPlanogramDataForSave();
+                if (planogramDataToSave) {
+                    sendSavePlanogramRequest(planogramDataToSave);
+                }
+            });
+        }
 
         // Цикл рендеринга
         function render(time) {
