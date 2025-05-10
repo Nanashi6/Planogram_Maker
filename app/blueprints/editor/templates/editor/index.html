@@ -198,6 +198,7 @@
     </div>
 
     <div id="tooltip"></div>
+    <div id="empty-drag-image" style="width:1px; height:1px; background:transparent; position:absolute; top:-10px; left:-10px;"></div>
 </div>
 {% endblock %}
 
@@ -1039,22 +1040,27 @@
 
                 // Обработчик начала перетаскивания товара из HTML списка
                 item.addEventListener('dragstart', (event) => {
-                    removeCurrentOutline(); // Убрать обводку, если была
+                    removeCurrentOutline();
                     draggedProductData = JSON.parse(event.target.dataset.productInfo);
                     event.dataTransfer.setData('application/json', event.target.dataset.productInfo);
                     event.dataTransfer.effectAllowed = 'copy';
-                    event.target.style.opacity = '0.9';
-                    if (productGhostMesh) scene.remove(productGhostMesh); // Удалить предыдущий призрак
+                
+                    const emptyImage = document.getElementById('empty-drag-image');
+                    if (emptyImage) {
+                        event.dataTransfer.setDragImage(emptyImage, 0, 0);
+                    }
+                
+                    if (productGhostMesh) scene.remove(productGhostMesh);
                     productGhostMesh = createProductMesh(draggedProductData, true);
-                    productGhostMesh.visible = false; // Сначала невидим
+                    productGhostMesh.visible = false; // Сначала невидим, покажется в dragover
                     scene.add(productGhostMesh);
-                    isDraggingExistingProduct = false; // Это новый товар, а не существующий
-                    selectedForOperation = null;    // Сбросить выбор
+                    isDraggingExistingProduct = false;
+                    selectedForOperation = null;
                 });
 
                 // Обработчик окончания перетаскивания товара из HTML списка
                 item.addEventListener('dragend', (event) => {
-                    event.target.style.opacity = '1';
+                    // event.target.style.opacity = '1';
                     draggedProductData = null;
                     if (productGhostMesh) { // Удалить призрак
                         scene.remove(productGhostMesh);
