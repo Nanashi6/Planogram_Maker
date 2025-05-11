@@ -176,6 +176,9 @@
             <button class="tab-button" data-tab="planograms">
                 <span class="tab-button-text">Planograms</span>
             </button>
+            <button class="tab-button" data-tab="stackingRules">
+                <span class="tab-button-text">Stacking Rules</span>
+            </button>
         </div>
 
         <div id="tab-content-products" class="tab-content active">
@@ -196,6 +199,15 @@
             </div>
             <button id="save-planogram-btn" style="margin-top: 15px; padding: 8px 12px;">Save Current Planogram</button>
             <input type="text" id="planogram-name-input" placeholder="Planogram Name" style="margin-top: 5px; width: calc(100% - 10px); padding: 5px;">
+        </div>
+
+        <div id="tab-content-stackingRules" class="tab-content">
+            <h3>Stacking Rules</h3>
+            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
+                <input type="file" id="rules-file-input" accept=".xml" style="display: none;">
+                <button id="load-rules-btn">Load Rules from XML</button>
+                <span id="loaded-rules-filename" style="margin-left: 10px; font-style: italic; color: #555;"></span>
+            </div>
         </div>
     </div>
 
