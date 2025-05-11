@@ -24,7 +24,7 @@ async def create():
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/create.html', title='Home', form=form)
 
-@categories_bp.route('/update/<int:id>', methods=['GET', 'PUT'])
+@categories_bp.route('/update/<int:id>', methods=['GET', 'POST'])
 async def update(id: int):
     category = CategoryDAO.get_by_id(id)
     if not category:

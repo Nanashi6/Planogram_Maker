@@ -39,7 +39,7 @@ async def create():
             return redirect(url_for('.create'))
     return render_template(f'{BASE_URL}/create.html', title='Create Product', form=form)
 
-@products_bp.route('/update/<int:id>', methods=['GET', 'PUT'])
+@products_bp.route('/update/<int:id>', methods=['GET', 'POST'])
 async def update(id: int):
     product = ProductDAO.get_by_id(id)
     if not product:

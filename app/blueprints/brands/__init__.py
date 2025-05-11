@@ -24,7 +24,7 @@ async def create():
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/create.html', title='Home', form=form)
 
-@brands_bp.route('/update/<int:id>', methods=['GET', 'PUT'])
+@brands_bp.route('/update/<int:id>', methods=['GET', 'POST'])
 async def update(id: int):
     brand = BrandDAO.get_by_id(id)
     if not brand:

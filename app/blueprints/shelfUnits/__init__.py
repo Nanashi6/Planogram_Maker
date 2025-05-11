@@ -29,7 +29,7 @@ async def create():
             return redirect(url_for('.create'))
     return render_template(f'{BASE_URL}/create.html', title='Create Shelf Unit', form=form)
 
-@shelfUnits_bp.route('/update/<int:id>', methods=['GET', 'PUT'])
+@shelfUnits_bp.route('/update/<int:id>', methods=['GET', 'POST'])
 async def update(id: int):
     shelf_unit = ShelfUnitDAO.get_by_id(id)
     if not shelf_unit:

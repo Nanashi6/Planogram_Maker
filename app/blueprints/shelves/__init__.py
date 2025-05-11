@@ -34,7 +34,7 @@ async def create():
             return redirect(url_for('.create'))
     return render_template(f'{BASE_URL}/create.html', title='Create Shelf', form=form)
 
-@shelves_bp.route('/update/<int:id>', methods=['GET', 'PUT'])
+@shelves_bp.route('/update/<int:id>', methods=['GET', 'POST'])
 async def update(id: int):
     shelf = ShelfDAO.get_by_id(id)
     if not shelf:

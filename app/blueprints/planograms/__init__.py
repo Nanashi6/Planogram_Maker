@@ -25,7 +25,7 @@ async def create():
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/create.html', title='Create Planogram', form=form)
 
-@planograms_bp.route('/update/<int:id>', methods=['GET', 'PUT'])
+@planograms_bp.route('/update/<int:id>', methods=['GET', 'POST'])
 async def update(id: int):
     planogram = PlanogramDAO.get_by_id(id)
     if not planogram:
