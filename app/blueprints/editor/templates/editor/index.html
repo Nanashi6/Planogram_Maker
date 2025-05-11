@@ -204,8 +204,8 @@
         <div id="tab-content-stackingRules" class="tab-content">
             <h3>Stacking Rules</h3>
             <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
-                <input type="file" id="rules-file-input" accept=".xml" style="display: none;">
-                <button id="load-rules-btn">Load Rules from XML</button>
+                <input type="file" id="rules-file-input" accept=".xml, .json" style="display: none;">
+                <button id="load-rules-btn">Load Rules</button>
                 <span id="loaded-rules-filename" style="margin-left: 10px; font-style: italic; color: #555;"></span>
             </div>
         </div>
@@ -581,6 +581,25 @@
             return products;
         }
 
+        function deleteAllPlacedProducts() {
+            const productsToRemove = getAllPlacedProducts();
+            productsToRemove.forEach(product => {
+                scene.remove(product);
+            });
+
+            if (currentDisplayedShelfUnit) { // Очищаем userData.placedProductUUIDs на полках текущего стеллажа
+                currentDisplayedShelfUnit.children.forEach(child => {
+                    if (child.userData.isShelf) {
+                        child.userData.placedProductUUIDs = [];
+                    }
+                });
+            }
+            if (selectedForOperation) { // Если был выбран товар, обводку тоже убираем
+                removeCurrentOutline();
+                selectedForOperation = null;
+            }
+        }
+
         let hoveredShelf = null; // Полка, над которой находится курсор
         const placementPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Плоскость для определения точки пересечения
 
@@ -948,21 +967,7 @@
                 currentDisplayedShelfUnit = null;
             }
 
-            const productsToRemove = [];
-            scene.traverse((object) => {
-                if (object.userData.isProduct && !object.userData.isGhost) {
-                    productsToRemove.push(object);
-                }
-            });
-
-            productsToRemove.forEach(product => {
-                scene.remove(product);
-                console.log("Removed product:", product.name);
-            });
-            if(selectedForOperation && !scene.getObjectByProperty('uuid', selectedForOperation.uuid)){
-                selectedForOperation = null;
-                removeCurrentOutline();
-            }
+            deleteAllPlacedProducts();
 
             const newShelfUnit = createcurrentDisplayedShelfUnit(shelfUnitData);
             newShelfUnit.rotation.y = Math.PI / 2;
