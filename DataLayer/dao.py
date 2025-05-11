@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, case
 from sqlalchemy.orm import joinedload
 
 from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram
@@ -164,11 +164,12 @@ class ProductDAO(BaseDAO[Product]):
             Список объектов Product, соответствующих критериям.
         """
         or_conditions = []
+        category_order_cases = []
 
         if not category_filters:
             return []
 
-        for cat_filter in category_filters:
+        for index, cat_filter in enumerate(category_filters):
             category_name = cat_filter.get("name")
             min_weight = cat_filter.get("product_volume_min")
             max_weight = cat_filter.get("product_volume_max")
@@ -179,6 +180,7 @@ class ProductDAO(BaseDAO[Product]):
                 continue 
             
             current_group_conditions.append(Product.category.has(Category.name == category_name))
+            category_order_cases.append(((Category.name == category_name), index))
 
             if min_weight is not None:
                 current_group_conditions.append(Product.weight >= min_weight)
@@ -193,12 +195,19 @@ class ProductDAO(BaseDAO[Product]):
 
         all_conditions = []
         all_conditions.append(or_(*or_conditions))
-        all_conditions.append(Product.height <= max_height)
+        if max_height != float('inf'):
+            all_conditions.append(Product.height <= max_height)
+
+        order_by_expression = case(
+            *[(Product.category.has(cond), value) for cond, value in category_order_cases],
+            else_=len(category_filters)
+        ).label("category_sort_order")
 
         stmt = (
-            select(Product)
+            select(Product, order_by_expression)
             .join(Product.category)
             .where(and_(*all_conditions))
+            .order_by(order_by_expression, Product.id)
             .options(joinedload(Product.category))
             .distinct()
         )
