@@ -11,7 +11,7 @@ class CreateProduct(FlaskForm):
         choices=[(segment.value, segment.value) for segment in SegmentEnum],
         coerce=SegmentEnum
     )
-    product_name = StringField('Product Name', validators=[DataRequired()])
+    name = StringField('Product Name', validators=[DataRequired()])
     barcode = IntegerField('Barcode', validators=[DataRequired()])
     SKU_rating = SelectField(
         'SKU Rating',

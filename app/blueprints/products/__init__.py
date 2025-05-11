@@ -21,7 +21,7 @@ async def create():
     if form.validate_on_submit():
         product_data = Product(
             segment=form.segment.data,
-            product_name=form.product_name.data,
+            name=form.name.data,
             barcode=form.barcode.data,
             SKU_rating=form.SKU_rating.data,
             length=form.length.data,
@@ -50,7 +50,7 @@ async def update(id: int):
     if form.validate_on_submit():
         product_data = Product(
             segment=form.segment.data,
-            product_name=form.product_name.data,
+            name=form.name.data,
             barcode=form.barcode.data,
             SKU_rating=form.SKU_rating.data,
             length=form.length.data,
