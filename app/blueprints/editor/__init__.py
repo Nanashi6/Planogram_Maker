@@ -2,6 +2,8 @@ from flask import Blueprint, render_template, redirect, url_for, jsonify, reques
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO
 from DataLayer.shemas import Planogram, PlacedProduct
 
+import json
+
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
 
@@ -87,48 +89,69 @@ async def calculate_auto_placement():
 
     if rules_file:
         try:
-            # Данные стеллажа
-            shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
-            if not shelf_unit:
+            # Парсинг правил
+            rules_content = rules_file.read().decode('utf-8')
+            parsed_rules = json.loads(rules_content)
+
+            # Получение данных стеллажа
+            shelf_unit_model = ShelfUnitDAO.get_by_id(shelf_unit_id)
+            if not shelf_unit_model:
                 return jsonify({"error": f"Стеллаж с ID {shelf_unit_id} не найден"}), 404
-
-            # ЗАГЛУШКА ДЛЯ ЛОГИКИ АВТОВЫКЛАДКИ
-            print(f"Получен файл правил: {rules_file.filename} для стеллажа ID: {shelf_unit_id}")
             
-            all_products = ProductDAO.get_all()
+            # для каждой полки (счётчик) +
+            # Цикл по категориям полки (получаю товары категориии с зад. условиями веса) +
+
+            # Проверка условий Расстановки товара (вертикальный отступ)
+
+            # Получаем правила расстановки
+            arrangement_rules = parsed_rules.get("shelf_arrangement_rules", {})
+            vertical_space = arrangement_rules.get("vertical_space", {}).get("min", 0)
+            product_spacing = float(arrangement_rules.get("product_spacing", {}).get("value", 0))
+
+            # 4. Итерация по полкам стеллажа (отсортированным по номеру)
+            sorted_shelves_from_db = sorted(shelf_unit_model.shelves, key=lambda s: s.shelf_number)
+
             placed_products_list = []
-            
-            if shelf_unit.shelves and len(shelf_unit.shelves) > 0:
-                first_shelf_db_id = shelf_unit.shelves[0].id
 
-                if len(all_products) >= 2:
-                    product1 = all_products[0]
-                    product2 = all_products[1]
-                    shelf1_db_id = shelf_unit.shelves[0].id
+            for shelf_model in sorted_shelves_from_db:
+                shelf_db_id = shelf_model.id
+                shelf_number_in_rules = shelf_model.shelf_number # Номер полки для поиска в правилах
 
-                    placed_products_list.append({
-                        "shelf_id": shelf1_db_id,
-                        "product_id": product1.id,
-                        "position": 0,
-                        "product": product1.to_dict()
-                    })
-                    placed_products_list.append({
-                        "shelf_id": shelf1_db_id,
-                        "product_id": product2.id,
-                        "position": 1,
-                        "product": product2.to_dict()
-                    })
-            # КОНЕЦ ЗАГЛУШКИ
+                # Найти правила для текущей полки
+                shelf_rule_data = next((r for r in parsed_rules.get("product_rules", {}).get("shelf", []) if r.get("number") == shelf_number_in_rules), None)
+                if not shelf_rule_data:
+                    print(f"Правила для полки номер {shelf_number_in_rules} не найдены, полка пропускается.")
+                    continue
+
+                products_for_shelf = ProductDAO.get_products_by_categories_and_weight(shelf_rule_data.get("category", []))
+
+                free_len = shelf_model.length
+                free_weights = shelf_model.max_weight
+                position_counter = 0
+
+                for product in products_for_shelf:
+                    if free_len - product.depth >= 0 or free_weights - product.weight >= 0:
+                        placed_products_list.append({
+                            "shelf_id": shelf_db_id,
+                            "product_id": product.id,
+                            "position": position_counter,
+                            "product": product.to_dict() # Полные данные о товаре для клиента
+                        })
+                        position_counter += 1
+                        free_len -= product.depth + product_spacing
+                        free_weights -= product.weight
 
             calculated_planogram_response = {
                 "id": None,
-                "name": f"Автовыкладка для стеллажа {shelf_unit.shelf_unit_number}",
-                "shelf_unit": shelf_unit.to_dict(),
+                "name": f"Автовыкладка для стеллажа {shelf_unit_model.shelf_unit_number}",
+                "shelf_unit": shelf_unit_model.to_dict(),
                 "placed_products": placed_products_list
             }
             
             return jsonify(calculated_planogram_response), 200
 
+        except json.JSONDecodeError:
+            return jsonify({"error": "Ошибка парсинга файла правил (неверный JSON)"}), 400
         except Exception as e:
             print(f"Ошибка при обработке файла правил: {e}")
             import traceback

@@ -3,6 +3,9 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
+from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import joinedload
+
 from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram
 from app import db
 
@@ -136,6 +139,70 @@ class BrandDAO(BaseDAO[Brand]):
 
 class ProductDAO(BaseDAO[Product]):
     model = Product
+
+    @classmethod
+    def get_products_by_categories_and_weight(cls, category_filters: list[dict]) -> list[Product]: #TODO Добавить условие для вертикального промежутка
+        """
+        Получает список товаров, соответствующих заданным критериям категорий и веса.
+        Args:
+            category_filters: Список словарей, где каждый словарь представляет фильтр
+                              для одной или нескольких категорий.
+                              Пример:
+                              [
+                                  {
+                                      "name": "Электроника",
+                                      "min_weight": 0.5,
+                                      "max_weight": 2.0 
+                                  },
+                                  {
+                                      "category_names": "Книги",
+                                  }
+                              ]
+                              Товары будут выбраны, если они принадлежат ЛЮБОЙ из указанных
+                              групп категорий И соответствуют весовым ограничениям ЭТОЙ группы.
+        Returns:
+            Список объектов Product, соответствующих критериям.
+        """
+        or_conditions = []
+
+        if not category_filters:
+            return []
+
+        for cat_filter in category_filters:
+            category_name = cat_filter.get("name")
+            min_weight = cat_filter.get("product_volume_min")
+            max_weight = cat_filter.get("product_volume_max")
+
+            current_group_conditions = []
+
+            if not category_name:
+                continue 
+            
+            current_group_conditions.append(Product.category.has(Category.name == category_name))
+
+            if min_weight is not None:
+                current_group_conditions.append(Product.weight >= min_weight)
+            if max_weight is not None:
+                current_group_conditions.append(Product.weight <= max_weight)
+            
+            if current_group_conditions:
+                or_conditions.append(and_(*current_group_conditions))
+        
+        if not or_conditions:
+            return []
+
+        stmt = (
+            select(Product)
+            .join(Product.category)
+            .where(or_(*or_conditions))
+            .options(joinedload(Product.category))
+            .distinct()
+        )
+        
+        result = db.session.execute(stmt)
+        products = result.scalars().all()
+        
+        return products
         
 class ShelfDAO(BaseDAO[Shelf]):
     model = Shelf
