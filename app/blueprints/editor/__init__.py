@@ -67,3 +67,72 @@ async def save_planogram():
     except Exception as e:
         print(f"Error saving planogram: {e}")
         return jsonify({"error": str(e)}), 500
+    
+@editor_bp.route('/calculate_auto_placement', methods=['POST'])
+async def calculate_auto_placement():
+    if 'rules_file' not in request.files:
+        return jsonify({"error": "Файл правил не найден"}), 400
+    if 'shelf_unit_id' not in request.form:
+        return jsonify({"error": "ID стеллажа не указан"}), 400
+
+    rules_file = request.files['rules_file']
+    shelf_unit_id_str = request.form['shelf_unit_id']
+
+    if not shelf_unit_id_str.isdigit():
+        return jsonify({"error": "Неверный ID стеллажа"}), 400
+    shelf_unit_id = int(shelf_unit_id_str)
+
+    if rules_file.filename == '':
+        return jsonify({"error": "Файл не выбран"}), 400
+
+    if rules_file:
+        try:
+            # Данные стеллажа
+            shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
+            if not shelf_unit:
+                return jsonify({"error": f"Стеллаж с ID {shelf_unit_id} не найден"}), 404
+
+            # ЗАГЛУШКА ДЛЯ ЛОГИКИ АВТОВЫКЛАДКИ
+            print(f"Получен файл правил: {rules_file.filename} для стеллажа ID: {shelf_unit_id}")
+            
+            all_products = ProductDAO.get_all()
+            placed_products_list = []
+            
+            if shelf_unit.shelves and len(shelf_unit.shelves) > 0:
+                first_shelf_db_id = shelf_unit.shelves[0].id
+
+                if len(all_products) >= 2:
+                    product1 = all_products[0]
+                    product2 = all_products[1]
+                    shelf1_db_id = shelf_unit.shelves[0].id
+
+                    placed_products_list.append({
+                        "shelf_id": shelf1_db_id,
+                        "product_id": product1.id,
+                        "position": 0,
+                        "product": product1.to_dict()
+                    })
+                    placed_products_list.append({
+                        "shelf_id": shelf1_db_id,
+                        "product_id": product2.id,
+                        "position": 1,
+                        "product": product2.to_dict()
+                    })
+            # КОНЕЦ ЗАГЛУШКИ
+
+            calculated_planogram_response = {
+                "id": None,
+                "name": f"Автовыкладка для стеллажа {shelf_unit.shelf_unit_number}",
+                "shelf_unit": shelf_unit.to_dict(),
+                "placed_products": placed_products_list
+            }
+            
+            return jsonify(calculated_planogram_response), 200
+
+        except Exception as e:
+            print(f"Ошибка при обработке файла правил: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": f"Ошибка сервера при обработке правил: {str(e)}"}), 500
+    else:
+        return jsonify({"error": "Неподдерживаемый тип файла или ошибка файла"}), 400

@@ -983,20 +983,25 @@
            
         // Функция для отображения планограммы
         async function displayPlanogram(planogramData) {
+            deleteAllPlacedProducts(); // Очистка от всех размещённых товаров
+            if (planogramData.shelf_unit && (!currentDisplayedShelfUnit || currentDisplayedShelfUnit.name !== `shelfUnit_${planogramData.shelf_unit.shelf_unit_number}`)) {
+                currentShelfUnitDataForSave = planogramData.shelf_unit; // Обновляем данные для сохранения
             displayShelfUnit(planogramData.shelf_unit);
+            } 
+            else if (!currentDisplayedShelfUnit) {
+                console.error("Нет данных о стеллаже для отображения планограммы и нет текущего отображаемого стеллажа.");
+                return;
+            }
 
-            currentPlanogramId = planogramData.id; // Сохраняем ID загруженной планограммы
+            currentPlanogramId = planogramData.id || null; // Если это "виртуальная" планограмма, ID может не быть
             if(planogramNameInput) planogramNameInput.value = planogramData.name || ""; 
-
-            // Даем время на рендеринг/обновление сцены
-            await new Promise(resolve => requestAnimationFrame(resolve));
-            await new Promise(resolve => requestAnimationFrame(resolve)); // Еще один кадр для надежности
 
             if (!currentDisplayedShelfUnit) {
                 console.error("Не удалось отобразить стеллаж для планограммы. currentDisplayedShelfUnit is null.");
                 return;
             }
 
+            // Расстановка товаров
             const productsByShelfDbId = {};
             planogramData.placed_products.forEach(pp => {
                 if (!productsByShelfDbId[pp.shelf_id]) { // shelf_id здесь - это DB ID полки
@@ -1018,7 +1023,7 @@
                 );
 
                 if (!targetShelfMesh) {
-                    console.warn(`Полка с DB ID ${shelfDbId} не найдена на стеллаже.`);
+                    console.warn(`Полка с DB ID ${shelfDbId} не найдена на стеллаже ${currentDisplayedShelfUnit.name}.`);
                     continue;
                 }
 
@@ -1029,17 +1034,23 @@
                 let currentZOffset = -shelfActualLength / 2; // Начинаем с "левого" края полки (отрицательное Z)
 
                 for (const placedProductInfo of placedProductsOnThisShelf) {
-                    const productDataFromPlanogram = placedProductInfo.product;
-                    if (!productDataFromPlanogram) {
-                        console.warn(`Данные для товара (ID: ${placedProductInfo.product_id}) отсутствуют в планограмме.`);
+                    let productDataDetails;
+                    if (placedProductInfo.product && typeof placedProductInfo.product === 'object') {
+                        productDataDetails = placedProductInfo.product;
+                    } else if (placedProductInfo.product_id) {
+                        productDataDetails = allProductsFromListCache.get(placedProductInfo.product_id);
+                    }
+
+                    if (!productDataDetails) {
+                        console.warn(`Данные для товара (ID: ${placedProductInfo.product_id || 'unknown'}) отсутствуют.`);
                         continue;
                     }
 
-                    const productMesh = createProductMesh(productDataFromPlanogram);
+                    const productMesh = createProductMesh(productDataDetails);
 
-                    productMesh.position.y = shelfTopSurfaceY + productDataFromPlanogram.height / 2;
-                    productMesh.position.x = shelfWorldPosition.x; // Центрируем по глубине полки (мировая X)
-                    productMesh.position.z = currentZOffset + productDataFromPlanogram.depth / 2; // Размещаем по длине полки (мировая Z)
+                    productMesh.position.y = shelfTopSurfaceY + productDataDetails.height / 2;
+                    productMesh.position.x = shelfWorldPosition.x;
+                    productMesh.position.z = currentZOffset + productDataDetails.depth / 2;
 
                     updateMeshBoundingBox(productMesh);
                     scene.add(productMesh);
@@ -1048,10 +1059,11 @@
                     if (!targetShelfMesh.userData.placedProductUUIDs) targetShelfMesh.userData.placedProductUUIDs = [];
                     targetShelfMesh.userData.placedProductUUIDs.push(productMesh.uuid);
 
-                    currentZOffset += productDataFromPlanogram.depth + 2; // FIXME + зазор
+                    const productSpacing = parseFloat(localStorage.getItem('product_spacing_cm') || "0.5");
+                    currentZOffset += productDataDetails.depth + productSpacing;
                 }
             }
-            console.log("Планограмма отображена:", planogramData.name);
+            console.log("Планограмма/автовыкладка отображена:", planogramData.name || "Результат автовыкладки");
         }
 
         /**
@@ -1238,6 +1250,71 @@
                 const planogramDataToSave = collectPlanogramDataForSave();
                 if (planogramDataToSave) {
                     sendSavePlanogramRequest(planogramDataToSave);
+                }
+            });
+        }
+
+        const loadRulesButton = document.getElementById('load-rules-btn');
+        const rulesFileInput = document.getElementById('rules-file-input');
+        const loadedRulesFilenameSpan = document.getElementById('loaded-rules-filename');
+
+        // Обработчики для загрузки правил
+        if (loadRulesButton && rulesFileInput && loadedRulesFilenameSpan) {
+            loadRulesButton.addEventListener('click', () => {
+                rulesFileInput.click(); // Открыть диалог выбора файла
+            });
+
+            rulesFileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    loadedRulesFilenameSpan.textContent = "";
+                    return;
+                }
+
+                if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
+                    alert("Пожалуйста, сначала выберите или загрузите стеллаж для применения правил.");
+                    rulesFileInput.value = ""; // Сброс выбора файла
+                    loadedRulesFilenameSpan.textContent = "";
+                    return;
+                }
+
+                loadedRulesFilenameSpan.textContent = `Загружен: ${file.name}`;
+
+                // Отправка файла и ID стеллажа на сервер
+                const formData = new FormData();
+                formData.append('rules_file', file);
+                if (!currentShelfUnitDataForSave.id) {
+                    alert("Ошибка: ID текущего стеллажа не определен. Невозможно применить правила.");
+                    return;
+                }
+                formData.append('shelf_unit_id', currentShelfUnitDataForSave.id);
+
+                try {
+                    console.log("Отправка правил на расчет...");
+                    const response = await fetch('/editor/calculate_auto_placement', {
+                        method: 'POST',
+                        body: formData, // FormData устанавливает Content-Type автоматически
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`HTTP ошибка ${response.status}: ${errorData.error || 'Не удалось рассчитать автовыкладку'}`);
+                    }
+
+                    const calculatedPlanogramData = await response.json();
+                    console.log("Получена рассчитанная планограмма:", calculatedPlanogramData);
+
+                    // Отображение результата
+                    if (calculatedPlanogramData) {
+                        if(planogramNameInput) planogramNameInput.value = calculatedPlanogramData.name || `Автовыкладка для стеллажа ${currentShelfUnitDataForSave.shelf_unit_number}`;
+                        await displayPlanogram(calculatedPlanogramData);
+                        alert("Автовыкладка рассчитана и отображена.");
+                    }
+                } catch (error) {
+                    console.error('Ошибка при расчете автовыкладки:', error);
+                    alert(`Ошибка: ${error.message}`);
+                } finally {
+                    rulesFileInput.value = ""; 
                 }
             });
         }
