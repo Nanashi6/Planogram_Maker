@@ -105,7 +105,7 @@ async def calculate_auto_placement():
 
             # Получаем правила расстановки
             arrangement_rules = parsed_rules.get("shelf_arrangement_rules", {})
-            vertical_space = arrangement_rules.get("vertical_space", {}).get("min", 0)
+            vertical_space = float(arrangement_rules.get("vertical_space", {}).get("min", 0))
             product_spacing = float(arrangement_rules.get("product_spacing", {}).get("value", 0))
 
             # 4. Итерация по полкам стеллажа (отсортированным по номеру)
@@ -123,7 +123,7 @@ async def calculate_auto_placement():
                     print(f"Правила для полки номер {shelf_number_in_rules} не найдены, полка пропускается.")
                     continue
 
-                products_for_shelf = ProductDAO.get_products_by_categories_and_weight(shelf_rule_data.get("category", []))
+                products_for_shelf = ProductDAO.get_products_by_categories_and_weight(shelf_rule_data.get("category", []), shelf_model.height - vertical_space)
 
                 free_len = shelf_model.length
                 free_weights = shelf_model.max_weight

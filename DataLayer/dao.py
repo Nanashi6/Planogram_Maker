@@ -141,7 +141,7 @@ class ProductDAO(BaseDAO[Product]):
     model = Product
 
     @classmethod
-    def get_products_by_categories_and_weight(cls, category_filters: list[dict]) -> list[Product]: #TODO Добавить условие для вертикального промежутка
+    def get_products_by_categories_and_weight(cls, category_filters: list[dict], max_height: float = float('inf')) -> list[Product]:
         """
         Получает список товаров, соответствующих заданным критериям категорий и веса.
         Args:
@@ -191,10 +191,14 @@ class ProductDAO(BaseDAO[Product]):
         if not or_conditions:
             return []
 
+        all_conditions = []
+        all_conditions.append(or_(*or_conditions))
+        all_conditions.append(Product.height <= max_height)
+
         stmt = (
             select(Product)
             .join(Product.category)
-            .where(or_(*or_conditions))
+            .where(and_(*all_conditions))
             .options(joinedload(Product.category))
             .distinct()
         )
