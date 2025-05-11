@@ -97,20 +97,14 @@ async def calculate_auto_placement():
             shelf_unit_model = ShelfUnitDAO.get_by_id(shelf_unit_id)
             if not shelf_unit_model:
                 return jsonify({"error": f"Стеллаж с ID {shelf_unit_id} не найден"}), 404
-            
-            # для каждой полки (счётчик) +
-            # Цикл по категориям полки (получаю товары категориии с зад. условиями веса) +
-
-            # Проверка условий Расстановки товара (вертикальный отступ)
 
             # Получаем правила расстановки
             arrangement_rules = parsed_rules.get("shelf_arrangement_rules", {})
             vertical_space = float(arrangement_rules.get("vertical_space", {}).get("min", 0))
             product_spacing = float(arrangement_rules.get("product_spacing", {}).get("value", 0))
 
-            # 4. Итерация по полкам стеллажа (отсортированным по номеру)
+            # Итерация по полкам стеллажа (отсортированным по номеру)
             sorted_shelves_from_db = sorted(shelf_unit_model.shelves, key=lambda s: s.shelf_number)
-
             placed_products_list = []
 
             for shelf_model in sorted_shelves_from_db:
@@ -123,6 +117,7 @@ async def calculate_auto_placement():
                     print(f"Правила для полки номер {shelf_number_in_rules} не найдены, полка пропускается.")
                     continue
 
+                # TODO Сортировать товары по категориям и правилам из JSON
                 products_for_shelf = ProductDAO.get_products_by_categories_and_weight(shelf_rule_data.get("category", []), shelf_model.height - vertical_space)
 
                 free_len = shelf_model.length
@@ -130,7 +125,7 @@ async def calculate_auto_placement():
                 position_counter = 0
 
                 for product in products_for_shelf:
-                    if free_len - product.depth >= 0 or free_weights - product.weight >= 0:
+                    if free_len - product.depth >= 0 and free_weights - product.weight >= 0:
                         placed_products_list.append({
                             "shelf_id": shelf_db_id,
                             "product_id": product.id,
