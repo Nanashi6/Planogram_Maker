@@ -2,7 +2,7 @@
 
 {% block content %}
 <h1>Update Shelf</h1>
-<form action="" method="post" novalidate>
+<form action="" method="put" novalidate>
     {{ form.hidden_tag() }}
     <input type="hidden" name="id" value="{{ form.id.data }}">
 
