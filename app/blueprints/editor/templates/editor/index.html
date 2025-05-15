@@ -19,22 +19,96 @@
         white-space: nowrap;
         width: fit-content;
     }
+
+    .cont {
+        height: 94.95vh;
+    }
+
+    .tab-navigation {
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #ccc;
+        width: 55px;
+        flex-shrink: 0;
+        background-color: #e0e0e0;
+    }
+
+    .tab-button {
+        padding: 0;
+        cursor: pointer;
+        background-color: #e0e0e0;
+        border: none;
+        border-bottom: 1px solid #ccc;
+        outline: none;
+        font-family: sans-serif;
+        font-size: 14px;
+        box-sizing: border-box;
+        transition: background-color 0.2s ease;
+
+        /* Flex для центрирования повернутого текста внутри кнопки */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden; /* Чтобы повернутый текст не вылезал за пределы кнопки */
+        position: relative;
+
+        width: 100%; /* Занимает всю ширину родителя (.tab-navigation) */
+        min-height: 100px; /* Минимальная "длина" вкладки, для коротких слов */
+        flex-grow: 1; /* Позволяет кнопкам равномерно занять доступное пространство, если их много */
+    }
+    .tab-button:last-child {
+        border-bottom: none;
+    }
+    .tab-button:hover {
+        background-color: #d0d0d0;
+    }
+
+    .tab-button-text {
+        display: block;
+        white-space: nowrap; /* Важно, чтобы текст не переносился при повороте */
+        transform: rotate(-90deg);
+        transform-origin: center center;
+    }
+
+    .tab-button.active {
+        background-color: #f0f0f0; /* Фон как у области контента */
+        font-weight: bold;
+    }
+
+    /* Визуальное соединение активной вкладки с контентом */
+    .tab-button.active::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: -1px; /* Перекрывает правую границу .tab-navigation */
+        width: 1px;
+        height: 100%;
+        background-color: #f0f0f0; /* Тот же цвет, что и фон контента */
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row g-0 vh-100"> 
+<div class="row g-0 cont"> 
     <div class="col-md-9 h-100">
         <canvas id="c" class="w-100 h-100"></canvas>
     </div>
 
     <div class="col-md-3 d-flex flex-column border-start h-100" style="background-color: #f8f9fa;" id="sidebar-container">
         <div class="d-flex flex-grow-1 overflow-hidden"> 
-            <div class="nav flex-column nav-pills p-2 border-end" id="editorVerticalTabs" role="tablist" aria-orientation="vertical" style="min-width: 130px;">
-                <button class="nav-link text-start w-100 active" id="products-vtab" data-bs-toggle="pill" data-bs-target="#products-vtab-pane" type="button" role="tab" aria-controls="products-vtab-pane" aria-selected="true">Products</button>
-                <button class="nav-link text-start w-100 mt-1" id="shelfUnits-vtab" data-bs-toggle="pill" data-bs-target="#shelfUnits-vtab-pane" type="button" role="tab" aria-controls="shelfUnits-vtab-pane" aria-selected="false">Shelf Units</button>
-                <button class="nav-link text-start w-100 mt-1" id="planograms-vtab" data-bs-toggle="pill" data-bs-target="#planograms-vtab-pane" type="button" role="tab" aria-controls="planograms-vtab-pane" aria-selected="false">Planograms</button>
-                <button class="nav-link text-start w-100 mt-1" id="stackingRules-vtab" data-bs-toggle="pill" data-bs-target="#stackingRules-vtab-pane" type="button" role="tab" aria-controls="stackingRules-vtab-pane" aria-selected="false">Stacking Rules</button>
+            <div class="tab-navigation nav flex-column nav-pills p-2 border-end vertical-tabs-container" id="editorVerticalTabs" role="tablist" aria-orientation="vertical" style="min-width: 55px;">
+                <button class="tab-button nav-link text-center w-100 active vertical-tab-text" id="products-vtab" data-bs-toggle="pill" data-bs-target="#products-vtab-pane" type="button" role="tab" aria-controls="products-vtab-pane" aria-selected="true">
+                    <span class="tab-button-text">Products</span>
+                </button>
+                <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="shelfUnits-vtab" data-bs-toggle="pill" data-bs-target="#shelfUnits-vtab-pane" type="button" role="tab" aria-controls="shelfUnits-vtab-pane" aria-selected="false">
+                    <span class="tab-button-text">Shelf Units</span>
+                </button>
+                <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="planograms-vtab" data-bs-toggle="pill" data-bs-target="#planograms-vtab-pane" type="button" role="tab" aria-controls="planograms-vtab-pane" aria-selected="false">
+                    <span class="tab-button-text">Planograms</span>
+                </button>
+                <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="stackingRules-vtab" data-bs-toggle="pill" data-bs-target="#stackingRules-vtab-pane" type="button" role="tab" aria-controls="stackingRules-vtab-pane" aria-selected="false">
+                    <span class="tab-button-text">Stacking Rules</span>
+                </button>
             </div>
 
             {# Контент для вкладок #}
@@ -69,7 +143,7 @@
                     <h3 class="h5 mb-3">Stacking Rules</h3>
                     <div class="mb-3">
                         <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
-                        <label for="rules-file-input" class="btn btn-info btn-sm">Load Rules File</label>
+                        <button id="load-rules-btn" class="btn btn-info btn-sm">Load Rules</button>
                         <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span>
                     </div>
                     {# Здесь может быть дополнительный контент для правил #}
