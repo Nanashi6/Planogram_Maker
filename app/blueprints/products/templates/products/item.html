@@ -1,49 +1,90 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Product Details: {{ product.name }}</h1>
-<hr>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Product Details: <span class="fw-normal">{{ product.name }}</span></h1>
+</div>
 
-<div>
-    <div>
-        Product Information
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Product Information (ID: {{ product.id }})</h5>
     </div>
-    <div>
-        <p>
-            <strong>ID:</strong> {{ product.id }} <br>
-            <strong>Name:</strong> {{ product.name }} <br>
-            <strong>Barcode:</strong> {{ product.barcode }} <br>
-            <strong>Segment:</strong> {{ product.segment.value }} <br>
-            <strong>SKU Rating:</strong> {{ product.SKU_rating.value }} <br>
-            <strong>Price:</strong> {{ "%.2f"|format(product.price) }} <br>
-        </p>
-        <p>
-            <strong>Dimensions (LxDxH):</strong>
-            {{ product.length }} x {{ product.depth }} x {{ product.height }} <br>
-            <strong>Weight:</strong> {{ product.weight }} <br>
-        </p>
-        <p>
-            <strong>Category:</strong>
-            {% if product.category %}
-                <a href="{{ url_for('categories.read', id=product.category.id) }}">{{ product.category.name }}</a> (ID: {{ product.category_id }})
-            {% else %}
-                N/A
-            {% endif %}
-            <br>
-            <strong>Brand:</strong>
-            {% if product.brand %}
-                 <a href="{{ url_for('brands.read', id=product.brand.id) }}">{{ product.brand.name }}</a> (ID: {{ product.brand_id }})
-            {% else %}
-                 N/A
-            {% endif %}
-            <br>
-        </p>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4 text-muted">Name:</dt>
+                    <dd class="col-sm-8">{{ product.name }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Barcode:</dt>
+                    <dd class="col-sm-8">{{ product.barcode or '-' }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Segment:</dt>
+                    <dd class="col-sm-8">{{ product.segment.value if product.segment else '-' }}</dd>
+
+                    <dt class="col-sm-4 text-muted">SKU Rating:</dt>
+                    <dd class="col-sm-8">{{ product.SKU_rating.value if product.SKU_rating else '-' }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Price:</dt>
+                    <dd class="col-sm-8">{{ "%.2f"|format(product.price) if product.price is not none else '-' }}</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row">
+                    <dt class="col-sm-4 text-muted">Dimensions (LxDxH):</dt>
+                    <dd class="col-sm-8">
+                        {{ product.length if product.length is not none else '?' }} x
+                        {{ product.depth if product.depth is not none else '?' }} x
+                        {{ product.height if product.height is not none else '?' }}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Weight:</dt>
+                    <dd class="col-sm-8">{{ product.weight if product.weight is not none else '-' }}</dd>
+
+                    <dt class="col-sm-4 text-muted">Category:</dt>
+                    <dd class="col-sm-8">
+                        {% if product.category %}
+                            <a href="{{ url_for('categories.read', id=product.category.id) }}">{{ product.category.name }}</a>
+                            <span class="text-muted">(ID: {{ product.category_id }})</span>
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Brand:</dt>
+                    <dd class="col-sm-8">
+                        {% if product.brand %}
+                             <a href="{{ url_for('brands.read', id=product.brand.id) }}">{{ product.brand.name }}</a>
+                             <span class="text-muted">(ID: {{ product.brand_id }})</span>
+                        {% else %}
+                             <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
     </div>
 </div>
 
-<div>
-    <a href="{{ url_for('.update', id=product.id) }}">Edit</a>
-    <a href="{{ url_for('.delete', id=product.id) }}">Delete</a>
-    <a href="{{ url_for('.read_all') }}">Back to List</a>
+<div class="mt-4">
+    <a href="{{ url_for('.update', id=product.id) }}" class="btn btn-primary me-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square me-1" viewBox="0 0 16 16">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.813z"/>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+        </svg>
+        Edit
+    </a>
+    <a href="{{ url_for('.delete', id=product.id) }}" class="btn btn-danger me-2" onclick="return confirm('Are you sure you want to delete the product \'{{ product.name }}\'? This action cannot be undone.');">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill me-1" viewBox="0 0 16 16">
+            <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
+        </svg>
+        Delete
+    </a>
+    <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-1" viewBox="0 0 16 16">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+        </svg>
+        Back to List
+    </a>
 </div>
 {% endblock %}

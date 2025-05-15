@@ -1,30 +1,58 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Brand create</h1>
-<form action="" method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <p>
-        {{ form.name.label }} <br>
-        {{ form.name(size=32) }} <br>
-        {% for error in form.name.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>
-        {{ form.rating.label }} <br>
-        {{ form.rating() }} <br>
-        {% for error in form.rating.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>
-        {{ form.share.label }} <br>
-        {{ form.share(step="0.1") }} <br>
-        {% for error in form.share.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>{{ form.submit() }}</p>
-</form>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="mb-4">Create New Brand</h1>
+
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Enter brand name") }}
+                {% if form.name.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.name.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.rating.label(class="form-label") }}
+                {{ form.rating(class="form-select" + (" is-invalid" if form.rating.errors else "")) }}
+                {% if form.rating.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.rating.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.share.label(class="form-label") }}
+                {{ form.share(class="form-control" + (" is-invalid" if form.share.errors else ""), step="0.01", placeholder="e.g., 12.5 for 12.5%") }}
+                {% if form.share.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.share.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="form-text">
+                        Enter market share as a percentage (e.g., 12.5 for 12.5%). If not applicable, leave blank or enter 0.
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-success") }}
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

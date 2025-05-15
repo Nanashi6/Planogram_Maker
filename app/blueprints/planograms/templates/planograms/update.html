@@ -1,24 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Planogram update</h1>
-<form action="" method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <input type="hidden" name="id" value="{{ form.id.data }}">
-    <p>
-        {{ form.name.label }} <br>
-        {{ form.name(size=32) }} <br>
-        {% for error in form.name.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>
-        {{ form.shelf_unit_id.label }} <br>
-        {{ form.shelf_unit_id() }} <br>
-        {% for error in form.shelf_unit_id.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-    <p>{{ form.submit() }}</p>
-</form>
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="mb-4">Update Planogram: <span class="fw-normal">{{ form.name.data or "ID " + form.id.data }}</span></h1>
+
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                {% if form.name.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.name.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.shelf_unit_id.label(class="form-label") }}
+                {{ form.shelf_unit_id(class="form-select" + (" is-invalid" if form.shelf_unit_id.errors else "")) }}
+                {% if form.shelf_unit_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.shelf_unit_id.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

@@ -1,99 +1,144 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Product Update</h1>
-<form action="" method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <input type="hidden" name="id" value="{{ form.id.data }}">
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <h1 class="mb-4">Update Product: <span class="fw-normal">{{ form.name.data or "ID " + form.id.data }}</span></h1>
 
-    <p>
-        {{ form.segment.label }} <br>
-        {{ form.segment() }} <br>
-        {% for error in form.segment.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
 
-    <p>
-        {{ form.name.label }} <br>
-        {{ form.name(size=32) }} <br>
-        {% for error in form.name.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.name.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.barcode.label }} <br>
-        {{ form.barcode() }} <br>
-        {% for error in form.barcode.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.barcode.label(class="form-label") }}
+                        {{ form.barcode(class="form-control" + (" is-invalid" if form.barcode.errors else "")) }}
+                        {% if form.barcode.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.barcode.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.SKU_rating.label }} <br>
-        {{ form.SKU_rating() }} <br>
-        {% for error in form.SKU_rating.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.segment.label(class="form-label") }}
+                        {{ form.segment(class="form-select" + (" is-invalid" if form.segment.errors else "")) }}
+                        {% if form.segment.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.segment.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.length.label }} <br>
-        {{ form.length() }} <br>
-        {% for error in form.length.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.SKU_rating.label(class="form-label") }}
+                        {{ form.SKU_rating(class="form-select" + (" is-invalid" if form.SKU_rating.errors else "")) }}
+                        {% if form.SKU_rating.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.SKU_rating.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.depth.label }} <br>
-        {{ form.depth() }} <br>
-        {% for error in form.depth.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                     <div class="mb-3">
+                        {{ form.category_id.label(class="form-label") }}
+                        {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
+                        {% if form.category_id.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.category_id.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.height.label }} <br>
-        {{ form.height() }} <br>
-        {% for error in form.height.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.brand_id.label(class="form-label") }}
+                        {{ form.brand_id(class="form-select" + (" is-invalid" if form.brand_id.errors else "")) }}
+                        {% if form.brand_id.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.brand_id.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
 
-    <p>
-        {{ form.weight.label }} <br>
-        {{ form.weight() }} <br>
-        {% for error in form.weight.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.price.label(class="form-label") }}
+                        {{ form.price(class="form-control" + (" is-invalid" if form.price.errors else ""), step="0.01") }}
+                        {% if form.price.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.price.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text">Enter price (e.g., 19.99).</div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.price.label }} <br>
-        {{ form.price() }} <br>
-        {% for error in form.price.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                     <fieldset class="mb-3 p-3 border rounded">
+                        <legend class="w-auto px-2 h6">Dimensions (cm)</legend>
+                        <div class="row g-2">
+                            <div class="col">
+                                {{ form.length.label(class="form-label") }}
+                                {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), step="any") }}
+                                {% if form.length.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.length.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col">
+                                {{ form.depth.label(class="form-label") }}
+                                {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), step="any") }}
+                                {% if form.depth.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.depth.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col">
+                                {{ form.height.label(class="form-label") }}
+                                {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), step="any") }}
+                                {% if form.height.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.height.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if not form.length.errors and not form.depth.errors and not form.height.errors %}
+                            <div class="form-text mt-2">Enter product dimensions. Specify units if not standard.</div>
+                        {% endif %}
+                    </fieldset>
 
-    <p>
-        {{ form.category_id.label }} <br>
-        {{ form.category_id() }} <br>
-        {% for error in form.category_id.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.weight.label(class="form-label") }}
+                        {{ form.weight(class="form-control" + (" is-invalid" if form.weight.errors else ""), step="any") }}
+                        {% if form.weight.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.weight.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% else %}
+                             <div class="form-text">Enter product weight, specify units if necessary.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
-    <p>
-        {{ form.brand_id.label }} <br>
-        {{ form.brand_id() }} <br>
-        {% for error in form.brand_id.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-
-    <p>{{ form.submit() }}</p>
-</form>
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

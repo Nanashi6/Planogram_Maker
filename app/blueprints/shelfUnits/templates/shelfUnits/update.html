@@ -1,19 +1,34 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Update Shelf Unit</h1>
-<form action="" method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <input type="hidden" name="id" value="{{ form.id.data }}">
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="mb-4">Update Shelf Unit: <span class="fw-normal">#{{ form.shelf_unit_number.data or "ID " + form.id.data }}</span></h1>
 
-    <p>
-        {{ form.shelf_unit_number.label }} <br>
-        {{ form.shelf_unit_number() }} <br>
-        {% for error in form.shelf_unit_number.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
 
-    <p>{{ form.submit() }}</p>
-</form>
+            <div class="mb-3">
+                {{ form.shelf_unit_number.label(class="form-label") }}
+                {{ form.shelf_unit_number(class="form-control" + (" is-invalid" if form.shelf_unit_number.errors else "")) }}
+                {% if form.shelf_unit_number.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.shelf_unit_number.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                     <div class="form-text">
+                        Unique identifier for the shelf unit or bay.
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
