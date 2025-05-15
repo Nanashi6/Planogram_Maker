@@ -1,151 +1,11 @@
 {% extends "base.html" %}
 
+{% block main_container_class %}container-fluid{% endblock %}
+{% block main_margin_top_class %}{% endblock %} 
+
 {% block styles %}
+{{ super() }}
 <style>
-    body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-    .container { margin: 0; overflow: hidden; font-family: sans-serif; display: flex; height: 100vh; }
-    #c {
-        width: 80vw;
-        height: 100vh;
-        display: block;
-        outline: none;
-        cursor: default;
-    }
-
-    #sidebar-container {
-        width: 20vw;
-        height: 100vh;
-        display: flex;
-        flex-direction: row;
-        border-left: 1px solid #ccc;
-        box-sizing: border-box;
-        background-color: #f0f0f0;
-    }
-
-    /* Tab Navigation Styles (Vertical on the left) */
-    .tab-navigation {
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid #ccc;
-        width: 55px; /* Ширина вертикальной панели вкладок - немного увеличена для повернутого текста */
-        flex-shrink: 0;
-        background-color: #e0e0e0;
-    }
-
-    .tab-button {
-        /* width: 100%; /* Кнопка занимает всю ширину tab-navigation */
-        /* height: 150px; /* Высота кнопки определяет "длину" вкладки для текста */
-        /* Убираем старый padding, т.к. центрирование текста будет через flex */
-        padding: 0;
-        cursor: pointer;
-        background-color: #e0e0e0;
-        border: none;
-        border-bottom: 1px solid #ccc;
-        outline: none;
-        font-family: sans-serif;
-        font-size: 14px;
-        box-sizing: border-box;
-        transition: background-color 0.2s ease;
-
-        /* Flex для центрирования повернутого текста внутри кнопки */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden; /* Чтобы повернутый текст не вылезал за пределы кнопки */
-        position: relative; /* Для псевдо-элемента active */
-
-        /* Определяем размеры для кнопки. Ширина панели навигации (55px) станет "высотой" для текста.
-           Высота кнопки (например, 120px) станет "шириной" для текста. */
-        width: 100%; /* Занимает всю ширину родителя (.tab-navigation) */
-        min-height: 100px; /* Минимальная "длина" вкладки, для коротких слов */
-        flex-grow: 1; /* Позволяет кнопкам равномерно занять доступное пространство, если их много */
-    }
-    .tab-button:last-child {
-        border-bottom: none;
-    }
-    .tab-button:hover {
-        background-color: #d0d0d0;
-    }
-
-    .tab-button-text {
-        display: block;
-        white-space: nowrap; /* Важно, чтобы текст не переносился при повороте */
-        transform: rotate(-90deg);
-        transform-origin: center center;
-        /* Опционально: если текст слишком длинный, можно добавить ... */
-        /*
-        max-width: 100px;  Пример - если кнопка .tab-button имеет height: 120px,
-                           то max-width для текста должен быть чуть меньше
-        overflow: hidden;
-        text-overflow: ellipsis;
-        */
-    }
-
-    .tab-button.active {
-        background-color: #f0f0f0; /* Фон как у области контента */
-        font-weight: bold;
-        /* z-index: 1; /* Чтобы быть над неактивными вкладками, если есть пересечения */
-    }
-
-    /* Визуальное соединение активной вкладки с контентом */
-    .tab-button.active::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        right: -1px; /* Перекрывает правую границу .tab-navigation */
-        width: 1px;
-        height: 100%;
-        background-color: #f0f0f0; /* Тот же цвет, что и фон контента */
-    }
-
-
-    /* Tab Content Styles */
-    .tab-content {
-        display: none;
-        padding: 15px;
-        overflow-y: auto;
-        flex-grow: 1;
-        box-sizing: border-box;
-        height: 100%;
-    }
-    .tab-content.active {
-        display: block;
-    }
-
-    #sidebar-container h3 {
-        margin-top: 0;
-        margin-bottom: 10px;
-        font-size: 16px;
-        color: #333;
-    }
-
-    .product-item {
-        border: 1px solid #ddd;
-        padding: 8px;
-        margin-bottom: 5px;
-        background-color: #fff;
-        cursor: grab;
-        user-select: none;
-        border-radius: 3px;
-    }
-    .product-item:active {
-        cursor: grabbing;
-        background-color: #f9f9f9;
-    }
-
-    .shelfUnit-item, .planogram-item {
-        border: 1px solid #ddd;
-        padding: 8px;
-        margin-bottom: 5px;
-        background-color: #fff;
-        cursor: pointer;
-        user-select: none;
-        border-radius: 3px;
-    }
-    .shelfUnit-item:hover, .planogram-item:hover {
-        background-color: #e9e9e9;
-    }
-
     #tooltip {
         position: absolute;
         display: none;
@@ -157,56 +17,63 @@
         pointer-events: none;
         z-index: 1001;
         white-space: nowrap;
+        width: fit-content;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div> <canvas id="c"></canvas> </div>
+<div class="row g-0 vh-100"> 
+    <div class="col-md-9 h-100">
+        <canvas id="c" class="w-100 h-100"></canvas>
+    </div>
 
-    <div id="sidebar-container">
-        <div class="tab-navigation">
-            <button class="tab-button active" data-tab="products">
-                <span class="tab-button-text">Products</span>
-            </button>
-            <button class="tab-button" data-tab="shelfUnits">
-                <span class="tab-button-text">Shelf Units</span>
-            </button>
-            <button class="tab-button" data-tab="planograms">
-                <span class="tab-button-text">Planograms</span>
-            </button>
-            <button class="tab-button" data-tab="stackingRules">
-                <span class="tab-button-text">Stacking Rules</span>
-            </button>
-        </div>
-
-        <div id="tab-content-products" class="tab-content active">
-            <h3>Products</h3>
-            <div id="product-list">
+    <div class="col-md-3 d-flex flex-column border-start h-100" style="background-color: #f8f9fa;" id="sidebar-container">
+        <div class="d-flex flex-grow-1 overflow-hidden"> 
+            <div class="nav flex-column nav-pills p-2 border-end" id="editorVerticalTabs" role="tablist" aria-orientation="vertical" style="min-width: 130px;">
+                <button class="nav-link text-start w-100 active" id="products-vtab" data-bs-toggle="pill" data-bs-target="#products-vtab-pane" type="button" role="tab" aria-controls="products-vtab-pane" aria-selected="true">Products</button>
+                <button class="nav-link text-start w-100 mt-1" id="shelfUnits-vtab" data-bs-toggle="pill" data-bs-target="#shelfUnits-vtab-pane" type="button" role="tab" aria-controls="shelfUnits-vtab-pane" aria-selected="false">Shelf Units</button>
+                <button class="nav-link text-start w-100 mt-1" id="planograms-vtab" data-bs-toggle="pill" data-bs-target="#planograms-vtab-pane" type="button" role="tab" aria-controls="planograms-vtab-pane" aria-selected="false">Planograms</button>
+                <button class="nav-link text-start w-100 mt-1" id="stackingRules-vtab" data-bs-toggle="pill" data-bs-target="#stackingRules-vtab-pane" type="button" role="tab" aria-controls="stackingRules-vtab-pane" aria-selected="false">Stacking Rules</button>
             </div>
-        </div>
 
-        <div id="tab-content-shelfUnits" class="tab-content">
-            <h3>ShelfUnits</h3>
-            <div id="shelfUnit-list">
-            </div>
-        </div>
+            {# Контент для вкладок #}
+            <div class="tab-content p-3 flex-grow-1" id="editorVerticalTabsContent" style="overflow-y: auto;">
 
-        <div id="tab-content-planograms" class="tab-content">
-            <h3>Planograms</h3>
-            <div id="planogram-list">
-            </div>
-            <button id="save-planogram-btn" style="margin-top: 15px; padding: 8px 12px;">Save Current Planogram</button>
-            <input type="text" id="planogram-name-input" placeholder="Planogram Name" style="margin-top: 5px; width: calc(100% - 10px); padding: 5px;">
-        </div>
+                <div class="tab-pane fade show active" id="products-vtab-pane" role="tabpanel" aria-labelledby="products-vtab">
+                    <h3 class="h5 mb-3">Products</h3>
+                    <div id="product-list" class="list-group list-group-flush small">
+                        {# Элементы будут '.list-group-item list-group-item-action product-item' #}
+                    </div>
+                </div>
 
-        <div id="tab-content-stackingRules" class="tab-content">
-            <h3>Stacking Rules</h3>
-            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #ddd;">
-                <input type="file" id="rules-file-input" accept=".xml, .json" style="display: none;">
-                <button id="load-rules-btn">Load Rules</button>
-                <span id="loaded-rules-filename" style="margin-left: 10px; font-style: italic; color: #555;"></span>
+                <div class="tab-pane fade" id="shelfUnits-vtab-pane" role="tabpanel" aria-labelledby="shelfUnits-vtab">
+                    <h3 class="h5 mb-3">Shelf Units</h3>
+                    <div id="shelfUnit-list" class="list-group list-group-flush small">
+                        {# Элементы будут '.list-group-item list-group-item-action shelfUnit-item' #}
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="planograms-vtab-pane" role="tabpanel" aria-labelledby="planograms-vtab">
+                    <h3 class="h5 mb-3">Planograms</h3>
+                    <div id="planogram-list" class="list-group list-group-flush small mb-3">
+                        {# Элементы будут '.list-group-item list-group-item-action planogram-item' #}
+                    </div>
+                    <div class="mb-2">
+                        <input type="text" id="planogram-name-input" class="form-control form-control-sm" placeholder="Planogram Name">
+                    </div>
+                    <button id="save-planogram-btn" class="btn btn-primary btn-sm w-100">Save Current Planogram</button>
+                </div>
+
+                <div class="tab-pane fade" id="stackingRules-vtab-pane" role="tabpanel" aria-labelledby="stackingRules-vtab">
+                    <h3 class="h5 mb-3">Stacking Rules</h3>
+                    <div class="mb-3">
+                        <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
+                        <label for="rules-file-input" class="btn btn-info btn-sm">Load Rules File</label>
+                        <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span>
+                    </div>
+                    {# Здесь может быть дополнительный контент для правил #}
+                </div>
             </div>
         </div>
     </div>
@@ -224,35 +91,6 @@
             "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
         }
     }
-</script>
-
-<script>
-    /**
-    * Функция для настройки вкладок (табов)
-    */
-    function setupTabs() {
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Убрать 'active' класс со всех кнопок и контентов
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
-
-                // Добавить 'active' класс к нажатой кнопке и соответствующему контенту
-                button.classList.add('active');
-                const tabId = button.dataset.tab; // e.g., "products" or "shelfUnits"
-                const activeContent = document.getElementById(`tab-content-${tabId}`);
-                if (activeContent) {
-                    activeContent.classList.add('active');
-                } else {
-                    console.warn(`Tab content with ID 'tab-content-${tabId}' not found.`);
-                }
-            });
-        });
-    }
-    setupTabs()
 </script>
 
 <script type="module">
@@ -1073,85 +911,70 @@
             allProductsFromListCache.clear();
             productListDiv.innerHTML = "";
             products.forEach(product => {
-                allProductsFromListCache.set(product.id, product); // Кэшируем продукт по ID
-                const item = document.createElement('div');
-                item.className = 'product-item';
+                allProductsFromListCache.set(product.id, product);
+                const item = document.createElement('button'); // Используем <button> для list-group-item-action
+                item.type = 'button';
+                // Классы Bootstrap для элементов списка, p-2 для меньшего padding
+                item.className = 'list-group-item list-group-item-action product-item p-2';
                 item.draggable = true;
                 item.textContent = `${product.name} (${product.length}x${product.height}x${product.depth})`;
                 item.dataset.productInfo = JSON.stringify(product);
 
-                // Обработчик начала перетаскивания товара из HTML списка
                 item.addEventListener('dragstart', (event) => {
                     removeCurrentOutline();
                     draggedProductData = JSON.parse(event.target.dataset.productInfo);
                     event.dataTransfer.setData('application/json', event.target.dataset.productInfo);
                     event.dataTransfer.effectAllowed = 'copy';
-                
                     const emptyImage = document.getElementById('empty-drag-image');
-                    if (emptyImage) {
-                        event.dataTransfer.setDragImage(emptyImage, 0, 0);
-                    }
-                
+                    if (emptyImage) event.dataTransfer.setDragImage(emptyImage, 0, 0);
                     if (productGhostMesh) scene.remove(productGhostMesh);
                     productGhostMesh = createProductMesh(draggedProductData, true);
-                    productGhostMesh.visible = false; // Сначала невидим, покажется в dragover
+                    productGhostMesh.visible = false;
                     scene.add(productGhostMesh);
-                    isDraggingExistingProduct = false;
-                    selectedForOperation = null;
+                    isDraggingExistingProduct = false; selectedForOperation = null;
                 });
-
-                // Обработчик окончания перетаскивания товара из HTML списка
-                item.addEventListener('dragend', (event) => {
-                    // event.target.style.opacity = '1';
+                item.addEventListener('dragend', () => {
                     draggedProductData = null;
-                    if (productGhostMesh) { // Удалить призрак
-                        scene.remove(productGhostMesh);
-                        productGhostMesh.geometry.dispose();
-                        productGhostMesh.material.dispose();
-                        productGhostMesh = null;
+                    if (productGhostMesh) {
+                        scene.remove(productGhostMesh); productGhostMesh.geometry.dispose(); productGhostMesh.material.dispose(); productGhostMesh = null;
                     }
                 });
-                   
                 productListDiv.appendChild(item);
             });
         }
-        get_products().then(d => {populateProductList(d);});
 
         function populateShelfUnitList(shelfUnits) {
             shelfUnitListDiv.innerHTML = "";
             shelfUnits.forEach(shelfUnitData => {
-                const item = document.createElement('div');
-                item.className = 'shelfUnit-item';
-                item.textContent = `Стеллаж №: ${shelfUnitData.shelf_unit_number}`;
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action shelfUnit-item p-2';
+                item.textContent = `Unit #${shelfUnitData.shelf_unit_number}`;
                 item.dataset.shelfUnitInfo = JSON.stringify(shelfUnitData);
-        
                 item.addEventListener('click', function() {
                     const clickedShelfUnitData = JSON.parse(this.dataset.shelfUnitInfo);
                     displayShelfUnit(clickedShelfUnitData);
                 });
-        
                 shelfUnitListDiv.appendChild(item);
             });
         }
-        get_shelfUnits().then(d => {populateShelfUnitList(d);});
 
         function populatePlanogramList(planograms) {
             planogramListDiv.innerHTML = "";
             planograms.forEach(planogramData => {
-                const item = document.createElement('div');
-                item.className = 'planogram-item';
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action planogram-item p-2';
                 item.textContent = `${planogramData.name}`;
                 item.dataset.planogramInfo = JSON.stringify(planogramData);
-        
                 item.addEventListener('click', function() {
-                    console.log(planogramData)
-                    console.log("Выбрана планограмма:", planogramData.name);
                     displayPlanogram(planogramData);
                 });
-        
                 planogramListDiv.appendChild(item);
             });
         }
+        get_products().then(d => {populateProductList(d);});
+        get_shelfUnits().then(d => {populateShelfUnitList(d);});
         get_planograms().then(d => {populatePlanogramList(d);});
 
         function collectPlanogramDataForSave() {
