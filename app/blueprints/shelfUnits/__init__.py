@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, current_app, render_template, redirect, request, url_for
 from DataLayer.dao import ShelfUnitDAO
 from .forms import *
 from DataLayer.shemas import ShelfUnit
+from DataLayer.models import ShelfUnit as SU
 
 BASE_URL = 'shelfUnits'
 shelfUnits_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -9,7 +10,20 @@ shelfUnits_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_f
 @shelfUnits_bp.route('', methods=['GET'])
 @shelfUnits_bp.route('/', methods=['GET'])
 async def read_all():
-    return render_template(f'{BASE_URL}/index.html', shelfUnits = ShelfUnitDAO.get_all())
+    page = request.args.get('page', 1, type=int)
+    per_page_from_config = current_app.config.get('ITEMS_PER_PAGE', 10)
+
+    order_by_clauses = [SU.shelf_unit_number.asc()] 
+
+    pagination = ShelfUnitDAO.get_all_paginated(
+        page=page,
+        per_page=per_page_from_config,
+        order_by_clauses=order_by_clauses
+    )
+    
+    return render_template(f'{BASE_URL}/index.html',
+                           shelfUnits=pagination.items,
+                           pagination=pagination)
 
 @shelfUnits_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):

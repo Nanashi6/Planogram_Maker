@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, current_app, render_template, redirect, request, url_for
 from DataLayer.dao import CategoryDAO
 from .forms import *
 from DataLayer.shemas import Category
+from DataLayer.models import Category as C
 
 BASE_URL = 'categories'
 categories_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -9,7 +10,19 @@ categories_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_f
 @categories_bp.route('', methods=['GET'])
 @categories_bp.route('/', methods=['GET'])
 async def read_all():
-    return render_template(f'{BASE_URL}/index.html', categories = CategoryDAO.get_all())
+    page = request.args.get('page', 1, type=int)
+    per_page_from_config = current_app.config.get('ITEMS_PER_PAGE', 10)
+
+    order_by_clauses = [C.name.asc()]
+
+    pagination = CategoryDAO.get_all_paginated(
+        page=page,
+        per_page=per_page_from_config,
+        order_by_clauses=order_by_clauses
+    )
+    return render_template(f'{BASE_URL}/index.html',
+                           categories=pagination.items,
+                           pagination=pagination)
 
 @categories_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):

@@ -1,59 +1,107 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Update Shelf</h1>
-<form action="" method="post" novalidate>
-    {{ form.hidden_tag() }}
-    <input type="hidden" name="id" value="{{ form.id.data }}">
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <h1 class="mb-4">
+            Update Shelf:
+            <span class="fw-normal">
+                #{{ form.shelf_number.data }}
+                {% set shelf_unit_id = form.shelf_unit_id.data %}
+                {% if shelf_unit_id %}
+                    {# Пытаемся получить объект shelf_unit, если форма передает его или вы загружаете его в view #}
+                    {# Это пример, вам может потребоваться передать `shelf_units` в контекст или сам `shelf.shelf_unit` #}
+                    {% for unit_id, unit_name in form.shelf_unit_id.choices %}
+                        {% if unit_id == shelf_unit_id %} (Unit {{ unit_name.split('#')[-1].split(')')[0].strip() if '#' in unit_name else unit_name }}){% endif %}
+                    {% endfor %}
+                {% endif %}
+            </span>
+        </h1>
 
-    <p>
-        {{ form.shelf_number.label }} <br>
-        {{ form.shelf_number() }} <br>
-        {% for error in form.shelf_number.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
 
-    <p>
-        {{ form.length.label }} <br>
-        {{ form.length() }} <br>
-        {% for error in form.length.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        {{ form.shelf_unit_id.label(class="form-label") }}
+                        {{ form.shelf_unit_id(class="form-select" + (" is-invalid" if form.shelf_unit_id.errors else "")) }}
+                        {% if form.shelf_unit_id.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.shelf_unit_id.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
 
-    <p>
-        {{ form.depth.label }} <br>
-        {{ form.depth() }} <br>
-        {% for error in form.depth.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.shelf_number.label(class="form-label") }}
+                        {{ form.shelf_number(class="form-control" + (" is-invalid" if form.shelf_number.errors else "")) }}
+                        {% if form.shelf_number.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.shelf_number.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="form-text">Identifier for the shelf within its unit.</div>
+                        {% endif %}
+                    </div>
+                </div>
 
-    <p>
-        {{ form.height.label }} <br>
-        {{ form.height() }} <br>
-        {% for error in form.height.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                <div class="col-md-6">
+                     <fieldset class="mb-3 p-3 border rounded">
+                        <legend class="w-auto px-2 h6">Shelf Dimensions (e.g., cm)</legend>
+                        <div class="row g-2">
+                            <div class="col">
+                                {{ form.length.label(class="form-label") }}
+                                {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), step="any") }}
+                                {% if form.length.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.length.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col">
+                                {{ form.depth.label(class="form-label") }}
+                                {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), step="any") }}
+                                {% if form.depth.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.depth.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col">
+                                {{ form.height.label(class="form-label") }}
+                                {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), step="any") }}
+                                {% if form.height.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.height.errors %}{{ error }}<br>{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if not form.length.errors and not form.depth.errors and not form.height.errors %}
+                            <div class="form-text mt-2">Enter physical dimensions of the shelf.</div>
+                        {% endif %}
+                    </fieldset>
 
-    <p>
-        {{ form.max_weight.label }} <br>
-        {{ form.max_weight() }} <br>
-        {% for error in form.max_weight.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
+                    <div class="mb-3">
+                        {{ form.max_weight.label(class="form-label") }}
+                        {{ form.max_weight(class="form-control" + (" is-invalid" if form.max_weight.errors else ""), step="any") }}
+                        {% if form.max_weight.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.max_weight.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% else %}
+                             <div class="form-text">Maximum weight capacity of the shelf.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
-    <p>
-        {{ form.shelf_unit_id.label }} <br>
-        {{ form.shelf_unit_id() }} <br>
-        {% for error in form.shelf_unit_id.errors %}
-            <span style="color: red;">[{{ error }}]</span>
-        {% endfor %}
-    </p>
-
-    <p>{{ form.submit() }}</p>
-</form>
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
