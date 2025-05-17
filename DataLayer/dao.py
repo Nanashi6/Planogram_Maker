@@ -1,4 +1,4 @@
-from typing import Generic, List, TypeVar
+from typing import Generic, List, Optional, TypeVar
 from pydantic import BaseModel
 from sqlalchemy import ColumnElement, delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
