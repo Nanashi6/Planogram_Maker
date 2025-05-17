@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, request, current_app
 from DataLayer.dao import BrandDAO
 from .forms import *
 from DataLayer.shemas import Brand
+from DataLayer.models import Brand as B
 
 BASE_URL = 'brands'
 brands_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -9,7 +10,20 @@ brands_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folde
 @brands_bp.route('', methods=['GET'])
 @brands_bp.route('/', methods=['GET'])
 async def read_all():
-    return render_template(f'{BASE_URL}/index.html', brands = BrandDAO.get_all())
+    page = request.args.get('page', 1, type=int)
+    per_page = current_app.config.get('ITEMS_PER_PAGE', 10)
+
+    order_by_clauses = [B.name.asc()]
+
+    pagination = BrandDAO.get_all_paginated(
+        page=page,
+        per_page=per_page,
+        order_by_clauses=order_by_clauses
+    )
+
+    return render_template(f'{BASE_URL}/index.html',
+                           brands=pagination.items,
+                           pagination=pagination)
 
 @brands_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):

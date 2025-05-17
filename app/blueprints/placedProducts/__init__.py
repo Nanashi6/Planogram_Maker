@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, current_app, render_template, redirect, request, url_for
 from DataLayer.dao import PlacedProductDAO
 from .forms import *
 from DataLayer.shemas import PlacedProduct
+from DataLayer.models import PlacedProduct as PP
 
 BASE_URL = 'placedProducts'
 placedProducts_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -9,7 +10,20 @@ placedProducts_bp = Blueprint(BASE_URL, __name__, static_folder='static', templa
 @placedProducts_bp.route('', methods=['GET'])
 @placedProducts_bp.route('/', methods=['GET'])
 async def read_all():
-    return render_template(f'{BASE_URL}/index.html', placedProducts = PlacedProductDAO.get_all())
+    page = request.args.get('page', 1, type=int)
+    per_page_from_config = current_app.config.get('ITEMS_PER_PAGE', 10)
+    
+    order_by_clauses = [PP.id.asc()]
+
+    pagination = PlacedProductDAO.get_all_paginated(
+        page=page,
+        per_page=per_page_from_config,
+        order_by_clauses=order_by_clauses
+    )
+    
+    return render_template(f'{BASE_URL}/index.html',
+                           placedProducts=pagination.items,
+                           pagination=pagination)
 
 @placedProducts_bp.route('/<int:id>', methods=['GET'])
 async def read(id: int):

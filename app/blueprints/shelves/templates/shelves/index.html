@@ -17,9 +17,8 @@
         <thead class="table-light">
             <tr>
                 <th scope="col">Shelf Unit</th>
-                <th scope="col">Shelf No.</th>
+                <th scope="col">Shelf Number</th>
                 <th scope="col">Dimensions (LxDxH)</th>
-                <th scope="col" class="text-end">Max Weight</th>
                 <th scope="col" class="text-center">Actions</th>
             </tr>
         </thead>
@@ -32,17 +31,12 @@
                             Unit #{{ shelf.shelf_unit.shelf_unit_number }}
                         </a>
                     {% else %}
-                        <span class="text-muted">-</span>
+                        <span class="text-muted">- (ID: {{ shelf.shelf_unit_id }})</span>
                     {% endif %}
                 </td>
                 <td>{{ shelf.shelf_number }}</td>
                 <td>
-                    {{ shelf.length if shelf.length is not none else '?'}} x
-                    {{ shelf.depth if shelf.depth is not none else '?'}} x
-                    {{ shelf.height if shelf.height is not none else '?'}}
-                </td>
-                <td class="text-end">
-                    {{ shelf.max_weight if shelf.max_weight is not none else '-' }} kg
+                    {{ shelf.length or 'N/A' }} x {{ shelf.depth or 'N/A' }} x {{ shelf.height or 'N/A' }}
                 </td>
                 <td class="text-center">
                     <div class="btn-group btn-group-sm" role="group" aria-label="Shelf actions">
@@ -53,7 +47,7 @@
                             </svg>
                             Update
                         </a>
-                        <a href="{{ url_for('.delete', id=shelf.id) }}" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete shelf #{{ shelf.shelf_number }} from unit #{{ shelf.shelf_unit.shelf_unit_number if shelf.shelf_unit }} (ID: {{ shelf.id }})?');">
+                        <a href="{{ url_for('.delete', id=shelf.id) }}" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete shelf #{{ shelf.shelf_number }} from unit #{{ shelf.shelf_unit.shelf_unit_number if shelf.shelf_unit else shelf.shelf_unit_id }} (ID: {{ shelf.id }})?');">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill me-1" viewBox="0 0 16 16">
                                 <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
                             </svg>
@@ -66,6 +60,44 @@
         </tbody>
     </table>
 </div>
+
+{% if pagination and pagination.pages > 1 %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('.read_all', page=pagination.prev_num) if pagination.has_prev else '#' }}" tabindex="-1" aria-disabled="{{ 'true' if not pagination.has_prev else 'false' }}">
+                Previous
+            </a>
+        </li>
+
+        {% for p_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p_num %}
+                {% if p_num == pagination.page %}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ p_num }} </span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('.read_all', page=p_num) }}">{{ p_num }}</a>
+                </li>
+                {% endif %}
+            {% else %}
+                 <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('.read_all', page=pagination.next_num) if pagination.has_next else '#' }}">
+                Next
+            </a>
+        </li>
+    </ul>
+</nav>
+<p class="text-center text-muted">
+    Page {{ pagination.page }} of {{ pagination.pages }}. (Total {{ pagination.total }} items)
+</p>
+{% endif %}
+
 {% else %}
 <div class="alert alert-info" role="alert">
     No shelves found. <a href="{{ url_for('.create') }}" class="alert-link">Create one?</a>
