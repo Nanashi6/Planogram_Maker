@@ -1,13 +1,14 @@
 from typing import Generic, List, TypeVar
 from pydantic import BaseModel
-from sqlalchemy import delete, select, update
+from sqlalchemy import ColumnElement, delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 
-from sqlalchemy import select, and_, or_, case
+from sqlalchemy import select, and_, or_, case, asc, desc
 from sqlalchemy.orm import joinedload
 
 from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram
 from app import db
+from flask_sqlalchemy.pagination import Pagination
 
 T = TypeVar("T", bound=Base)
 
@@ -74,6 +75,47 @@ class BaseDAO(Generic[T]):
             records = result.scalars().all()
             return records
         except SQLAlchemyError as e:
+            raise
+
+    @classmethod
+    def get_all_paginated(
+        cls,
+        page: int,
+        per_page: int,
+        filters: Optional[BaseModel] = None,
+        order_by_clauses: Optional[List[ColumnElement]] = None,
+        error_out: bool = False
+    ) -> Pagination:
+        """
+        Найти несколько записей по фильтрам с пагинацией.
+        Возвращает объект Flask-SQLAlchemy Pagination.
+        """
+        try:
+            query = select(cls.model)
+            if filters:
+                filters_dict = filters.model_dump(exclude_unset=True)
+                if filters_dict:
+                    query = query.filter_by(**filters_dict)
+
+            if order_by_clauses:
+                query = query.order_by(*order_by_clauses)
+            else:
+                if hasattr(cls.model, 'id'):
+                    query = query.order_by(cls.model.id)
+                elif hasattr(cls.model, 'name'):
+                    query = query.order_by(cls.model.name)
+
+            pagination_obj = db.paginate(
+                query,
+                page=page,
+                per_page=per_page,
+                error_out=error_out,
+                count=True
+            )
+            return pagination_obj
+        except SQLAlchemyError as e:
+            print(f"Database error during pagination: {e}")
+            db.session.rollback()
             raise
 
     @classmethod
