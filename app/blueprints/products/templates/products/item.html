@@ -43,9 +43,9 @@
 
                     <dt class="col-sm-4 text-muted">Category:</dt>
                     <dd class="col-sm-8">
-                        {% if product.category %}
-                            <a href="{{ url_for('categories.read', id=product.category.id) }}">{{ product.brand.category.name }}</a>
-                            <span class="text-muted">(ID: {{ product.category_id }})</span>
+                        {% if product.category_brand_placement.category %}
+                            <a href="{{ url_for('categories.read', id=product.category_brand_placement.category.id) }}">{{ product.category_brand_placement.category.name }}</a>
+                            <span class="text-muted">(ID: {{ product.category_brand_placement.category_id }})</span>
                         {% else %}
                             <span class="text-muted">N/A</span>
                         {% endif %}
@@ -53,8 +53,8 @@
 
                     <dt class="col-sm-4 text-muted">Brand:</dt>
                     <dd class="col-sm-8">
-                        {% if product.brand %}
-                             <a href="{{ url_for('brands.read', id=product.brand.id) }}">{{ product.brand.name }}</a>
+                        {% if product.category_brand_placement.brand %}
+                             <a href="{{ url_for('brands.read', id=product.category_brand_placement.brand.id) }}">{{ product.category_brand_placement.brand.name }}</a>
                              <span class="text-muted">(ID: {{ product.brand_id }})</span>
                         {% else %}
                              <span class="text-muted">N/A</span>

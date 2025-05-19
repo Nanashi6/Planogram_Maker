@@ -22,10 +22,8 @@ class CreateCategoryBrandPlacementForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super(CreateCategoryBrandPlacementForm, self).__init__(*args, **kwargs)
-        self.category_id.choices = [('', 'Select Category')] + \
-                                   [(category.id, category.name) for category in CategoryDAO.get_all()]
-        self.brand_id.choices = [('', 'Select Brand')] + \
-                                [(brand.id, brand.name) for brand in BrandDAO.get_all()]
+        self.category_id.choices = [(category.id, category.name) for category in CategoryDAO.get_all()]
+        self.brand_id.choices = [(brand.id, brand.name) for brand in BrandDAO.get_all()]
 
 class UpdateCategoryBrandPlacementForm(CreateCategoryBrandPlacementForm):
     id = HiddenField('ID', validators=[DataRequired()])

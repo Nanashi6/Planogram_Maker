@@ -64,7 +64,7 @@ class CategoryBrandPlacement(Base):
     )
 
     # Бренд
-    brand_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    brand_id: Mapped[int] = mapped_column(ForeignKey("brands.id"))
     brand: Mapped["Brand"] = relationship(
         "Brand",
         back_populates="category_brand_placements"
@@ -73,7 +73,7 @@ class CategoryBrandPlacement(Base):
     # Товары
     products: Mapped[list["Product"]] = relationship(
         "Product",
-        back_populates="category_brand_placements",
+        back_populates="category_brand_placement",
         cascade="all, delete-orphan"
     )
 

@@ -43,15 +43,15 @@
                 </td>
                 <td class="text-end">{{ "%.2f"|format(product.price) if product.price is not none else '-' }}</td>
                 <td>
-                    {% if product.category %}
-                        <a href="{{ url_for('categories.read', id=product.category_id) }}">{{ product.brand.category.name }}</a>
+                    {% if product.category_brand_placement.category %}
+                        <a href="{{ url_for('categories.read', id=product.category_brand_placement.category_id) }}">{{ product.category_brand_placement.category.name }}</a>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
                 </td>
                 <td>
-                    {% if product.brand %}
-                        <a href="{{ url_for('brands.read', id=product.brand_id) }}">{{ product.brand.name }}</a>
+                    {% if product.category_brand_placement.brand %}
+                        <a href="{{ url_for('brands.read', id=product.category_brand_placement.brand_id) }}">{{ product.category_brand_placement.brand.name }}</a>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
