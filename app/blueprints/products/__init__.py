@@ -43,7 +43,7 @@ async def create():
             height=form.height.data,
             weight=form.weight.data,
             price=form.price.data,
-            brand_id=form.brand_id.data
+            category_brand_placement_id=form.category_brand_placement_id.data
         )
         try:
             ProductDAO.add(product_data)
@@ -71,7 +71,7 @@ async def update(id: int):
             height=form.height.data,
             weight=form.weight.data,
             price=form.price.data,
-            brand_id=form.brand_id.data
+            category_brand_placement_id=form.category_brand_placement_id.data
         )
         try:
             ProductDAO.update_by_id(id, product_data)
