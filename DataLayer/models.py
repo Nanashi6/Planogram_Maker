@@ -33,9 +33,9 @@ class Category(Base):
     name: Mapped[str]
     share: Mapped[Optional[float]] = mapped_column(Float, CheckConstraint("share >= 0 AND share <= 100"), default=None)
 
-    # Товары категории
-    products: Mapped[list["Product"]] = relationship(
-        "Product",
+    # Бренды категории
+    brands: Mapped[list["Brand"]] = relationship(
+        "Brand",
         back_populates="category",
         cascade="all, delete-orphan"
     )
@@ -53,6 +53,24 @@ class Brand(Base):
         back_populates="brand",
         cascade="all, delete-orphan"
     )
+
+    # Категория бренда
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    category: Mapped["Category"] = relationship(
+        "Category",
+        back_populates="brands"
+    )
+
+    def to_dict(self) -> dict:
+        """Конвертирует объект Brand в словарь, включая category."""
+        data = super().to_dict()
+
+        if self.category:
+            data['category'] = self.category.to_dict()
+        else:
+            data['category'] = None
+
+        return data
 
 class Product(Base):
     __tablename__ = "products"
@@ -75,13 +93,6 @@ class Product(Base):
         cascade="all, delete-orphan"
     )
 
-    # Категория товара
-    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
-    category: Mapped["Category"] = relationship(
-        "Category",
-        back_populates="products"
-    )
-
     # Бренд товара 
     brand_id: Mapped[int] = mapped_column(ForeignKey("brands.id"))
     brand: Mapped["Brand"] = relationship(
@@ -90,13 +101,8 @@ class Product(Base):
     )
 
     def to_dict(self) -> dict:
-        """Конвертирует объект Product в словарь, включая связанные category и brand."""
+        """Конвертирует объект Product в словарь, включая brand."""
         data = super().to_dict()
-
-        if self.category:
-            data['category'] = self.category.to_dict()
-        else:
-            data['category'] = None
 
         if self.brand:
             data['brand'] = self.brand.to_dict()
