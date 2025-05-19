@@ -49,7 +49,6 @@ async def save_planogram():
             if not planogram:
                 return jsonify({"error": f"Planogram with id {planogram_id} not found"}), 404
             PlanogramDAO.update_by_id(planogram_id, new_planogram)
-            # PlacedProductDAO.delete_by_planogram_id(planogram_id)
             PlacedProductDAO.delete_many(PlacedProduct(planogram_id=planogram_id))
         else: # Создание новой планограммы
             planogram = PlanogramDAO.add(new_planogram)
@@ -70,6 +69,9 @@ async def save_planogram():
         print(f"Error saving planogram: {e}")
         return jsonify({"error": str(e)}), 500
     
+
+
+# FIXME Реализовать детерминированную автовыкладку
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 async def calculate_auto_placement():
     if 'rules_file' not in request.files:
