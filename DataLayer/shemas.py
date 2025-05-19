@@ -6,12 +6,15 @@ from datetime import datetime
 class Brand(BaseModel):
     name: Optional[str] = None
     rating: Optional[RatingEnum] = None
-    share: Optional[float] = None
-    category_id: Optional[int] = None
 
 class Category(BaseModel):
     name: Optional[str] = None
     share: Optional[float] = None
+
+class CategoryBrandPlacement(BaseModel):
+    share: Optional[float] = None
+    category_id: Optional[int] = None
+    brand_id: Optional[int] = None
 
 class Product(BaseModel):
     segment: Optional[SegmentEnum] = None
@@ -23,7 +26,7 @@ class Product(BaseModel):
     height: Optional[float] = None
     weight: Optional[float] = None
     price: Optional[float] = None
-    brand_id: Optional[int] = None
+    category_brand_placement_id: Optional[int] = None
 
 class Shelf(BaseModel):
     shelf_number: Optional[int] = None

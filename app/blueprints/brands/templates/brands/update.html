@@ -32,32 +32,6 @@
                 {% endif %}
             </div>
 
-            <div class="mb-3">
-                {{ form.category_id.label(class="form-label") }}
-                {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
-                {% if form.category_id.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.category_id.errors %}{{ error }}<br>{% endfor %}
-                    </div>
-                {% endif %}
-            </div>
-
-            <div class="mb-3">
-                {{ form.share.label(class="form-label") }}
-                {{ form.share(class="form-control" + (" is-invalid" if form.share.errors else ""), step="0.01") }}
-                {% if form.share.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.share.errors %}
-                            {{ error }}<br>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="form-text">
-                        Enter market share as a percentage (e.g., 12.5 for 12.5%).
-                    </div>
-                {% endif %}
-            </div>
-
             <div class="mt-4">
                 {{ form.submit(class="btn btn-primary") }}
                 {% if form.id.data %}

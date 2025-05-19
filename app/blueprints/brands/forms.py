@@ -13,14 +13,6 @@ class CreateBrand(FlaskForm):
         choices=[(rating.value, rating.value) for rating in RatingEnum],
         coerce=RatingEnum
     )
-
-    def __init__(self, *args, **kwargs):
-        super(CreateBrand, self).__init__(*args, **kwargs)
-        self.category_id.choices = [(category.id, category.name) for category in CategoryDAO.get_all()]
-
-    category_id = SelectField('Category', validators=[DataRequired()], choices=[])
-
-    share = DecimalField('Share', validators=[DataRequired(), NumberRange(min=0, max=100)], places=1)
     submit = SubmitField('Create')
 
 class UpdateBrand(CreateBrand):

@@ -13,24 +13,12 @@
         <dl class="row">
             <dt class="col-sm-3 col-lg-2 text-muted">ID:</dt>
             <dd class="col-sm-9 col-lg-10">{{ brand.id }}</dd>
-            
-            <dt class="col-sm-3 col-lg-2 text-muted">Category:</dt>
-            <dd class="col-sm-9 col-lg-10">{{ brand.category.name }}</dd>
 
             <dt class="col-sm-3 col-lg-2 text-muted">Name:</dt>
             <dd class="col-sm-9 col-lg-10">{{ brand.name }}</dd>
 
             <dt class="col-sm-3 col-lg-2 text-muted">Rating:</dt>
             <dd class="col-sm-9 col-lg-10">{{ brand.rating.value }}</dd>
-
-            <dt class="col-sm-3 col-lg-2 text-muted">Market Share:</dt>
-            <dd class="col-sm-9 col-lg-10">
-                {% if brand.share is not none %}
-                    {{ "%.2f"|format(brand.share) }}%
-                {% else %}
-                    <span class="text-muted">-</span>
-                {% endif %}
-            </dd>
         </dl>
     </div>
 </div>
