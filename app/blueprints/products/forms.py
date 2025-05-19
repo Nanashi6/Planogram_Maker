@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, SelectField, SubmitField
 from wtforms.validators import DataRequired, NumberRange
 from DataLayer.enums import RatingEnum, SegmentEnum
-from DataLayer.dao import CategoryDAO, BrandDAO
+from DataLayer.dao import BrandDAO
 
 class CreateProduct(FlaskForm):
     segment = SelectField(
@@ -27,10 +27,8 @@ class CreateProduct(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super(CreateProduct, self).__init__(*args, **kwargs)
-        self.category_id.choices = [(category.id, category.name) for category in CategoryDAO.get_all()]
         self.brand_id.choices = [(brand.id, brand.name) for brand in BrandDAO.get_all()]
 
-    category_id = SelectField('Category', validators=[DataRequired()], choices=[])
     brand_id = SelectField('Brand', validators=[DataRequired()], choices=[])
 
     submit = SubmitField('Create')

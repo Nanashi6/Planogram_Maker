@@ -16,6 +16,7 @@
     <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-light">
             <tr>
+                <th scope="col">Category</th>
                 <th scope="col">Name</th>
                 <th scope="col">Rating</th>
                 <th scope="col">Share</th>
@@ -25,6 +26,7 @@
         <tbody>
             {% for brand in brands %}
             <tr class="clickable-row" data-href="{{ url_for('.read', id=brand.id) }}" style="cursor: pointer;">
+                <td>{{ brand.category.name }}</td>
                 <td>{{ brand.name }}</td>
                 <td>
                     {{ brand.rating.value if brand.rating and brand.rating.value is not none else '-' }}

@@ -43,7 +43,6 @@ async def create():
             height=form.height.data,
             weight=form.weight.data,
             price=form.price.data,
-            category_id=form.category_id.data,
             brand_id=form.brand_id.data
         )
         try:
@@ -72,7 +71,6 @@ async def update(id: int):
             height=form.height.data,
             weight=form.weight.data,
             price=form.price.data,
-            category_id=form.category_id.data,
             brand_id=form.brand_id.data
         )
         try:

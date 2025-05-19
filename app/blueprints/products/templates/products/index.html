@@ -44,7 +44,7 @@
                 <td class="text-end">{{ "%.2f"|format(product.price) if product.price is not none else '-' }}</td>
                 <td>
                     {% if product.category %}
-                        <a href="{{ url_for('categories.read', id=product.category_id) }}">{{ product.category.name }}</a>
+                        <a href="{{ url_for('categories.read', id=product.category_id) }}">{{ product.brand.category.name }}</a>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}

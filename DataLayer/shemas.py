@@ -7,6 +7,7 @@ class Brand(BaseModel):
     name: Optional[str] = None
     rating: Optional[RatingEnum] = None
     share: Optional[float] = None
+    category_id: Optional[int] = None
 
 class Category(BaseModel):
     name: Optional[str] = None
@@ -22,7 +23,6 @@ class Product(BaseModel):
     height: Optional[float] = None
     weight: Optional[float] = None
     price: Optional[float] = None
-    category_id: Optional[int] = None
     brand_id: Optional[int] = None
 
 class Shelf(BaseModel):
