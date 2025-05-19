@@ -33,9 +33,8 @@ class Category(Base):
     name: Mapped[str]
     share: Mapped[Optional[float]] = mapped_column(Float, CheckConstraint("share >= 0 AND share <= 100"), default=None)
 
-    # Бренды категории
-    brands: Mapped[list["Brand"]] = relationship(
-        "Brand",
+    category_brand_placements: Mapped[list["CategoryBrandPlacement"]] = relationship(
+        "CategoryBrandPlacement",
         back_populates="category",
         cascade="all, delete-orphan"
     )
@@ -45,30 +44,52 @@ class Brand(Base):
     
     name: Mapped[str]
     rating: Mapped[RatingEnum] = mapped_column(Enum(RatingEnum), default=None, server_default=None)
-    share: Mapped[Optional[float]] = mapped_column(Float, CheckConstraint("share >= 0 AND share <= 100"), default=None)
 
-    # Товары бренда
-    products: Mapped[list["Product"]] = relationship(
-        "Product",
+    category_brand_placements: Mapped[list["CategoryBrandPlacement"]] = relationship(
+        "CategoryBrandPlacement",
         back_populates="brand",
         cascade="all, delete-orphan"
     )
 
-    # Категория бренда
+class CategoryBrandPlacement(Base):
+    __tablename__ = "category_brand_placements"
+
+    share: Mapped[Optional[float]] = mapped_column(Float, CheckConstraint("share >= 0 AND share <= 100"), default=None)
+
+    # Категория
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     category: Mapped["Category"] = relationship(
         "Category",
-        back_populates="brands"
+        back_populates="category_brand_placements"
+    )
+
+    # Бренд
+    brand_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    brand: Mapped["Brand"] = relationship(
+        "Brand",
+        back_populates="category_brand_placements"
+    )
+
+    # Товары
+    products: Mapped[list["Product"]] = relationship(
+        "Product",
+        back_populates="category_brand_placements",
+        cascade="all, delete-orphan"
     )
 
     def to_dict(self) -> dict:
-        """Конвертирует объект Brand в словарь, включая category."""
+        """Конвертирует объект CategoryBrandPlacement в словарь, включая category."""
         data = super().to_dict()
 
         if self.category:
             data['category'] = self.category.to_dict()
         else:
             data['category'] = None
+
+        if self.brand:
+            data['brand'] = self.brand.to_dict()
+        else:
+            data['brand'] = None
 
         return data
 
@@ -94,20 +115,20 @@ class Product(Base):
     )
 
     # Бренд товара 
-    brand_id: Mapped[int] = mapped_column(ForeignKey("brands.id"))
-    brand: Mapped["Brand"] = relationship(
-        "Brand",
+    category_brand_placement_id: Mapped[int] = mapped_column(ForeignKey("category_brand_placements.id"))
+    category_brand_placement: Mapped["CategoryBrandPlacement"] = relationship(
+        "CategoryBrandPlacement",
         back_populates="products"
     )
 
     def to_dict(self) -> dict:
-        """Конвертирует объект Product в словарь, включая brand."""
+        """Конвертирует объект Product в словарь, включая category_brand_placement."""
         data = super().to_dict()
 
-        if self.brand:
-            data['brand'] = self.brand.to_dict()
+        if self.category_brand_placement:
+            data['category_brand_placement'] = self.category_brand_placement.to_dict()
         else:
-            data['brand'] = None
+            data['category_brand_placement'] = None
             
         return data
 
