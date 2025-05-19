@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select, and_, or_, case, asc, desc
 from sqlalchemy.orm import joinedload
 
-from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram
+from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram, CategoryBrandPlacement
 from app import db
 from flask_sqlalchemy.pagination import Pagination
 
@@ -270,3 +270,6 @@ class ShelfUnitDAO(BaseDAO[ShelfUnit]):
 
 class PlanogramDAO(BaseDAO[Planogram]):
     model = Planogram
+
+class CategoryBrandPlacementDAO(BaseDAO[CategoryBrandPlacement]):
+    model = CategoryBrandPlacement
