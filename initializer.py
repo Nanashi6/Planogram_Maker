@@ -1,6 +1,6 @@
 import pandas as pd
-from DataLayer.shemas import Category, Brand, Product, ShelfUnit, Shelf, Planogram, PlacedProduct
-from DataLayer.dao import CategoryDAO, BrandDAO, ProductDAO, ShelfUnitDAO, ShelfDAO, PlanogramDAO, PlacedProductDAO
+from DataLayer.shemas import Category, Brand, Product, ShelfUnit, Shelf, Planogram, PlacedProduct, CategoryBrandPlacement
+from DataLayer.dao import CategoryDAO, BrandDAO, ProductDAO, ShelfUnitDAO, ShelfDAO, PlanogramDAO, PlacedProductDAO, CategoryBrandPlacementDAO
 from DataLayer.enums import SegmentEnum, RatingEnum
 
 segments = {
@@ -28,6 +28,8 @@ def init():
         init_categories()
     if not BrandDAO.get_all():
         init_brands()
+    if not CategoryBrandPlacementDAO.get_all():
+        init_catBrPlacements()
     if not ProductDAO.get_all():
         init_products()
     if not ShelfUnitDAO.get_all():
@@ -43,15 +45,27 @@ def init():
 
 # FIXME Сделать универсальные методы (для загрузки из указанного, а не фиксированного иссточника)
 
-def init_categories(df = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaData/Исходные данные (Автохимия).xlsx", sheet_name='Категории')):    
+def init_categories(df = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaData/Исходные данные (Автохимия).xlsx", sheet_name='Лист2')):    
     unique_indices = df.drop_duplicates(subset=['Категория'], keep='first').index.to_list()
     categories = [Category(name=ser['Категория'], share=ser['Доля категории, %']) for ind, ser in df.loc[unique_indices].iterrows()]    
     CategoryDAO.add_many(categories)
 
 def init_brands(df = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaData/Исходные данные (Автохимия).xlsx", sheet_name='Лист2')):
     unique_indices = df.drop_duplicates(subset=['Бренд'], keep='first').index.to_list()
-    brands = [Brand(name=ser['Бренд'], rating=ratings[str(ser['Рейтинг бренда'])], share=ser['Доля бренда, %'] if ser['Доля бренда, %'] != '-' else None ) for ind, ser in df.loc[unique_indices].iterrows()]
+    brands = [Brand(
+        name=ser['Бренд'],
+        rating=ratings[str(ser['Рейтинг бренда'])]
+    ) for ind, ser in df.loc[unique_indices].iterrows()]
     BrandDAO.add_many(brands)
+
+def init_catBrPlacements(df = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaData/Исходные данные (Автохимия).xlsx", sheet_name='Лист2')):
+    unique_indices = df.drop_duplicates(subset=['Бренд', 'Категория'], keep='first').index.to_list()
+    catBrPlacements = [CategoryBrandPlacement(
+        brand_id=BrandDAO.get_one(Brand(name=ser['Бренд'])).id,
+        category_id=CategoryDAO.get_one(Category(name=ser['Категория'])).id,
+        share=ser['Доля бренда, %'] if ser['Доля бренда, %'] != '-' else None
+    ) for ind, ser in df.loc[unique_indices].iterrows()]
+    CategoryBrandPlacementDAO.add_many(catBrPlacements)
 
 def init_products(df = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaData/Исходные данные (Автохимия).xlsx", sheet_name='Лист2'), 
                   df2 = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaData/Исходные данные (Автохимия).xlsx", sheet_name='Характеристики товаров')):
@@ -65,8 +79,10 @@ def init_products(df = pd.read_excel("C:/Users/Yury Youzhanka/Desktop/DiplomaDat
         height=df2[df2['Штрихкод'] == ser['Штрихкод']]['Высота, см.'],
         weight=df2[df2['Штрихкод'] == ser['Штрихкод']]['Масса, кг.'],
         price=df2[df2['Штрихкод'] == ser['Штрихкод']]['Цена, руб.'],
-        category_id=CategoryDAO.get_one(Category(name=ser['Категория'])).id,
-        brand_id=BrandDAO.get_one(Brand(name=ser['Бренд'])).id,
+        category_brand_placement_id=CategoryBrandPlacementDAO.get_one(CategoryBrandPlacement(
+                brand_id=BrandDAO.get_one(Brand(name=ser['Бренд'])).id,
+                category_id=CategoryDAO.get_one(Category(name=ser['Категория'])).id,
+            )).id,
     ) for ind, ser in df.iterrows()]
     ProductDAO.add_many(products)
 

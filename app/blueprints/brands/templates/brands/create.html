@@ -32,22 +32,6 @@
                 {% endif %}
             </div>
 
-            <div class="mb-3">
-                {{ form.share.label(class="form-label") }}
-                {{ form.share(class="form-control" + (" is-invalid" if form.share.errors else ""), step="0.01", placeholder="e.g., 12.5 for 12.5%") }}
-                {% if form.share.errors %}
-                    <div class="invalid-feedback">
-                        {% for error in form.share.errors %}
-                            {{ error }}<br>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="form-text">
-                        Enter market share as a percentage (e.g., 12.5 for 12.5%). If not applicable, leave blank or enter 0.
-                    </div>
-                {% endif %}
-            </div>
-
             <div class="mt-4">
                 {{ form.submit(class="btn btn-success") }}
                 <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>

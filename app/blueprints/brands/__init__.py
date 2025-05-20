@@ -33,7 +33,7 @@ async def read(id: int):
 async def create():
     form = CreateBrand()
     if form.validate_on_submit():
-        brand = Brand(name=form.name.data, share=form.share.data, rating=form.rating.data)
+        brand = Brand(name=form.name.data, rating=form.rating.data)
         BrandDAO.add(brand)
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/create.html', title='Home', form=form)
@@ -46,7 +46,7 @@ async def update(id: int):
     
     form = UpdateBrand(obj=brand)
     if form.validate_on_submit():
-        brand1 = Brand(name=form.name.data, share=form.share.data, rating=form.rating.data)
+        brand1 = Brand(name=form.name.data, rating=form.rating.data)
         BrandDAO.update_by_id(id, brand1)
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/update.html', title='Home', form=form)

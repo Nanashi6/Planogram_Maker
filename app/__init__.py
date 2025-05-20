@@ -19,6 +19,7 @@ from app.blueprints.shelfUnits import shelfUnits_bp
 from app.blueprints.placedProducts import placedProducts_bp
 from app.blueprints.planograms import planograms_bp
 from app.blueprints.editor import editor_bp
+from app.blueprints.categoryBrandPlacements import cbp_bp
 
 app.register_blueprint(brands_bp)
 app.register_blueprint(categories_bp)
@@ -28,6 +29,7 @@ app.register_blueprint(shelfUnits_bp)
 app.register_blueprint(placedProducts_bp)
 app.register_blueprint(planograms_bp)
 app.register_blueprint(editor_bp)
+app.register_blueprint(cbp_bp)
 
 import initializer
 if app.debug:

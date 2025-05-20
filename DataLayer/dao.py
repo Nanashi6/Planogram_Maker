@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select, and_, or_, case, asc, desc
 from sqlalchemy.orm import joinedload
 
-from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram
+from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram, CategoryBrandPlacement
 from app import db
 from flask_sqlalchemy.pagination import Pagination
 
@@ -183,6 +183,95 @@ class ProductDAO(BaseDAO[Product]):
     model = Product
 
     @classmethod
+    def get_by_id(cls, data_id: int) -> T:
+        """Найти запись по ID с загрузкой связанных данных."""
+        try:
+            query = select(cls.model).where(cls.model.id == data_id).options(
+                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+            )
+            return db.session.execute(query).scalar_one_or_none()
+        except SQLAlchemyError as e:
+            print(f"Произошла ошибка: {e}")
+            raise
+
+    @classmethod
+    def get_one(cls, filters: BaseModel) -> T:
+        """Найти запись по фильтрам"""
+        filters_dict = filters.model_dump(exclude_unset=True)
+        try:
+            query = select(cls.model).filter_by(**filters_dict)
+            query = query.options(
+                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+            )
+            result = db.session.execute(query)
+            record = result.scalar_one_or_none()
+            return record
+        except SQLAlchemyError as e:
+            raise
+
+    @classmethod
+    def get_all(cls, filters: BaseModel = None) -> List[T]:
+        """Найти несколько записей по фильтрам"""
+        try:
+            query = select(cls.model)
+            if filters:
+                filters_dict = filters.model_dump(exclude_unset=True)
+                query = query.filter_by(**filters_dict)
+            query = query.options(
+                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+            )
+            result = db.session.execute(query)
+            records = result.scalars().all()
+            return records
+        except SQLAlchemyError as e:
+            raise
+
+    @classmethod
+    def get_all_paginated(
+        cls,
+        page: int,
+        per_page: int,
+        filters: Optional[BaseModel] = None,
+        order_by_clauses: Optional[List[ColumnElement]] = None,
+        error_out: bool = False
+    ) -> Pagination:
+        """
+        Найти несколько записей по фильтрам с пагинацией.
+        Возвращает объект Flask-SQLAlchemy Pagination.
+        """
+        try:
+            query = select(cls.model)
+            if filters:
+                filters_dict = filters.model_dump(exclude_unset=True)
+                if filters_dict:
+                    query = query.filter_by(**filters_dict)
+
+            if order_by_clauses:
+                query = query.order_by(*order_by_clauses)
+            else:
+                if hasattr(cls.model, 'id'):
+                    query = query.order_by(cls.model.id)
+                elif hasattr(cls.model, 'name'):
+                    query = query.order_by(cls.model.name)
+
+            query = query.options(
+                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+            )
+
+            pagination_obj = db.paginate(
+                query,
+                page=page,
+                per_page=per_page,
+                error_out=error_out,
+                count=True
+            )
+            return pagination_obj
+        except SQLAlchemyError as e:
+            print(f"Database error during pagination: {e}")
+            db.session.rollback()
+            raise
+
+    @classmethod
     def get_products_by_categories_and_weight(cls, category_filters: list[dict], max_height: float = float('inf')) -> list[Product]:
         """
         Получает список товаров, соответствующих заданным критериям категорий и веса.
@@ -270,3 +359,6 @@ class ShelfUnitDAO(BaseDAO[ShelfUnit]):
 
 class PlanogramDAO(BaseDAO[Planogram]):
     model = Planogram
+
+class CategoryBrandPlacementDAO(BaseDAO[CategoryBrandPlacement]):
+    model = CategoryBrandPlacement

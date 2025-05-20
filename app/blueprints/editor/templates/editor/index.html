@@ -409,8 +409,22 @@
         if (isGhost) {
             productColor = new THREE.Color(0x00ff00); // Зеленый для "призрака"
         } else {
-            const brandIdentifier = productData.brand.name + " " + productData.category.name || productData.name || "default_brand";
-            const brandHash = simpleStringHash(brandIdentifier);
+            let brandNameForHash = "default_brand";
+            let categoryNameForHash = "default_category";
+
+            if (productData.category_brand_placement) {
+                if (productData.category_brand_placement.brand && productData.category_brand_placement.brand.name) {
+                    brandNameForHash = productData.category_brand_placement.brand.name;
+                }
+                if (productData.category_brand_placement.category && productData.category_brand_placement.category.name) {
+                    categoryNameForHash = productData.category_brand_placement.category.name;
+                }
+            } else if (productData.name) {
+                brandNameForHash = productData.name;
+            }
+
+            const identifierForHash = brandNameForHash + " " + categoryNameForHash;
+            const brandHash = simpleStringHash(identifierForHash);
             productColor = colorFromHash(brandHash);
         }
 
@@ -1056,11 +1070,21 @@
 
             // 1. Группировка товаров
             const productsByGroup = {}; // categoryName -> brandName -> [products]
+            
             products.forEach(product => {
                 allProductsFromListCache.set(product.id, product);
 
-                const categoryName = product.category && product.category.name ? product.category.name : "Uncategorized";
-                const brandName = product.brand && product.brand.name ? product.brand.name : "Unbranded";
+                let categoryName = "Uncategorized";
+                let brandName = "Unbranded";
+
+                if (product.category_brand_placement) {
+                    if (product.category_brand_placement.category && product.category_brand_placement.category.name) {
+                        categoryName = product.category_brand_placement.category.name;
+                    }
+                    if (product.category_brand_placement.brand && product.category_brand_placement.brand.name) {
+                        brandName = product.category_brand_placement.brand.name;
+                    }
+                }
 
                 if (!productsByGroup[categoryName]) {
                     productsByGroup[categoryName] = {};
@@ -1158,7 +1182,7 @@
             });
 
             productListDiv.querySelectorAll('.product-list-header').forEach(headerElement => {
-                const targetId = headerElement.getAttribute('data-bs-target') || headerElement.getAttribute('href');
+                const targetId = headerElement.getAttribute('data-bs-target');
                 if (!targetId) return;
 
                 const collapseElement = document.querySelector(targetId);

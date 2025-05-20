@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <h1 class="mb-4">Update Placement: <span class="fw-normal"></span></h1>
+
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.category_id.label(class="form-label") }}
+                {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
+                {% if form.category_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.category_id.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.brand_id.label(class="form-label") }}
+                {{ form.brand_id(class="form-select" + (" is-invalid" if form.brand_id.errors else "")) }}
+                {% if form.brand_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.brand_id.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.share.label(class="form-label") }}
+                {{ form.share(class="form-control" + (" is-invalid" if form.share.errors else ""), step="0.01") }}
+                {% if form.share.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.share.errors %}
+                            {{ error }}<br>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="form-text">
+                        Enter market share as a percentage (e.g., 12.5 for 12.5%). If not applicable, leave blank or enter 0.
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

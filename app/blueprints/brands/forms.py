@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, IntegerField, SelectField, SubmitField, DecimalField
 from wtforms.validators import DataRequired, NumberRange
+from DataLayer.dao import CategoryDAO
 
 from DataLayer.enums import RatingEnum
 
@@ -12,7 +13,6 @@ class CreateBrand(FlaskForm):
         choices=[(rating.value, rating.value) for rating in RatingEnum],
         coerce=RatingEnum
     )
-    share = DecimalField('Share', validators=[DataRequired(), NumberRange(min=0, max=100)], places=1)
     submit = SubmitField('Create')
 
 class UpdateBrand(CreateBrand):
