@@ -1,11 +1,12 @@
-from typing import Generic, List, Optional, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 from pydantic import BaseModel
-from sqlalchemy import ColumnElement, delete, select, update
+from sqlalchemy import ColumnElement, Integer, delete, literal_column, select, union_all, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from sqlalchemy import select, and_, or_, case, asc, desc
 from sqlalchemy.orm import joinedload
 
+from DataLayer.enums import SegmentEnum
 from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram, CategoryBrandPlacement
 from app import db
 from flask_sqlalchemy.pagination import Pagination
@@ -270,7 +271,91 @@ class ProductDAO(BaseDAO[Product]):
             print(f"Database error during pagination: {e}")
             db.session.rollback()
             raise
+
+    @classmethod
+    def get_products_for_shelf_rules(cls, shelf_category_rules: List[Dict[str, Any]], max_height: float) -> List[Product]:
+        """
+        Получает список товаров сгруппированных по категориям в порядке, указанном в правилах.
+        Учитывает ограничения по высоте.
+
+        Args:
+            shelf_category_rules: Список словарей, где каждый словарь описывает правила для категории на полке.
+            max_height: Максимально допустимая высота товара.
+
+        Returns:
+            Список объектов Product, отсортированных по категориям из правил.
+        """
+
+        eager_load_options = joinedload(Product.category_brand_placement).options(
+            joinedload(CategoryBrandPlacement.category),
+            joinedload(CategoryBrandPlacement.brand)
+        )
+
+        # Список для хранения подзапросов (каждый для одного правила категории)
+        subqueries_for_union = []
+
+        for rule_index, category_rule in enumerate(shelf_category_rules):
+            category_name = category_rule.get("name")
+            if not category_name:
+                print(f"Предупреждение: Пропущено правило для категории без имени (индекс {rule_index}): {category_rule}")
+                continue
+
+            # Базовый запрос для текущего правила категории
+            current_rule_query = select(
+                Product.id.label("product_id"),
+                literal_column(f"{rule_index}", Integer).label("rule_order")
+            )
+
+            # Таблицы, необходимые для фильтрации
+            current_rule_query = current_rule_query.join(
+                Product.category_brand_placement
+            ).join(
+                CategoryBrandPlacement.category
+            )
+
+            # Условия фильтрации для текущего правила
+            filters_for_current_rule = [
+                Category.name == category_name,
+                Product.height <= max_height
+            ]
+
+            # Фильтр по "объему" (весу) продукта
+            if "product_volume_min" in category_rule:
+                try:
+                    min_val = float(category_rule["product_volume_min"])
+                    filters_for_current_rule.append(Product.weight >= min_val)
+                except (ValueError, TypeError):
+                    print(f"Предупреждение: Неверное значение для product_volume_min в правиле для категории '{category_name}': {category_rule['product_volume_min']}")
+            
+            if "product_volume_max" in category_rule:
+                try:
+                    max_val = float(category_rule["product_volume_max"])
+                    filters_for_current_rule.append(Product.weight <= max_val)
+                except (ValueError, TypeError):
+                    print(f"Предупреждение: Неверное значение для product_volume_max в правиле для категории '{category_name}': {category_rule['product_volume_max']}")
+
+            # Применение собранных фильтров к подзапросу
+            if filters_for_current_rule:
+                current_rule_query = current_rule_query.filter(and_(*filters_for_current_rule))
+            
+            subqueries_for_union.append(current_rule_query)
+
+        if not subqueries_for_union:
+            return []
         
+        unioned_query = union_all(*subqueries_for_union).alias("unioned_product_rules")
+
+        final_select_query = select(Product)\
+            .join(unioned_query, Product.id == unioned_query.c.product_id)\
+            .options(eager_load_options)
+
+        try:
+            products_ordered_by_rules = db.session.execute(final_select_query).scalars().all()
+            return products_ordered_by_rules
+        except SQLAlchemyError as e:
+            print(f"Ошибка SQLAlchemy при выполнении объединенного запроса для правил полок: {e}")
+            db.session.rollback()
+
 class ShelfDAO(BaseDAO[Shelf]):
     model = Shelf
 
