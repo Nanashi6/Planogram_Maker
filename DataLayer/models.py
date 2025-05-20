@@ -185,10 +185,10 @@ class PlacedProduct(Base):
         """Конвертирует объект PlacedProduct в словарь"""
         data = super().to_dict()
 
-        if self.shelf:
-            data['shelf'] = self.shelf.to_dict()
-        else:
-            data['shelf'] = None
+        # if self.shelf:
+        #     data['shelf'] = self.shelf.to_dict()
+        # else:
+        #     data['shelf'] = None
 
         if self.product:
             data['product'] = self.product.to_dict()
