@@ -1053,7 +1053,7 @@
                     if (!targetShelfMesh.userData.placedProductUUIDs) targetShelfMesh.userData.placedProductUUIDs = [];
                     targetShelfMesh.userData.placedProductUUIDs.push(productMesh.uuid);
 
-                    const productSpacing = parseFloat(localStorage.getItem('product_spacing_cm') || "0.5");
+                    const productSpacing = parseFloat(localStorage.getItem('product_spacing_cm') || "0.5"); //FIXME Использовать отступ из правил
                     currentZOffset += productDataDetails.depth + productSpacing;
                 }
             }
