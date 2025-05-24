@@ -178,7 +178,7 @@ class CategoryDAO(BaseDAO[Category]):
     model = Category
 
     @classmethod
-    def get_many(cls, names: List[str]) -> List[Category]:
+    def get_many(cls, names: List[str]) -> List[T]:
         """Найти несколько категорий по названиям"""
         try:
             query = select(cls.model).where(cls.model.name.in_(names))
@@ -218,6 +218,38 @@ class ProductDAO(BaseDAO[Product]):
             result = db.session.execute(query)
             record = result.scalar_one_or_none()
             return record
+        except SQLAlchemyError as e:
+            raise
+
+    @classmethod
+    def get_many_for_category(
+        cls, 
+        category_name: str, 
+        max_height: float,
+        min_volume: float = 0, 
+        max_volume: float = float('inf')
+    ) -> List[T]:
+        """Найти несколько записей по категории и фильтрам"""
+        try:
+            query = select(cls.model)\
+                .join(cls.model.category_brand_placement)\
+                .join(CategoryBrandPlacement.category)\
+                .where(
+                    CategoryBrandPlacement.category.has(name=category_name),
+                    min_volume <= cls.model.weight,
+                    cls.model.weight <= max_volume,
+                    cls.model.height <= max_height
+                )
+
+            query = query.options(
+                joinedload(cls.model.category_brand_placement).options(
+                    joinedload(CategoryBrandPlacement.category),
+                    joinedload(CategoryBrandPlacement.brand)
+                )
+            )
+            result = db.session.execute(query)
+            records = result.scalars().all()
+            return records
         except SQLAlchemyError as e:
             raise
 
@@ -284,7 +316,7 @@ class ProductDAO(BaseDAO[Product]):
             raise
 
     @classmethod
-    def get_products_for_shelf_rules(cls, shelf_category_rules: List[Dict[str, Any]], max_height: float) -> List[Product]:
+    def get_products_for_shelf_rules(cls, shelf_category_rules: List[Dict[str, Any]], max_height: float) -> List[T]:
         """
         Получает список товаров, которые относятся к указанным категориям и подходят по весу и высоте.
 
