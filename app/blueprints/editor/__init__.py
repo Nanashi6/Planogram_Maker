@@ -119,12 +119,18 @@ async def calculate_auto_placement():
                     print(f"Правила для полки номер {shelf_number_in_rules} не найдены, полка пропускается.")
                     continue
 
-                # TODO Сортировать товары по правилам из JSON
                 products_for_shelf = ProductDAO.get_products_for_shelf_rules(shelf_rule_data.get("categories", []), shelf_model.height)
 
                 free_len = shelf_model.length
                 free_weights = shelf_model.max_weight
                 position_counter = 0
+
+# TODO Учитывать доли категорий и брендов на полках
+# TODO Дополнительные фейсинги
+# TODO Сортировать товары по правилам из JSON
+
+# IDEA Формализованный чат с последовательными инструкциями (МБ с подсказками всплывающими)
+# IDEA "1 Полка для категорий ...,...,...", "Порядок сортировок По категориям, По рейтингу бренда, По цене товара", 
 
                 for product in products_for_shelf:
                     if free_len - product.depth >= 0 and free_weights - product.weight >= 0:

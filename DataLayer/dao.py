@@ -275,15 +275,14 @@ class ProductDAO(BaseDAO[Product]):
     @classmethod
     def get_products_for_shelf_rules(cls, shelf_category_rules: List[Dict[str, Any]], max_height: float) -> List[Product]:
         """
-        Получает список товаров сгруппированных по категориям в порядке, указанном в правилах.
-        Учитывает ограничения по высоте.
+        Получает список товаров, которые относятся к указанным категориям и подходят по весу и высоте.
 
         Args:
             shelf_category_rules: Список словарей, где каждый словарь описывает правила для категории на полке.
             max_height: Максимально допустимая высота товара.
 
         Returns:
-            Список объектов Product, отсортированных по категориям из правил.
+            Список объектов Product, соответствующих правилам.
         """
 
         eager_load_options = joinedload(Product.category_brand_placement).options(
@@ -291,8 +290,11 @@ class ProductDAO(BaseDAO[Product]):
             joinedload(CategoryBrandPlacement.brand)
         )
 
-        # Список для хранения подзапросов (каждый для одного правила категории)
-        subqueries_for_union = []
+        # Основной запрос
+        base_query = select(Product).options(eager_load_options)
+
+        # Список для хранения всех условий фильтрации (OR условия для категорий, AND для остальных)
+        all_category_filters = []
 
         for rule_index, category_rule in enumerate(shelf_category_rules):
             category_name = category_rule.get("name")
@@ -300,20 +302,7 @@ class ProductDAO(BaseDAO[Product]):
                 print(f"Предупреждение: Пропущено правило для категории без имени (индекс {rule_index}): {category_rule}")
                 continue
 
-            # Базовый запрос для текущего правила категории
-            current_rule_query = select(
-                Product.id.label("product_id"),
-                literal_column(f"{rule_index}", Integer).label("rule_order")
-            )
-
-            # Таблицы, необходимые для фильтрации
-            current_rule_query = current_rule_query.join(
-                Product.category_brand_placement
-            ).join(
-                CategoryBrandPlacement.category
-            )
-
-            # Условия фильтрации для текущего правила
+            # Условия фильтрации для текущего правила категории
             filters_for_current_rule = [
                 Category.name == category_name,
                 Product.height <= max_height
@@ -334,27 +323,28 @@ class ProductDAO(BaseDAO[Product]):
                 except (ValueError, TypeError):
                     print(f"Предупреждение: Неверное значение для product_volume_max в правиле для категории '{category_name}': {category_rule['product_volume_max']}")
 
-            # Применение собранных фильтров к подзапросу
-            if filters_for_current_rule:
-                current_rule_query = current_rule_query.filter(and_(*filters_for_current_rule))
-            
-            subqueries_for_union.append(current_rule_query)
+            all_category_filters.append(and_(*filters_for_current_rule))
 
-        if not subqueries_for_union:
+        if not all_category_filters:
             return []
-        
-        unioned_query = union_all(*subqueries_for_union).alias("unioned_product_rules")
 
-        final_select_query = select(Product)\
-            .join(unioned_query, Product.id == unioned_query.c.product_id)\
-            .options(eager_load_options)
+        # Объединение всех условий для категорий с помощью OR
+        final_filter = or_(*all_category_filters)
+
+        # Присоединение таблицы для фильтрации по категориям
+        final_query = base_query.join(
+            Product.category_brand_placement
+        ).join(
+            CategoryBrandPlacement.category
+        ).filter(final_filter)
 
         try:
-            products_ordered_by_rules = db.session.execute(final_select_query).scalars().all()
-            return products_ordered_by_rules
+            products = db.session.execute(final_query).scalars().all()
+            return products
         except SQLAlchemyError as e:
-            print(f"Ошибка SQLAlchemy при выполнении объединенного запроса для правил полок: {e}")
+            print(f"Ошибка SQLAlchemy при выполнении запроса товаров: {e}")
             db.session.rollback()
+            return []
 
 class ShelfDAO(BaseDAO[Shelf]):
     model = Shelf
