@@ -177,6 +177,17 @@ class BaseDAO(Generic[T]):
 class CategoryDAO(BaseDAO[Category]):
     model = Category
 
+    @classmethod
+    def get_many(cls, names: List[str]) -> List[Category]:
+        """Найти несколько категорий по названиям"""
+        try:
+            query = select(cls.model).where(cls.model.name.in_(names))
+            result = db.session.execute(query)
+            records = result.scalars().all()
+            return records
+        except SQLAlchemyError as e:
+            raise
+
 class BrandDAO(BaseDAO[Brand]):
     model = Brand
 
