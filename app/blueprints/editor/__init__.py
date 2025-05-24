@@ -1,8 +1,17 @@
+from typing import Dict
 from flask import Blueprint, render_template, redirect, url_for, jsonify, request
-from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO
-from DataLayer.shemas import Planogram, PlacedProduct
+from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO, CategoryDAO, CategoryBrandPlacementDAO
+from DataLayer.shemas import Planogram, PlacedProduct, Category, CategoryBrandPlacement
+from DataLayer.models import Product
 
 import json
+
+
+class CategoryPlacementLimitation():
+    '''Класс для хранения долей категорий и брендов'''
+    def __init__(self, cat_share: float, brands_shares: Dict[str, float]):
+        self.share = cat_share
+        self.brands = brands_shares
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -71,7 +80,6 @@ async def save_planogram():
     
 
 
-# FIXME Реализовать детерминированную автовыкладку
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 async def calculate_auto_placement():
     if 'rules_file' not in request.files:
@@ -119,30 +127,43 @@ async def calculate_auto_placement():
                     print(f"Правила для полки номер {shelf_number_in_rules} не найдены, полка пропускается.")
                     continue
 
-                products_for_shelf = ProductDAO.get_products_for_shelf_rules(shelf_rule_data.get("categories", []), shelf_model.height)
-
-                free_len = shelf_model.length
+                products_for_shelf = {} # Товары для полки по категориям {'Категория': [...]}
+                unused_space = {} # Неиспользуемое пространство для каждой категории
+                
+                # free_len = shelf_model.length
                 free_weights = shelf_model.max_weight
                 position_counter = 0
 
-# TODO Учитывать доли категорий и брендов на полках
-# TODO Дополнительные фейсинги
-# TODO Сортировать товары по правилам из JSON
-
-# IDEA Формализованный чат с последовательными инструкциями (МБ с подсказками всплывающими)
-# IDEA "1 Полка для категорий ...,...,...", "Порядок сортировок По категориям, По рейтингу бренда, По цене товара", 
-
-                for product in products_for_shelf:
-                    if free_len - product.depth >= 0 and free_weights - product.weight >= 0:
-                        placed_products_list.append({
-                            "shelf_id": shelf_db_id,
-                            "product_id": product.id,
-                            "position": position_counter,
-                            "product": product.to_dict() # Полные данные о товаре для клиента
-                        })
-                        position_counter += 1
-                        free_len -= product.depth + product_spacing
-                        free_weights -= product.weight
+                # FIXME Множественные запросы к БД придумать как исправить
+                for c in shelf_rule_data.get("categories", []):
+                    category = CategoryDAO.get_one(Category(name = c.get('name', 'mommy')))
+                    categoryBrandPlacements = CategoryBrandPlacementDAO.get_all(CategoryBrandPlacement(category_id=category.id))
+                    products_for_category = ProductDAO.get_many_for_category(
+                        category.name, 
+                        shelf_model.height - vertical_space,
+                        c.get('product_volume_min', 0),
+                        c.get('product_volume_max', float('inf'))
+                    )
+                    products_for_shelf[category.name] = products_for_category
+                    unused_space[category.name] = CategoryPlacementLimitation(
+                        cat_share = shelf_model.length * category.share / 100,
+                        brands_shares = {p.brand.name: p.share * shelf_model.length * category.share / 100**2 if p.share is not None else shelf_model.length * category.share / 100 for p in categoryBrandPlacements}
+                    )
+                    
+                    for product in products_for_shelf[category.name]:
+                        if free_weights - product.weight >= 0 \
+                            and unused_space[product.category_brand_placement.category.name].brands[product.category_brand_placement.brand.name] - product.depth >= 0 \
+                        :
+                            placed_products_list.append({
+                                "shelf_id": shelf_db_id,
+                                "product_id": product.id,
+                                "position": position_counter,
+                                "product": product.to_dict() # Полные данные о товаре для клиента
+                            })
+                            position_counter += 1
+                            unused_space[product.category_brand_placement.category.name].share -= product.depth + product_spacing
+                            unused_space[product.category_brand_placement.category.name].brands[product.category_brand_placement.brand.name] -= product.depth + product_spacing
+                            free_weights -= product.weight
 
             calculated_planogram_response = {
                 "id": None,
@@ -150,8 +171,16 @@ async def calculate_auto_placement():
                 "shelf_unit": shelf_unit_model.to_dict(),
                 "placed_products": placed_products_list
             }
-            
             return jsonify(calculated_planogram_response), 200
+
+# # TODO Учитывать доли категорий на полках
+# # TODO Учитывать доли брендов на полках
+
+# # TODO Дополнительные фейсинги
+# # TODO Сортировать товары по правилам из JSON
+
+# # IDEA Формализованный чат с последовательными инструкциями (МБ с подсказками всплывающими)
+# # IDEA "1 Полка для категорий ...,...,...", "Порядок сортировок По категориям, По рейтингу бренда, По цене товара", 
 
         except json.JSONDecodeError:
             return jsonify({"error": "Ошибка парсинга файла правил (неверный JSON)"}), 400
