@@ -55,7 +55,7 @@
                     <dd class="col-sm-8">
                         {% if product.category_brand_placement.brand %}
                              <a href="{{ url_for('brands.read', id=product.category_brand_placement.brand.id) }}">{{ product.category_brand_placement.brand.name }}</a>
-                             <span class="text-muted">(ID: {{ product.brand_id }})</span>
+                             <span class="text-muted">(ID: {{ product.category_brand_placement.brand_id }})</span>
                         {% else %}
                              <span class="text-muted">N/A</span>
                         {% endif %}
