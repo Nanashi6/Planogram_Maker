@@ -1,4 +1,5 @@
-from typing import Dict
+import itertools
+from typing import Dict, List
 from flask import Blueprint, render_template, redirect, url_for, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO, CategoryDAO, CategoryBrandPlacementDAO
 from DataLayer.shemas import Planogram, PlacedProduct, Category, CategoryBrandPlacement
@@ -10,7 +11,7 @@ import json
 class CategoryPlacementLimitation():
     '''Класс для хранения долей категорий и брендов'''
     def __init__(self, cat_share: float, brands_shares: Dict[str, float]):
-        self.share = cat_share
+        self.share = sum([share if share is not None else cat_share for share in brands_shares.values()]) # cat_share
         self.brands = brands_shares
 
 BASE_URL = 'editor'
@@ -22,8 +23,7 @@ async def index():
     return render_template(f'{BASE_URL}/index.html')
 
 @editor_bp.route('/get_products', methods=['GET'])
-async def get_products(): # TODO Можно получать товары по указанным фильтрам (товары конкретных категорий или КОЛЛЕКЦИЙ)
-                            # FIXME Можно Эту функцию полностью на модуль продуктов переложить
+async def get_products():
     products = [product.to_dict() for product in ProductDAO.get_all()]
     return jsonify(products)
 
@@ -80,6 +80,61 @@ async def save_planogram():
     
 
 
+def get_current_products_length(placed_products: List[Product], product_spacing: float = 0) -> float:
+    '''Вычисляет текущую общую длину размещённых товаров включая межтоварное расстояние'''
+    return sum([p.depth + product_spacing for p in placed_products])
+
+def solve_dp_for_category(products: List[Product], max_weight: float, max_length: int) -> List[Product]:
+    # FIXME Учитывать вес
+    
+    N = len(products)
+    M = int(max_length * 10) # Миллиметры
+
+    dp = [[0 for _ in range(M + 1)] for _ in range(N + 1)]
+
+    for i in range(1, N + 1):
+        item_idx = i - 1
+        item_length = int(products[item_idx].depth * 10) # Миллиметры
+        item_cost = 1
+        for w in range(M + 1):
+            cost_without = dp[i-1][w]
+            cost_with = 0
+            if item_length <= w:
+                cost_with = dp[i-1][w - item_length] + item_cost
+            dp[i][w] = max(cost_without, cost_with)
+
+    taken_products = []
+    current_w = M
+
+    for i in range(N, 0, -1):
+        item_idx = i - 1
+        item_length = int(products[item_idx].depth * 10) # Миллиметры
+        item_cost = 1
+        if item_length <= current_w and dp[i][current_w] != dp[i-1][current_w]:
+            taken_products.append(products[item_idx])
+            current_w -= item_length
+
+    return taken_products
+
+def get_relevant_products(
+        unused_space: Dict[str, CategoryPlacementLimitation], 
+        all_products: Dict[str, List[Product]], 
+        max_weight: float = 100,
+        current_deviation: int = 0,
+        current_placed_products: List[Product] = []
+    ) -> List[Product]:
+    '''Формирует набор товаров для полки с учётом текущих ограничений'''
+    shelf_products = []
+    free_weight = max_weight
+
+    for category, brands in all_products.items():
+        for brand, products in brands.items():
+            length = unused_space[category].brands[brand] if unused_space[category].brands[brand] is not None else unused_space[category].share
+            shelf_products.extend(solve_dp_for_category(products, free_weight, length))
+            free_weight = max_weight - sum([p.weight for p in shelf_products])
+    
+    return shelf_products
+
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 async def calculate_auto_placement():
     if 'rules_file' not in request.files:
@@ -112,10 +167,12 @@ async def calculate_auto_placement():
             arrangement_rules = parsed_rules.get("shelf_arrangement_rules", {})
             vertical_space = float(arrangement_rules.get("vertical_space", {}).get("min", 0))
             product_spacing = float(arrangement_rules.get("product_spacing", {}).get("value", 0))
+            space_allocation_deviation = float(arrangement_rules.get("brand_space_allocation", {}).get("deviation", 0)) # Допустимые отклонения по доле выкладки для брендов
 
             # Итерация по полкам стеллажа (отсортированным по номеру)
             sorted_shelves_from_db = sorted(shelf_unit_model.shelves, key=lambda s: s.shelf_number)
-            placed_products_list = []
+            placed_products_list = [] # Товары, которые подобраны для стеллажа
+            placed_products_for_shelf = {}
 
             for shelf_model in sorted_shelves_from_db:
                 shelf_db_id = shelf_model.id
@@ -127,44 +184,57 @@ async def calculate_auto_placement():
                     print(f"Правила для полки номер {shelf_number_in_rules} не найдены, полка пропускается.")
                     continue
 
-                products_for_shelf = {} # Товары для полки по категориям {'Категория': [...]}
+                products_for_shelf: Dict[str, List[Product]] = {} # Товары для полки по категориям {'Категория': {'Бренд': [...]}}
                 unused_space = {} # Неиспользуемое пространство для каждой категории
-                
-                # free_len = shelf_model.length
-                free_weights = shelf_model.max_weight
-                position_counter = 0
 
-                # FIXME Множественные запросы к БД придумать как исправить
+                # FIXME Множественные запросы к БД придумать как исправить --- полная шляпа
                 for c in shelf_rule_data.get("categories", []):
-                    category = CategoryDAO.get_one(Category(name = c.get('name', 'mommy')))
+                    category = CategoryDAO.get_one(Category(name = c.get('name', 'mommy'))) # IDEA 'mommy' 🤣🤣🤣😂😂😂😁😁😁
                     categoryBrandPlacements = CategoryBrandPlacementDAO.get_all(CategoryBrandPlacement(category_id=category.id))
-                    products_for_category = ProductDAO.get_many_for_category(
-                        category.name, 
-                        shelf_model.height - vertical_space,
-                        c.get('product_volume_min', 0),
-                        c.get('product_volume_max', float('inf'))
-                    )
-                    products_for_shelf[category.name] = products_for_category
+                    # products_for_category = ProductDAO.get_many_for_category(
+                    #     category.name, 
+                    #     shelf_model.height - vertical_space,
+                    #     c.get('product_volume_min', 0),
+                    #     c.get('product_volume_max', float('inf'))
+                    # )
+                    # products_for_shelf[category.name] = products_for_category
+                    products_for_shelf[category.name] = {}
                     unused_space[category.name] = CategoryPlacementLimitation(
                         cat_share = shelf_model.length * category.share / 100,
-                        brands_shares = {p.brand.name: p.share * shelf_model.length * category.share / 100**2 if p.share is not None else shelf_model.length * category.share / 100 for p in categoryBrandPlacements}
-                    )
-                    
-                    for product in products_for_shelf[category.name]:
-                        if free_weights - product.weight >= 0 \
-                            and unused_space[product.category_brand_placement.category.name].brands[product.category_brand_placement.brand.name] - product.depth >= 0 \
-                        :
-                            placed_products_list.append({
-                                "shelf_id": shelf_db_id,
-                                "product_id": product.id,
-                                "position": position_counter,
-                                "product": product.to_dict() # Полные данные о товаре для клиента
-                            })
-                            position_counter += 1
-                            unused_space[product.category_brand_placement.category.name].share -= product.depth + product_spacing
-                            unused_space[product.category_brand_placement.category.name].brands[product.category_brand_placement.brand.name] -= product.depth + product_spacing
-                            free_weights -= product.weight
+                        brands_shares = {p.brand.name: 
+                                         (p.share + space_allocation_deviation) * shelf_model.length * category.share / 100**2 
+                                         if p.share is not None else None \
+                                         for p in categoryBrandPlacements
+                                        }
+                    ) 
+                    for cbp in categoryBrandPlacements:
+                        products = list(set(ProductDAO.get_many_for_cb(
+                            cbp.id,
+                            shelf_model.height - vertical_space, 
+                            c.get('product_volume_min', 0), 
+                            c.get('product_volume_max', float('inf'))
+                        )) - set(itertools.chain.from_iterable(placed_products_for_shelf.values())))
+                        products_for_shelf[category.name][cbp.brand.name] = products
+                    # BUG Обработку None запилить 😥😥😥
 
+                placed_products_for_shelf[shelf_model.id] = get_relevant_products(unused_space, products_for_shelf, shelf_model.max_weight, 0, placed_products_for_shelf)
+                # for ind, product in enumerate(get_relevant_products(unused_space, products_for_shelf, shelf_model.max_weight, 0, placed_products_for_shelf)):
+                #     placed_products_list.append({
+                #                     "shelf_id": shelf_db_id,
+                #                     "product_id": product.id,
+                #                     "position": ind,
+                #                     "product": product.to_dict() # Полные данные о товаре для клиента
+                #                 })
+
+            for shelf_id, products in placed_products_for_shelf.items():
+                for ind, product in enumerate(products):
+                    placed_products_list.append({
+                                    "shelf_id": shelf_id,
+                                    "product_id": product.id,
+                                    "position": ind,
+                                    "product": product.to_dict() # Полные данные о товаре для клиента
+                                })
+                    
             calculated_planogram_response = {
                 "id": None,
                 "name": f"Выкладка для стеллажа {shelf_unit_model.shelf_unit_number}",
@@ -175,6 +245,7 @@ async def calculate_auto_placement():
 
 # # TODO Учитывать доли категорий на полках
 # # TODO Учитывать доли брендов на полках
+# # TODO Убрать дубляжи товаров на разных полках
 
 # # TODO Дополнительные фейсинги
 # # TODO Сортировать товары по правилам из JSON
