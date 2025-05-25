@@ -79,6 +79,9 @@ async def save_planogram():
         return jsonify({"error": str(e)}), 500
     
 
+@editor_bp.route('/chat_message', methods=['POST'])
+def message_handle():
+    return {"reply": "ответ сервера"}, 200
 
 def get_current_products_length(placed_products: List[Product], product_spacing: float = 0) -> float:
     '''Вычисляет текущую общую длину размещённых товаров включая межтоварное расстояние'''

@@ -153,6 +153,37 @@
         font-size: inherit;
     }
     /* Стили для вкладок товаров в виде файловой системы */
+
+    /* Стили для чата */
+    #chat-messages-container .chat-message {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.25rem;
+        max-width: 75%;
+        word-wrap: break-word; 
+        white-space: pre-wrap;
+        line-height: 1.4;
+    }
+
+    #chat-messages-container .user-message {
+        background-color: #0d6efd;
+        color: white;
+        margin-left: auto;
+        text-align: left;
+    }
+
+    #chat-messages-container .server-message {
+        background-color: #f8f9fa; 
+        color: #212529; 
+        border: 1px solid #dee2e6; 
+        margin-right: auto;
+        text-align: left;
+    }
+
+    #chat-input {
+        min-height: calc(1.5em + .5rem + 2px);
+    }
+    /* Стили для чата */
 </style>
 {% endblock %}
 
@@ -176,6 +207,9 @@
                 </button>
                 <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="stackingRules-vtab" data-bs-toggle="pill" data-bs-target="#stackingRules-vtab-pane" type="button" role="tab" aria-controls="stackingRules-vtab-pane" aria-selected="false">
                     <span class="tab-button-text">Stacking Rules</span>
+                </button>
+                <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="chat-vtab" data-bs-toggle="pill" data-bs-target="#chat-vtab-pane" type="button" role="tab" aria-controls="chat-vtab-pane" aria-selected="false">
+                    <span class="tab-button-text">Chat</span>
                 </button>
             </div>
 
@@ -215,6 +249,17 @@
                         <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span>
                     </div>
                     {# Здесь может быть дополнительный контент для правил #}
+                </div>
+
+                <div class="tab-pane fade" id="chat-vtab-pane" role="tabpanel" aria-labelledby="chat-vtab">
+                    <h3 class="h5 mb-3">Chat Assistant</h3>
+                    <div id="chat-messages-container" style="height: calc(94.95vh - 160px); overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff;">
+                        <!-- Сообщения будут здесь -->
+                    </div>
+                    <div class="input-group">
+                        <textarea id="chat-input" class="form-control form-control-sm" placeholder="Type your message... (Shift+Enter for new line)" rows="2" style="resize: none;"></textarea>
+                        <button id="chat-send-btn" class="btn btn-primary btn-sm align-self-end">Send</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1404,6 +1449,89 @@
                 }
             });
         }
+
+
+        // --- CHAT FUNCTIONALITY ---
+        const chatMessagesContainer = document.getElementById('chat-messages-container');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendButton = document.getElementById('chat-send-btn');
+        const chatTabButton = document.getElementById('chat-vtab');
+
+        /**
+         * Добавляет сообщение в контейнер чата.
+         * @param {string} message - Текст сообщения.
+         * @param {boolean} isUser - true, если сообщение от пользователя, false - от сервера.
+         */
+        function addChatMessage(message, isUser) {
+            if (!chatMessagesContainer) return;
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message');
+            if (isUser) {
+                messageElement.classList.add('user-message');
+            } else {
+                messageElement.classList.add('server-message');
+            }
+            messageElement.textContent = message; // textContent автоматически экранирует HTML
+
+            chatMessagesContainer.appendChild(messageElement);
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        }
+
+        /**
+         * Отправляет сообщение на сервер и обрабатывает ответ.
+         */
+        async function sendChatMessage() {
+            if (!chatInput || !chatSendButton) return;
+            const messageText = chatInput.value.trim();
+            if (!messageText) return;
+
+            addChatMessage(messageText, true);
+            chatInput.value = "";
+            chatInput.disabled = true;
+            chatSendButton.disabled = true;
+
+            try {
+                const response = await fetch('/editor/chat_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: messageText }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const serverResponse = await response.json();
+                if (serverResponse.reply) {
+                    addChatMessage(serverResponse.reply, false);
+                } else {
+                    addChatMessage("Received an empty reply from the server.", false);
+                }
+
+            } catch (error) {
+                console.error("Error sending chat message:", error);
+                addChatMessage(`Error: ${error.message}`, false);
+            } finally {
+                chatInput.disabled = false;
+                chatSendButton.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        if (chatSendButton && chatInput) {
+            chatSendButton.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+        // --- END CHAT FUNCTIONALITY ---
+
 
         // Цикл рендеринга
         function render(time) {
