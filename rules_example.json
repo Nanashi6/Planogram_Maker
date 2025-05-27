@@ -1,0 +1,116 @@
+{
+  "product_rules": {
+    "shelves": [
+      {
+        "number": 1,
+        "categories": [
+          {
+            "name": "Охлаждающие жидкости",
+            "product_volume_min": 1.5,
+            "product_volume_max": 7.2
+          },
+          {
+            "name": "Стеклоомыватели"
+          },
+          {
+            "name": "Вода дистиллированная"
+          },
+          {
+            "name": "Электролит"
+          },
+          {
+            "name": "Густые смазки"
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "categories": [
+          {
+            "name": "Охлаждающие жидкости",
+            "product_volume_min": 1.5,
+            "product_volume_max": 7.2,
+            "brands": [
+              {
+                "name": "Flagman"
+              },
+              {
+                "name": "Fortis"
+              }
+            ],
+            "segment": {
+              "type": "Премиальный"
+            }
+          },
+          {
+            "name": "Тормозные жидкости"
+          }
+        ]
+      },
+      {
+        "number": 3,
+        "categories": [
+          {
+            "name": "Охлаждающие жидкости",
+            "product_volume_max": 2
+          }
+        ]
+      },
+      {
+        "number": 4,
+        "categories": [
+          {
+            "name": "Автохимия для кузова"
+          },
+          {
+            "name": "Присадки в топливо"
+          },
+          {
+            "name": "Автохимия для узлов и соединений"
+          },
+          {
+            "name": "Автохимия для двигателя"
+          },
+          {
+            "name": "Автохимия для трансмиссии и ходовой части"
+          },
+          {
+            "name": "Прочие аэрозольные смазки"
+          },
+          {
+            "name": "Растворители ржавчины и жидкие ключи"
+          }
+        ]
+      }
+    ]
+  },
+  "general_rules": {
+    "queue": ["brand_sorting", "product_sorting"],
+    "brand_sorting": {
+      "order": "ascending",
+      "by": "rating"
+    },
+    "product_sorting": {
+      "order": "ascending",
+      "by": "price",
+      "tie_breaker": {
+        "order": "ascending",
+        "by": "sales_rating"
+      }
+    }
+  },
+  "shelf_arrangement_rules": {
+    "vertical_space": {
+      "min": 1.5,
+      "unit": "cm"
+    },
+    "brand_space_allocation": {
+      "deviation": 10,
+      "unit": "percent"
+    },
+    "product_spacing": {
+      "value": 0.5,
+      "unit": "cm"
+    }
+  }
+}

@@ -189,11 +189,11 @@
 
 {% block content %}
 <div class="row g-0 cont"> 
-    <div class="col-md-9 h-100">
+    <div class="col-md-8 h-100">
         <canvas id="c" class="w-100 h-100"></canvas>
     </div>
 
-    <div class="col-md-3 d-flex flex-column border-start h-100" style="background-color: #f8f9fa;" id="sidebar-container">
+    <div class="col-md-4 d-flex flex-column border-start h-100" style="background-color: #f8f9fa;" id="sidebar-container">
         <div class="d-flex flex-grow-1 overflow-hidden"> 
             <div class="tab-navigation nav flex-column nav-pills p-2 border-end vertical-tabs-container" id="editorVerticalTabs" role="tablist" aria-orientation="vertical" style="min-width: 55px;">
                 <button class="tab-button nav-link text-center w-100 active vertical-tab-text" id="products-vtab" data-bs-toggle="pill" data-bs-target="#products-vtab-pane" type="button" role="tab" aria-controls="products-vtab-pane" aria-selected="true">
@@ -1477,6 +1477,16 @@
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
 
+        function handle_commands(code, data) {
+            switch (code) {
+                case 1:
+                    displayShelfUnit(data);
+                    break;
+                default:
+                    console.warn('Команда неопределена');
+            };
+        }
+
         /**
          * Отправляет сообщение на сервер и обрабатывает ответ.
          */
@@ -1507,6 +1517,7 @@
                 const serverResponse = await response.json();
                 if (serverResponse.reply) {
                     addChatMessage(serverResponse.reply, false);
+                    handle_commands(serverResponse.command_code, serverResponse.m_data)
                 } else {
                     addChatMessage("Received an empty reply from the server.", false);
                 }

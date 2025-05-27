@@ -10,7 +10,7 @@ class CommandParser:
         for cmd_def in self.commands_meta:
             cmd_def['param_meta_dict'] = {p['name']: p for p in cmd_def.get('parameters', [])}
             
-            # Определяем регулярные выражения и порядок имен параметров из групп
+            # Регулярные выражения и порядок имен параметров из групп
             if cmd_def['command'] == "УСТАНОВИ СТЕЛЛАЖ":
                 cmd_def['regex'] = re.compile(r"^УСТАНОВИ\s+СТЕЛЛАЖ\s+(\d+)$", re.IGNORECASE | re.UNICODE)
                 cmd_def['param_names_from_groups'] = ["номер_стеллажа"]
@@ -86,8 +86,6 @@ class CommandParser:
             if 'max' in param_info and value_to_store > param_info['max']:
                 errors.append(f"Значение параметра '{param_name}' ({value_to_store}) больше максимально допустимого ({param_info['max']}).")
             if 'enum' in param_info:
-                # Значения enum извлекаются из regex в верхнем регистре (как они определены в regex)
-                # Предполагаем, что enum в JSON также в верхнем регистре
                 if value_to_store not in param_info['enum']:
                     errors.append(f"Значение параметра '{param_name}' ('{value_to_store}') не является одним из допустимых: {param_info['enum']}.")
             

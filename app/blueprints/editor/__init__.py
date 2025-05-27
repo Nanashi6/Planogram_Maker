@@ -2,7 +2,7 @@ import itertools
 from typing import Dict, List
 from flask import Blueprint, render_template, redirect, url_for, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO, CategoryDAO, CategoryBrandPlacementDAO
-from DataLayer.shemas import Planogram, PlacedProduct, Category, CategoryBrandPlacement
+from DataLayer.shemas import Planogram, PlacedProduct, Category, CategoryBrandPlacement, ShelfUnit
 from DataLayer.models import Product
 
 from .parser import CommandParser
@@ -134,13 +134,12 @@ COMMAND_DEFINITIONS_JSON = """
 ]
 """
 
-# Создаем экземпляр парсера глобально
 COMMAND_PARSER_INSTANCE = CommandParser(COMMAND_DEFINITIONS_JSON)
 
 class CategoryPlacementLimitation():
     '''Класс для хранения долей категорий и брендов'''
     def __init__(self, cat_share: float, brands_shares: Dict[str, float]):
-        self.share = sum([share if share is not None else cat_share for share in brands_shares.values()]) # cat_share
+        self.share = sum([share if share is not None else cat_share for share in brands_shares.values()]) # FIXME cat_share
         self.brands = brands_shares
 
 BASE_URL = 'editor'
@@ -208,54 +207,77 @@ async def save_planogram():
         return jsonify({"error": str(e)}), 500
     
 
+def comands_handle(name: str, parameters):
+    reply_message: str = ""
+    commandCode: int = 0
+    m_data: str = ""
+
+    if name == "УСТАНОВИ СТЕЛЛАЖ":
+        shelfUnitNumber = parameters['номер_стеллажа']
+        commandCode = 1
+        m_data = ShelfUnitDAO.get_one(ShelfUnit(shelf_unit_number=shelfUnitNumber)).to_dict()
+        if m_data:
+            reply_message = f"Установлен стеллаж {shelfUnitNumber}"
+        else:
+            reply_message = f"Стеллаж не найден"
+    elif name == "РАЗМЕСТИ ПРОДУКТ":
+        ...
+    elif name == "УДАЛИ ПРОДУКТ":
+        ...
+    elif name == "ПЕРЕМЕСТИ ПРОДУКТ":
+        ...    
+    elif name == "РАЗМЕСТИ КАТЕГОРИЮ":
+        ...
+    elif name == "ОГРАНИЧЬ ПОЛКУ":
+        ...
+    elif name == "РАЗМЕСТИ АВТОМАТИЧЕСКИ":
+        ...
+    elif name == "ЗАПОЛНИ ОСТАТОК ПОЛКИ":
+        ...
+    elif name == "РАЗМЕСТИ БРЕНД":
+        ...
+    else:
+        reply_message = f"Неизвестная (но успешно распознанная) команда: '{name}'. Обработка не реализована."
+
+    return reply_message, commandCode, m_data
+
 @editor_bp.route('/chat_message', methods=['POST'])
-def message_handle(): # Оставляем синхронной, если request.get_json() используется без await
-    try: # Добавляем блок try...except для отлова неожиданных ошибок
+async def message_handle():
+    try: 
         data = request.get_json()
-        if not data: # Проверка, что JSON вообще пришел
+        if not data:
             return jsonify({"reply": "Ошибка: Тело запроса не содержит JSON.", "parsed_command": None}), 400
         
         user_message = data.get('message')
 
-        if user_message is None: # Явная проверка, что ключ 'message' есть
+        if user_message is None:
             return jsonify({"reply": "Ошибка: Ключ 'message' отсутствует в JSON.", "parsed_command": None}), 400
-        if not isinstance(user_message, str): # Проверка типа
+        if not isinstance(user_message, str):
              return jsonify({"reply": "Ошибка: Значение 'message' должно быть строкой.", "parsed_command": None}), 400
-
 
         parsed_result = COMMAND_PARSER_INSTANCE.parse(user_message)
 
         if "error" in parsed_result:
-            # Возвращаем 200, так как это ответ чата, а не системная ошибка сервера
-            # Клиент ожидает JSON, даже если это ошибка парсинга команды
             return jsonify({"reply": f"Ошибка разбора команды: {parsed_result['error']}", "parsed_command": None}), 200
         
         command_name = parsed_result['command']
         parameters = parsed_result['parameters']
         
-        reply_message = f"Команда '{command_name}' успешно распознана.\nПараметры: {json.dumps(parameters, ensure_ascii=False, indent=2)}"
+        # reply_message = f"Команда '{command_name}' успешно распознана.\nПараметры: {json.dumps(parameters, ensure_ascii=False, indent=2)}"
         
-        # Здесь в будущем будет логика выполнения команд
-        # Пример:
-        # if command_name == "УСТАНОВИ СТЕЛЛАЖ":
-        #     # Ваша логика
-        #     pass
+        reply_message, commandCode, m_data = comands_handle(command_name, parameters)
 
-        return jsonify({"reply": reply_message, "parsed_command": parsed_result}), 200
+        return jsonify({"reply": reply_message, "command_code": commandCode, "m_data": m_data}), 200
 
     except Exception as e:
-        # Это отловит ошибки, которые могли произойти *до* формирования JSON ответа,
-        # например, если request.get_json() упадет из-за неверного Content-Type.
-        # Или любые другие непредвиденные ошибки в этом обработчике.
         import traceback
         print("Critical error in /chat_message endpoint:")
         print(traceback.format_exc())
-        # Возвращаем JSON с ошибкой, чтобы клиент не падал
         return jsonify({
             "reply": "Внутренняя ошибка сервера при обработке сообщения чата. См. логи сервера.",
             "parsed_command": None,
-            "error_details": str(e) # Можно добавить для отладки, но в проде лучше убрать
-        }), 500 # Статус 500 указывает на ошибку сервера
+            "error_details": str(e)
+        }), 500 
 
 def get_current_products_length(placed_products: List[Product], product_spacing: float = 0) -> float:
     '''Вычисляет текущую общую длину размещённых товаров включая межтоварное расстояние'''
