@@ -1478,7 +1478,7 @@
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
 
-        function handle_commands( data) {
+        function handle_commands(data) {
             if (data.id || data.name) displayPlanogram(data);
             else if (data.shelf_unit) displayShelfUnit(data.shelf_unit);
         }
@@ -1518,9 +1518,9 @@
 
                 console.warn(serverResponse)
 
-                if (serverResponse.reply) {
-                    addChatMessage(serverResponse.reply, false);
-                    handle_commands(serverResponse.planogram)
+                if (serverResponse.message) {
+                    addChatMessage(serverResponse.message, false);
+                    handle_commands(serverResponse.data)
                 } else {
                     addChatMessage("Received an empty reply from the server.", false);
                 }

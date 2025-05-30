@@ -225,7 +225,7 @@ class ProductDAO(BaseDAO[Product]):
     def get_many_for_category(
         cls, 
         category_name: str, 
-        max_height: float,
+        max_height: float = float('inf'),
         min_volume: float = 0, 
         max_volume: float = float('inf')
     ) -> List[T]:

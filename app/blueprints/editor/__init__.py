@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO
 from DataLayer.shemas import Planogram, PlacedProduct
+from .commands_handlers import commands_handler
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -74,31 +75,26 @@ async def message_handle():
             return jsonify({"reply": "Ошибка: Тело запроса не содержит JSON.", "parsed_command": None}), 400
         
         user_message = data.get('message')
+        planogram_data = data.get('planogram')
 
         if user_message is None:
             return jsonify({"reply": "Ошибка: Ключ 'message' отсутствует в JSON.", "parsed_command": None}), 400
         if not isinstance(user_message, str):
              return jsonify({"reply": "Ошибка: Значение 'message' должно быть строкой.", "parsed_command": None}), 400
 
-        # parsed_result = COMMAND_PARSER_INSTANCE.parse(user_message)
+        message = commands_handler(user_message, planogram_data)
 
-        if "error" in parsed_result:
-            return jsonify({"reply": f"Ошибка разбора команды: {parsed_result['error']}", "parsed_command": None}), 200
-        
-        command_name = parsed_result['command']
-        parameters = parsed_result['parameters']
-
-        # TODO Тут вызов обработчика команд и получение ответа (server_message)
-
-        return jsonify({"reply": "", "planogram": ""}), 200
+        return message.to_json(), 200 #BUG подумать как лучше отправлять ответ (где в JSON переводить)
 
     except Exception as e:
+        import traceback
         print("Critical error in /chat_message endpoint:")
+        print(e)
+        traceback.print_exc()
         return jsonify({
-            "reply": "Внутренняя ошибка сервера при обработке сообщения чата. См. логи сервера.",
-            "parsed_command": None,
-            "error_details": str(e)
-        }), 500 
+            "reply": "Внутренняя ошибка сервера при обработке сообщения чата.",
+            "parsed_command": None
+        }), 500 #FIXME Тут можно 200 код сделать и в чат ошибку выводить а не код ошибки
 
 # def solve_dp_for_category(products: List[prod], max_weight: float, max_length: int) -> List[prod]: #FIXME реализовать автовыкладку
 #     # FIXME Учитывать вес
