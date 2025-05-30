@@ -216,6 +216,15 @@ class ShelfUnit(Base):
         cascade="all, delete-orphan"
     )
 
+    def get_shelf_by_number(self, shelf_number: int):
+        """
+        Возвращает первую полку с указанным номером или None, если полка не найдена.
+        """
+        for shelf in self.shelves:
+            if shelf.shelf_number == shelf_number:
+                return shelf
+        return None
+
     def to_dict(self) -> dict:
         """Конвертирует объект Shelf в словарь"""
         data = super().to_dict()

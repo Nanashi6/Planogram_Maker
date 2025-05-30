@@ -1025,7 +1025,7 @@
             deleteAllPlacedProducts(); // Очистка от всех размещённых товаров
             if (planogramData.shelf_unit && (!currentDisplayedShelfUnit || currentDisplayedShelfUnit.name !== `shelfUnit_${planogramData.shelf_unit.shelf_unit_number}`)) {
                 currentShelfUnitDataForSave = planogramData.shelf_unit; // Обновляем данные для сохранения
-            displayShelfUnit(planogramData.shelf_unit);
+                displayShelfUnit(planogramData.shelf_unit);
             } 
             else if (!currentDisplayedShelfUnit) {
                 console.error("Нет данных о стеллаже для отображения планограммы и нет текущего отображаемого стеллажа.");
@@ -1285,19 +1285,7 @@
         get_shelfUnits().then(d => {populateShelfUnitList(d);});
         get_planograms().then(d => {populatePlanogramList(d);});
 
-        function collectPlanogramDataForSave() {
-            if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
-                alert("Please select or load a shelf unit first.");
-                return null;
-            }
-    
-            const planogramName = planogramNameInput.value.trim();
-            if (!planogramName) {
-                alert("Please enter a name for the planogram.");
-                planogramNameInput.focus();
-                return null;
-            }
-    
+        function collectPlanogramData() {
             const placedProductsData = [];
             // Сгруппируем все меши товаров по их полкам (по UUID полки)
             const productsOnShelvesMap = new Map(); // Map<shelfUUID, productMesh[]> 
@@ -1333,11 +1321,11 @@
                 });
             });
     
+            const shelfUnitID = currentShelfUnitDataForSave ? currentShelfUnitDataForSave.id : null;
+
             const dataToSend = {
                 id: currentPlanogramId, // null для новой, или ID существующей
-                name: planogramName,
-                // shelf_unit_id: currentDisplayedShelfUnit.userData.shelfUnitNumber, // или ID юнита из БД, если есть
-                shelf_unit_id: currentShelfUnitDataForSave.id, // Используем ID стеллажа из БД
+                shelf_unit_id: shelfUnitID, // Используем ID стеллажа из БД
                 placed_products: placedProductsData
             };
     
@@ -1378,8 +1366,21 @@
     
         if (savePlanogramButton) {
             savePlanogramButton.addEventListener('click', () => {
-                const planogramDataToSave = collectPlanogramDataForSave();
+                if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
+                    alert("Please select or load a shelf unit first.");
+                    return null;
+                }
+    
+                const planogramName = planogramNameInput.value.trim();
+                if (!planogramName) {
+                    alert("Please enter a name for the planogram.");
+                    planogramNameInput.focus();
+                    return null;
+                }
+
+                const planogramDataToSave = collectPlanogramData();
                 if (planogramDataToSave) {
+                    planogramDataToSave.name = planogramName;
                     sendSavePlanogramRequest(planogramDataToSave);
                 }
             });
@@ -1477,14 +1478,9 @@
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
         }
 
-        function handle_commands(code, data) {
-            switch (code) {
-                case 1:
-                    displayShelfUnit(data);
-                    break;
-                default:
-                    console.warn('Команда неопределена');
-            };
+        function handle_commands( data) {
+            if (data.id || data.name) displayPlanogram(data);
+            else if (data.shelf_unit) displayShelfUnit(data.shelf_unit);
         }
 
         /**
@@ -1495,10 +1491,14 @@
             const messageText = chatInput.value.trim();
             if (!messageText) return;
 
+            const currentPlanogram = collectPlanogramData();
+
             addChatMessage(messageText, true);
             chatInput.value = "";
             chatInput.disabled = true;
             chatSendButton.disabled = true;
+
+            console.warn(currentPlanogram)
 
             try {
                 const response = await fetch('/editor/chat_message', {
@@ -1506,7 +1506,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: messageText }),
+                    body: JSON.stringify({ message: messageText, planogram: currentPlanogram }),
                 });
 
                 if (!response.ok) {
@@ -1515,9 +1515,12 @@
                 }
 
                 const serverResponse = await response.json();
+
+                console.warn(serverResponse)
+
                 if (serverResponse.reply) {
                     addChatMessage(serverResponse.reply, false);
-                    handle_commands(serverResponse.command_code, serverResponse.m_data)
+                    handle_commands(serverResponse.planogram)
                 } else {
                     addChatMessage("Received an empty reply from the server.", false);
                 }
