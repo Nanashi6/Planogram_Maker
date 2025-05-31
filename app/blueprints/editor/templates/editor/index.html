@@ -615,183 +615,6 @@
         let cameraZoom = 1.0; // Зум для ортографической проекции
         const minOrthoZoom = 0.2, maxOrthoZoom = 5.0; // Ограничения для ортографического зума
 
-
-
-        const brandSortSelect = document.getElementById('brand-sort-select');
-        const productSortSelect = document.getElementById('product-sort-select');
-        const productSpacingInput = document.getElementById('product-spacing-input');
-        const shelfSpecificRulesContainer = document.getElementById('shelf-specific-rules-container');
-        const shelfRulesPlaceholder = document.getElementById('shelf-rules-placeholder');
-        const applyRulesButton = document.getElementById('apply-rules-btn');
-        const applyRulesStatus = document.getElementById('apply-rules-status');
-
-        let availableCategoriesCache = []; // Для хранения списка категорий {id, name}
-
-        function getAvailableCategories() {
-            const categories = new Map(); // Используем Map для уникальности по ID категории
-            allProductsFromListCache.forEach(product => {
-                if (product.category_brand_placement && product.category_brand_placement.category) {
-                    const cat = product.category_brand_placement.category;
-                    if (cat.id && cat.name && !categories.has(cat.id)) {
-                        categories.set(cat.id, { id: cat.id, name: cat.name });
-                    }
-                }
-            });
-            availableCategoriesCache = Array.from(categories.values()).sort((a, b) => a.name.localeCompare(b.name));
-            return availableCategoriesCache;
-        }
-
-        function renderShelfSpecificRulesUI() {
-            if (!currentDisplayedShelfUnit || !currentDisplayedShelfUnit.children) {
-                shelfSpecificRulesContainer.innerHTML = ''; // Очистка, если были предыдущие
-                shelfRulesPlaceholder.style.display = 'block';
-                return;
-            }
-
-            shelfRulesPlaceholder.style.display = 'none';
-            shelfSpecificRulesContainer.innerHTML = ''; // Очищаем предыдущие правила
-
-            const shelves = currentDisplayedShelfUnit.children
-                .filter(child => child.userData.isShelf)
-                .sort((a, b) => a.userData.shelfNumber - b.userData.shelfNumber);
-
-            if (shelves.length === 0) {
-                shelfSpecificRulesContainer.innerHTML = '<p class="text-muted">No shelves found in the current unit.</p>';
-                return;
-            }
-            
-            getAvailableCategories(); // Убедимся, что категории свежие
-
-            shelves.forEach(shelfMesh => {
-                const shelfData = shelfMesh.userData;
-                const shelfId = `shelf-${shelfData.db_id || shelfData.shelfNumber}`; // Используем db_id если есть
-
-                const shelfRuleDiv = document.createElement('div');
-                shelfRuleDiv.className = 'shelf-rule-item mb-3 p-2 border rounded';
-                shelfRuleDiv.dataset.shelfDbId = shelfData.db_id;
-                shelfRuleDiv.dataset.shelfNumber = shelfData.shelfNumber;
-
-                shelfRuleDiv.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">Shelf ${shelfData.shelfNumber} (ID: ${shelfData.db_id})</h6>
-                        <button class="btn btn-outline-success btn-sm add-category-rule-btn" data-shelf-id="${shelfId}">+ Add Category</button>
-                    </div>
-                    <div class="category-rules-list" id="category-rules-${shelfId}">
-                        Тип списка <p class="text-muted small">No category rules defined for this shelf yet.</p>
-                    </div>
-                `;
-                shelfSpecificRulesContainer.appendChild(shelfRuleDiv);
-
-                // Обработчик для кнопки "Add Category"
-                shelfRuleDiv.querySelector('.add-category-rule-btn').addEventListener('click', function() {
-                    addCategoryRuleRow(this.dataset.shelfId);
-                });
-            });
-        }
-
-        function addCategoryRuleRow(shelfRuleContainerIdSelector, ruleData = null) {
-            const categoryRulesList = document.getElementById(`category-rules-${shelfRuleContainerIdSelector}`);
-            if (!categoryRulesList) return;
-
-            // Убираем плейсхолдер, если это первая добавляемая строка
-            const placeholder = categoryRulesList.querySelector('p.text-muted');
-            if (placeholder) placeholder.remove();
-            
-            const ruleRow = document.createElement('div');
-            ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded';
-            
-            let categoryOptions = '<option value="">Select Category...</option>';
-            availableCategoriesCache.forEach(cat => {
-                categoryOptions += `<option value="${cat.id}" ${ruleData && ruleData.categoryId == cat.id ? 'selected' : ''}>${cat.name}</option>`;
-            });
-
-            ruleRow.innerHTML = `
-                <div class="col-md-3">
-                    <select class="form-select form-select-sm category-select">
-                        ${categoryOptions}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage : ''}">
-                </div>
-                <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (g)" min="0" value="${ruleData ? ruleData.minWeightG : ''}">
-                </div>
-                <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (g)" min="0" value="${ruleData ? ruleData.maxWeightG : ''}">
-                </div>
-                <div class="col-md-1 text-end">
-                    <button class="btn btn-danger btn-sm remove-category-rule-btn">×</button>
-                </div>
-            `;
-            categoryRulesList.appendChild(ruleRow);
-
-            ruleRow.querySelector('.remove-category-rule-btn').addEventListener('click', function() {
-                ruleRow.remove();
-                // Если все строки удалены, можно вернуть плейсхолдер
-                if (categoryRulesList.children.length === 0) {
-                    categoryRulesList.innerHTML = '<p class="text-muted small">No category rules defined for this shelf yet.</p>';
-                }
-            });
-        }
-
-        // Добавить слушатель на показ вкладки (если Bootstrap tabs)
-        const stackingRulesTab = document.getElementById('stackingRules-vtab');
-        if (stackingRulesTab) {
-            stackingRulesTab.addEventListener('shown.bs.tab', function () {
-                renderShelfSpecificRulesUI(); // Перерисовать при показе вкладки
-            });
-        }
-
-        function collectAllRulesData() {
-            const globalRules = {
-                brandSortBy: brandSortSelect.value,
-                productSortBy: productSortSelect.value,
-                defaultProductSpacingCm: parseFloat(productSpacingInput.value) || 0.5,
-            };
-
-            const shelfRules = [];
-            const shelfRuleItems = shelfSpecificRulesContainer.querySelectorAll('.shelf-rule-item');
-
-            shelfRuleItems.forEach(shelfItem => {
-                const shelfDbId = shelfItem.dataset.shelfDbId;
-                const shelfNumber = shelfItem.dataset.shelfNumber;
-                const categoryAllocations = [];
-
-                shelfItem.querySelectorAll('.category-rule-row').forEach(row => {
-                    const categorySelect = row.querySelector('.category-select');
-                    const percentageInput = row.querySelector('.percentage-input');
-                    const minWeightInput = row.querySelector('.min-weight-input');
-                    const maxWeightInput = row.querySelector('.max-weight-input');
-
-                    if (categorySelect.value) { // Только если категория выбрана
-                        categoryAllocations.push({
-                            categoryId: parseInt(categorySelect.value),
-                            categoryName: categorySelect.options[categorySelect.selectedIndex].text, // для отладки
-                            percentage: parseInt(percentageInput.value) || null,
-                            minWeightG: minWeightInput.value ? parseInt(minWeightInput.value) : null,
-                            maxWeightG: maxWeightInput.value ? parseInt(maxWeightInput.value) : null,
-                        });
-                    }
-                });
-                
-                if (categoryAllocations.length > 0) { // Добавляем полку только если для нее есть правила
-                    shelfRules.push({
-                        shelfDbId: parseInt(shelfDbId),
-                        shelfNumber: parseInt(shelfNumber), // для отладки
-                        categoryAllocations: categoryAllocations,
-                    });
-                }
-            });
-
-            return {
-                global: globalRules,
-                shelves: shelfRules,
-            };
-        }
-
-
-
         /**
         * Функция для обновления проекции камеры (при зуме или изменении размера окна)
         */
@@ -1326,6 +1149,183 @@
             }
             console.log("Планограмма/автовыкладка отображена:", planogramData.name || "Результат автовыкладки");
         }
+
+
+        // --- Rules UI ---
+        const brandSortSelect = document.getElementById('brand-sort-select');
+        const productSortSelect = document.getElementById('product-sort-select');
+        const productSpacingInput = document.getElementById('product-spacing-input');
+        const shelfSpecificRulesContainer = document.getElementById('shelf-specific-rules-container');
+        const shelfRulesPlaceholder = document.getElementById('shelf-rules-placeholder');
+        const applyRulesButton = document.getElementById('apply-rules-btn');
+        const applyRulesStatus = document.getElementById('apply-rules-status');
+
+        let availableCategoriesCache = []; // Для хранения списка категорий {id, name}
+
+        function getAvailableCategories() {
+            const categories = new Map(); // Используем Map для уникальности по ID категории
+            allProductsFromListCache.forEach(product => {
+                if (product.category_brand_placement && product.category_brand_placement.category) {
+                    const cat = product.category_brand_placement.category;
+                    if (cat.id && cat.name && !categories.has(cat.id)) {
+                        categories.set(cat.id, { id: cat.id, name: cat.name });
+                    }
+                }
+            });
+            availableCategoriesCache = Array.from(categories.values()).sort((a, b) => a.name.localeCompare(b.name));
+            return availableCategoriesCache;
+        }
+
+        function renderShelfSpecificRulesUI() {
+            if (!currentDisplayedShelfUnit || !currentDisplayedShelfUnit.children) {
+                shelfSpecificRulesContainer.innerHTML = ''; // Очистка, если были предыдущие
+                shelfRulesPlaceholder.style.display = 'block';
+                return;
+            }
+
+            shelfRulesPlaceholder.style.display = 'none';
+            shelfSpecificRulesContainer.innerHTML = ''; // Очищаем предыдущие правила
+
+            const shelves = currentDisplayedShelfUnit.children
+                .filter(child => child.userData.isShelf)
+                .sort((a, b) => a.userData.shelfNumber - b.userData.shelfNumber);
+
+            if (shelves.length === 0) {
+                shelfSpecificRulesContainer.innerHTML = '<p class="text-muted">No shelves found in the current unit.</p>';
+                return;
+            }
+            
+            getAvailableCategories(); // Убедимся, что категории свежие
+
+            shelves.forEach(shelfMesh => {
+                const shelfData = shelfMesh.userData;
+                const shelfId = `shelf-${shelfData.db_id || shelfData.shelfNumber}`; // Используем db_id если есть
+
+                const shelfRuleDiv = document.createElement('div');
+                shelfRuleDiv.className = 'shelf-rule-item mb-3 p-2 border rounded';
+                shelfRuleDiv.dataset.shelfDbId = shelfData.db_id;
+                shelfRuleDiv.dataset.shelfNumber = shelfData.shelfNumber;
+
+                shelfRuleDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Shelf ${shelfData.shelfNumber} (ID: ${shelfData.db_id})</h6>
+                        <button class="btn btn-outline-success btn-sm add-category-rule-btn" data-shelf-id="${shelfId}">+ Add Category</button>
+                    </div>
+                    <div class="category-rules-list" id="category-rules-${shelfId}">
+                        Тип списка <p class="text-muted small">No category rules defined for this shelf yet.</p>
+                    </div>
+                `;
+                shelfSpecificRulesContainer.appendChild(shelfRuleDiv);
+
+                // Обработчик для кнопки "Add Category"
+                shelfRuleDiv.querySelector('.add-category-rule-btn').addEventListener('click', function() {
+                    addCategoryRuleRow(this.dataset.shelfId);
+                });
+            });
+        }
+
+        function addCategoryRuleRow(shelfRuleContainerIdSelector, ruleData = null) {
+            const categoryRulesList = document.getElementById(`category-rules-${shelfRuleContainerIdSelector}`);
+            if (!categoryRulesList) return;
+
+            // Убираем плейсхолдер, если это первая добавляемая строка
+            const placeholder = categoryRulesList.querySelector('p.text-muted');
+            if (placeholder) placeholder.remove();
+            
+            const ruleRow = document.createElement('div');
+            ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded';
+            
+            let categoryOptions = '<option value="">Select Category...</option>';
+            availableCategoriesCache.forEach(cat => {
+                categoryOptions += `<option value="${cat.id}" ${ruleData && ruleData.categoryId == cat.id ? 'selected' : ''}>${cat.name}</option>`;
+            });
+
+            ruleRow.innerHTML = `
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm category-select">
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage : ''}">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (g)" min="0" value="${ruleData ? ruleData.minWeightG : ''}">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (g)" min="0" value="${ruleData ? ruleData.maxWeightG : ''}">
+                </div>
+                <div class="col-md-1 text-end">
+                    <button class="btn btn-danger btn-sm remove-category-rule-btn">×</button>
+                </div>
+            `;
+            categoryRulesList.appendChild(ruleRow);
+
+            ruleRow.querySelector('.remove-category-rule-btn').addEventListener('click', function() {
+                ruleRow.remove();
+                // Если все строки удалены, можно вернуть плейсхолдер
+                if (categoryRulesList.children.length === 0) {
+                    categoryRulesList.innerHTML = '<p class="text-muted small">No category rules defined for this shelf yet.</p>';
+                }
+            });
+        }
+
+        // Добавить слушатель на показ вкладки (если Bootstrap tabs)
+        const stackingRulesTab = document.getElementById('stackingRules-vtab');
+        if (stackingRulesTab) {
+            stackingRulesTab.addEventListener('shown.bs.tab', function () {
+                renderShelfSpecificRulesUI(); // Перерисовать при показе вкладки
+            });
+        }
+
+        function collectAllRulesData() {
+            const globalRules = {
+                brandSortBy: brandSortSelect.value,
+                productSortBy: productSortSelect.value,
+                defaultProductSpacingCm: parseFloat(productSpacingInput.value) || 0.5,
+            };
+
+            const shelfRules = [];
+            const shelfRuleItems = shelfSpecificRulesContainer.querySelectorAll('.shelf-rule-item');
+
+            shelfRuleItems.forEach(shelfItem => {
+                const shelfDbId = shelfItem.dataset.shelfDbId;
+                const shelfNumber = shelfItem.dataset.shelfNumber;
+                const categoryAllocations = [];
+
+                shelfItem.querySelectorAll('.category-rule-row').forEach(row => {
+                    const categorySelect = row.querySelector('.category-select');
+                    const percentageInput = row.querySelector('.percentage-input');
+                    const minWeightInput = row.querySelector('.min-weight-input');
+                    const maxWeightInput = row.querySelector('.max-weight-input');
+
+                    if (categorySelect.value) { // Только если категория выбрана
+                        categoryAllocations.push({
+                            categoryId: parseInt(categorySelect.value),
+                            categoryName: categorySelect.options[categorySelect.selectedIndex].text, // для отладки
+                            percentage: parseInt(percentageInput.value) || null,
+                            minWeightG: minWeightInput.value ? parseInt(minWeightInput.value) : null,
+                            maxWeightG: maxWeightInput.value ? parseInt(maxWeightInput.value) : null,
+                        });
+                    }
+                });
+                
+                if (categoryAllocations.length > 0) { // Добавляем полку только если для нее есть правила
+                    shelfRules.push({
+                        shelfDbId: parseInt(shelfDbId),
+                        shelfNumber: parseInt(shelfNumber), // для отладки
+                        categoryAllocations: categoryAllocations,
+                    });
+                }
+            });
+
+            return {
+                global: globalRules,
+                shelves: shelfRules,
+            };
+        }
+        // --- Rules UI ---
+
 
         /**
         * Функция для заполнения HTML списка товаров
