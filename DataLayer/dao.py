@@ -254,6 +254,41 @@ class ProductDAO(BaseDAO[Product]):
             raise
 
     @classmethod
+    def get_many_for_category_and_brand(
+        cls, 
+        category_name: str, 
+        brand_name: str,
+        max_height: float = float('inf'),
+        min_volume: float = 0, 
+        max_volume: float = float('inf')
+    ) -> List[T]:
+        """Найти несколько записей по категории и фильтрам"""
+        try:
+            query = select(cls.model)\
+                .join(cls.model.category_brand_placement)\
+                .join(CategoryBrandPlacement.category)\
+                .join(CategoryBrandPlacement.brand)\
+                .where(
+                    CategoryBrandPlacement.category.has(name=category_name),
+                    CategoryBrandPlacement.brand.has(name=brand_name),
+                    min_volume <= cls.model.weight,
+                    cls.model.weight <= max_volume,
+                    cls.model.height <= max_height
+                )
+
+            query = query.options(
+                joinedload(cls.model.category_brand_placement).options(
+                    joinedload(CategoryBrandPlacement.category),
+                    joinedload(CategoryBrandPlacement.brand)
+                )
+            )
+            result = db.session.execute(query)
+            records = result.scalars().all()
+            return records
+        except SQLAlchemyError as e:
+            raise
+
+    @classmethod
     def get_many_for_cb(
         cls, 
         cbp_id,

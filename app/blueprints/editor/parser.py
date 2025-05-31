@@ -15,13 +15,13 @@ class CommandParser:
             if command_name == "УСТАНОВИ СТЕЛЛАЖ":
                 cmd_def['regex'] = re.compile(r"^УСТАНОВИ\s+СТЕЛЛАЖ\s+(\d+)$", re.IGNORECASE | re.UNICODE)
                 cmd_def['param_names_from_groups'] = ["номер_стеллажа"] 
-            elif command_name == "РАЗМЕСТИ ПРОДУКТ":
+            elif command_name == "РАЗМЕСТИ ТОВАР":
                 cmd_def['regex'] = re.compile(
-                    r"^РАЗМЕСТИ\s+ПРОДУКТ\s+(\d+)\s+НА\s+ПОЛКЕ\s+(\d+)"
+                    r"^РАЗМЕСТИ\s+ТОВАР\s+(\d+)\s+НА\s+ПОЛКЕ\s+(\d+)"
                     r"(?:\s+В\s+КОЛИЧЕСТВЕ\s+(\d+)\s+ФЕЙСИНГОВ)?$", 
                     re.IGNORECASE | re.UNICODE
                 )
-                cmd_def['param_names_from_groups'] = ["штрихкод_продукта", "номер_полки", "количество_фейсингов"]
+                cmd_def['param_names_from_groups'] = ["штрихкод_товара", "номер_полки", "количество_фейсингов"]
             elif command_name == "УДАЛИ ПРОДУКТ":
                 cmd_def['regex'] = re.compile(r"^УДАЛИ\s+ПРОДУКТ\s+(\d+)\s+С\s+ПОЛКИ\s+(\d+)$", re.IGNORECASE | re.UNICODE)
                 cmd_def['param_names_from_groups'] = ["штрихкод_продукта", "номер_полки"]

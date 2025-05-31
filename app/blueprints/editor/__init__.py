@@ -80,11 +80,11 @@ async def message_handle():
         if user_message is None:
             return jsonify({"reply": "Ошибка: Ключ 'message' отсутствует в JSON.", "parsed_command": None}), 400
         if not isinstance(user_message, str):
-             return jsonify({"reply": "Ошибка: Значение 'message' должно быть строкой.", "parsed_command": None}), 400
+            return jsonify({"reply": "Ошибка: Значение 'message' должно быть строкой.", "parsed_command": None}), 400
 
         message = commands_handler(user_message, planogram_data)
 
-        return message.to_json(), 200 #BUG подумать как лучше отправлять ответ (где в JSON переводить)
+        return message.to_json(), 200
 
     except Exception as e:
         import traceback
@@ -94,7 +94,7 @@ async def message_handle():
         return jsonify({
             "reply": "Внутренняя ошибка сервера при обработке сообщения чата.",
             "parsed_command": None
-        }), 500 #FIXME Тут можно 200 код сделать и в чат ошибку выводить а не код ошибки
+        }), 200 #FIXME Тут можно 200 код сделать и в чат ошибку выводить а не код ошибки
 
 # def solve_dp_for_category(products: List[prod], max_weight: float, max_length: int) -> List[prod]: #FIXME реализовать автовыкладку
 #     # FIXME Учитывать вес
