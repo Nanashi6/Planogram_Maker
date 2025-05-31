@@ -128,9 +128,82 @@ async def message_handle():
 
 #     return taken_products
 
-# @editor_bp.route('/calculate_auto_placement', methods=['POST'])
-# async def calculate_auto_placement():	
-# 	...
+@editor_bp.route('/calculate_auto_placement', methods=['POST'])
+def calculate_auto_placement_route():
+    return "", 200
+    # data = request.get_json()
+    # if not data:
+    #     return jsonify({"error": "Invalid JSON payload"}), 400
+
+    # shelf_unit_id = data.get('shelf_unit_id')
+    # rules = data.get('rules') # Это будет словарь с 'global' и 'shelves'
+
+    # if not shelf_unit_id or not rules:
+    #     return jsonify({"error": "Missing shelf_unit_id or rules in payload"}), 400
+
+    # print(f"Received Shelf Unit ID: {shelf_unit_id}")
+    # print(f"Received Global Rules: {rules.get('global')}")
+    # print(f"Received Shelf Specific Rules: {rules.get('shelves')}")
+
+    # # Здесь ваша логика для получения данных стеллажа по shelf_unit_id,
+    # # получения товаров, и применения правил (rules) для генерации планограммы.
+    # # Это самая сложная часть, зависящая от вашей бизнес-логики.
+
+    # # --- Начало примера логики обработки (очень упрощенно) ---
+    # # 1. Получить данные стеллажа (shelf_unit_data) из БД по shelf_unit_id
+    # # 2. Получить все товары (all_products_data) из БД
+    # # 3. Применить global rules для общей сортировки товаров
+    # # 4. Для каждой полки в shelf_unit_data:
+    # #    - Найти соответствующие shelf-specific rules.
+    # #    - Для каждой категории в правилах полки:
+    # #        - Отфильтровать товары по категории.
+    # #        - Применить product sorting rules (из global или специфичные для категории, если есть).
+    # #        - Учесть вес, процент полки.
+    # #        - Разместить товары на полке.
+    # # 5. Сформировать `calculated_planogram_data` в том же формате, что и при загрузке планограммы.
+    # # --- Конец примера логики обработки ---
+    
+    # # Предположим, вы сформировали calculated_planogram_data
+    # # Это заглушка, замените реальной логикой
+    # try:
+    #     # Имитация вызова вашей основной функции расчета
+    #     # from your_placement_logic_module import calculate_layout
+    #     # calculated_planogram_data = calculate_layout(shelf_unit_id, rules, all_products_data)
+        
+    #     # Заглушка для демонстрации ответа
+    #     # Найдите реальный стеллаж и его полки
+    #     # shelf_unit_from_db = ShelfUnit.query.get(shelf_unit_id)
+    #     # if not shelf_unit_from_db:
+    #     #      return jsonify({"error": f"Shelf unit with ID {shelf_unit_id} not found"}), 404
+
+    #     # Просто для примера: создаем пустую планограмму с названием
+    #     # calculated_planogram_data = {
+    #     #     "name": f"Auto-Rules for Unit {shelf_unit_from_db.shelf_unit_number}",
+    #     #     "shelf_unit": shelf_unit_from_db.to_dict(rules=['shelves.products']), # Сериализуйте стеллаж
+    #     #     "placed_products": [], # Здесь должны быть размещенные товары
+    #     #     # "id": None, # т.к. это новая, не сохраненная планограмма
+    #     # }
+        
+    #     # # Очень простой пример: взять первые N товаров и поместить их на первую полку
+    #     # # Это НЕ РАБОЧИЙ КОД для реальной выкладки, а просто пример структуры ответа
+    #     # if shelf_unit_from_db.shelves:
+    #     #     first_shelf_db_id = shelf_unit_from_db.shelves[0].id
+    #     #     # products_to_place = Product.query.limit(2).all() # взять первые 2 товара из БД
+    #     #     # for i, p_to_place in enumerate(products_to_place):
+    #     #     #     calculated_planogram_data["placed_products"].append({
+    #     #     #         "product_id": p_to_place.id,
+    #     #     #         "shelf_id": first_shelf_db_id,
+    #     #     #         "position": i,
+    #     #     #         "product": p_to_place.to_dict() # Включаем полные данные товара
+    #     #     #     })
+    #     #     # Заполните placed_products реальной логикой!
+
+    #     # return jsonify(calculated_planogram_data), 200
+
+    # except Exception as e:
+    #     # import traceback
+    #     # traceback.print_exc()
+    #     return jsonify({"error": str(e)}), 500
 
 # # TODO Учитывать доли категорий на полках
 # # TODO Учитывать доли брендов на полках

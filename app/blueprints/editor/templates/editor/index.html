@@ -243,12 +243,56 @@
 
                 <div class="tab-pane fade" id="stackingRules-vtab-pane" role="tabpanel" aria-labelledby="stackingRules-vtab">
                     <h3 class="h5 mb-3">Stacking Rules</h3>
-                    <div class="mb-3">
-                        <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
-                        <button id="load-rules-btn" class="btn btn-info btn-sm">Load Rules</button>
-                        <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span>
+
+                    {# Глобальные правила сортировки #}
+                    <div class="mb-3 p-2 border rounded">
+                        <h6 class="mb-2">Global Sorting Rules</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label for="brand-sort-select" class="form-label form-label-sm">Sort Brands By:</label>
+                                <select id="brand-sort-select" class="form-select form-select-sm">
+                                    <option value="rating_desc">Rating (High to Low)</option>
+                                    <option value="rating_asc">Rating (Low to High)</option>
+                                    <option value="alphabetical_asc">Alphabetical (A-Z)</option>
+                                    <option value="alphabetical_desc">Alphabetical (Z-A)</option>
+                                    {# другие варианты #}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="product-sort-select" class="form-label form-label-sm">Sort Products By:</label>
+                                <select id="product-sort-select" class="form-select form-select-sm">
+                                    <option value="price_asc">Price (Low to High)</option>
+                                    <option value="price_desc">Price (High to Low)</option>
+                                    <option value="sales_rating_desc">Sales Rating (High to Low)</option>
+                                    <option value="sales_rating_asc">Sales Rating (Low to High)</option>
+                                    <option value="size_desc">Size (Largest to Smallest)</option>
+                                    <option value="size_asc">Size (Smallest to Largest)</option>
+                                    {# другие варианты #}
+                                </select>
+                            </div>
+                        </div>
+                         <div class="mt-2">
+                            <label for="product-spacing-input" class="form-label form-label-sm">Default Product Spacing (cm):</label>
+                            <input type="number" id="product-spacing-input" class="form-control form-control-sm" value="0.5" step="0.1" min="0">
+                        </div>
                     </div>
-                    {# Здесь может быть дополнительный контент для правил #}
+
+                    {# Правила для конкретных полок #}
+                    <div class="mb-3 p-2 border rounded">
+                        <h6 class="mb-2">Shelf-Specific Category Allocation</h6>
+                        <div id="shelf-specific-rules-container">
+                            <p class="text-muted" id="shelf-rules-placeholder">Select a shelf unit to define rules for its shelves.</p>
+                            {# Сюда будут динамически добавляться правила для каждой полки #}
+                        </div>
+                    </div>
+
+                    <button id="apply-rules-btn" class="btn btn-info btn-sm w-100">Apply Rules & Calculate Auto Placement</button>
+                    <p id="apply-rules-status" class="mt-2 text-muted small"></p>
+                    
+                    {# Старый загрузчик файла#}
+                    <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
+                    {# <button id="load-rules-btn" class="btn btn-info btn-sm">Load Rules from File</button> #}
+                    {# <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span> #}
                 </div>
 
                 <div class="tab-pane fade" id="chat-vtab-pane" role="tabpanel" aria-labelledby="chat-vtab">
@@ -570,6 +614,183 @@
         const minRadius = 100, maxRadius = 2000; // Ограничения для радиуса (зума орбиты)
         let cameraZoom = 1.0; // Зум для ортографической проекции
         const minOrthoZoom = 0.2, maxOrthoZoom = 5.0; // Ограничения для ортографического зума
+
+
+
+        const brandSortSelect = document.getElementById('brand-sort-select');
+        const productSortSelect = document.getElementById('product-sort-select');
+        const productSpacingInput = document.getElementById('product-spacing-input');
+        const shelfSpecificRulesContainer = document.getElementById('shelf-specific-rules-container');
+        const shelfRulesPlaceholder = document.getElementById('shelf-rules-placeholder');
+        const applyRulesButton = document.getElementById('apply-rules-btn');
+        const applyRulesStatus = document.getElementById('apply-rules-status');
+
+        let availableCategoriesCache = []; // Для хранения списка категорий {id, name}
+
+        function getAvailableCategories() {
+            const categories = new Map(); // Используем Map для уникальности по ID категории
+            allProductsFromListCache.forEach(product => {
+                if (product.category_brand_placement && product.category_brand_placement.category) {
+                    const cat = product.category_brand_placement.category;
+                    if (cat.id && cat.name && !categories.has(cat.id)) {
+                        categories.set(cat.id, { id: cat.id, name: cat.name });
+                    }
+                }
+            });
+            availableCategoriesCache = Array.from(categories.values()).sort((a, b) => a.name.localeCompare(b.name));
+            return availableCategoriesCache;
+        }
+
+        function renderShelfSpecificRulesUI() {
+            if (!currentDisplayedShelfUnit || !currentDisplayedShelfUnit.children) {
+                shelfSpecificRulesContainer.innerHTML = ''; // Очистка, если были предыдущие
+                shelfRulesPlaceholder.style.display = 'block';
+                return;
+            }
+
+            shelfRulesPlaceholder.style.display = 'none';
+            shelfSpecificRulesContainer.innerHTML = ''; // Очищаем предыдущие правила
+
+            const shelves = currentDisplayedShelfUnit.children
+                .filter(child => child.userData.isShelf)
+                .sort((a, b) => a.userData.shelfNumber - b.userData.shelfNumber);
+
+            if (shelves.length === 0) {
+                shelfSpecificRulesContainer.innerHTML = '<p class="text-muted">No shelves found in the current unit.</p>';
+                return;
+            }
+            
+            getAvailableCategories(); // Убедимся, что категории свежие
+
+            shelves.forEach(shelfMesh => {
+                const shelfData = shelfMesh.userData;
+                const shelfId = `shelf-${shelfData.db_id || shelfData.shelfNumber}`; // Используем db_id если есть
+
+                const shelfRuleDiv = document.createElement('div');
+                shelfRuleDiv.className = 'shelf-rule-item mb-3 p-2 border rounded';
+                shelfRuleDiv.dataset.shelfDbId = shelfData.db_id;
+                shelfRuleDiv.dataset.shelfNumber = shelfData.shelfNumber;
+
+                shelfRuleDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Shelf ${shelfData.shelfNumber} (ID: ${shelfData.db_id})</h6>
+                        <button class="btn btn-outline-success btn-sm add-category-rule-btn" data-shelf-id="${shelfId}">+ Add Category</button>
+                    </div>
+                    <div class="category-rules-list" id="category-rules-${shelfId}">
+                        Тип списка <p class="text-muted small">No category rules defined for this shelf yet.</p>
+                    </div>
+                `;
+                shelfSpecificRulesContainer.appendChild(shelfRuleDiv);
+
+                // Обработчик для кнопки "Add Category"
+                shelfRuleDiv.querySelector('.add-category-rule-btn').addEventListener('click', function() {
+                    addCategoryRuleRow(this.dataset.shelfId);
+                });
+            });
+        }
+
+        function addCategoryRuleRow(shelfRuleContainerIdSelector, ruleData = null) {
+            const categoryRulesList = document.getElementById(`category-rules-${shelfRuleContainerIdSelector}`);
+            if (!categoryRulesList) return;
+
+            // Убираем плейсхолдер, если это первая добавляемая строка
+            const placeholder = categoryRulesList.querySelector('p.text-muted');
+            if (placeholder) placeholder.remove();
+            
+            const ruleRow = document.createElement('div');
+            ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded';
+            
+            let categoryOptions = '<option value="">Select Category...</option>';
+            availableCategoriesCache.forEach(cat => {
+                categoryOptions += `<option value="${cat.id}" ${ruleData && ruleData.categoryId == cat.id ? 'selected' : ''}>${cat.name}</option>`;
+            });
+
+            ruleRow.innerHTML = `
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm category-select">
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage : ''}">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (g)" min="0" value="${ruleData ? ruleData.minWeightG : ''}">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (g)" min="0" value="${ruleData ? ruleData.maxWeightG : ''}">
+                </div>
+                <div class="col-md-1 text-end">
+                    <button class="btn btn-danger btn-sm remove-category-rule-btn">×</button>
+                </div>
+            `;
+            categoryRulesList.appendChild(ruleRow);
+
+            ruleRow.querySelector('.remove-category-rule-btn').addEventListener('click', function() {
+                ruleRow.remove();
+                // Если все строки удалены, можно вернуть плейсхолдер
+                if (categoryRulesList.children.length === 0) {
+                    categoryRulesList.innerHTML = '<p class="text-muted small">No category rules defined for this shelf yet.</p>';
+                }
+            });
+        }
+
+        // Добавить слушатель на показ вкладки (если Bootstrap tabs)
+        const stackingRulesTab = document.getElementById('stackingRules-vtab');
+        if (stackingRulesTab) {
+            stackingRulesTab.addEventListener('shown.bs.tab', function () {
+                renderShelfSpecificRulesUI(); // Перерисовать при показе вкладки
+            });
+        }
+
+        function collectAllRulesData() {
+            const globalRules = {
+                brandSortBy: brandSortSelect.value,
+                productSortBy: productSortSelect.value,
+                defaultProductSpacingCm: parseFloat(productSpacingInput.value) || 0.5,
+            };
+
+            const shelfRules = [];
+            const shelfRuleItems = shelfSpecificRulesContainer.querySelectorAll('.shelf-rule-item');
+
+            shelfRuleItems.forEach(shelfItem => {
+                const shelfDbId = shelfItem.dataset.shelfDbId;
+                const shelfNumber = shelfItem.dataset.shelfNumber;
+                const categoryAllocations = [];
+
+                shelfItem.querySelectorAll('.category-rule-row').forEach(row => {
+                    const categorySelect = row.querySelector('.category-select');
+                    const percentageInput = row.querySelector('.percentage-input');
+                    const minWeightInput = row.querySelector('.min-weight-input');
+                    const maxWeightInput = row.querySelector('.max-weight-input');
+
+                    if (categorySelect.value) { // Только если категория выбрана
+                        categoryAllocations.push({
+                            categoryId: parseInt(categorySelect.value),
+                            categoryName: categorySelect.options[categorySelect.selectedIndex].text, // для отладки
+                            percentage: parseInt(percentageInput.value) || null,
+                            minWeightG: minWeightInput.value ? parseInt(minWeightInput.value) : null,
+                            maxWeightG: maxWeightInput.value ? parseInt(maxWeightInput.value) : null,
+                        });
+                    }
+                });
+                
+                if (categoryAllocations.length > 0) { // Добавляем полку только если для нее есть правила
+                    shelfRules.push({
+                        shelfDbId: parseInt(shelfDbId),
+                        shelfNumber: parseInt(shelfNumber), // для отладки
+                        categoryAllocations: categoryAllocations,
+                    });
+                }
+            });
+
+            return {
+                global: globalRules,
+                shelves: shelfRules,
+            };
+        }
+
+
 
         /**
         * Функция для обновления проекции камеры (при зуме или изменении размера окна)
@@ -1017,6 +1238,7 @@
             currentShelfUnitDataForSave = shelfUnitData;
             currentPlanogramId = null; 
 
+            renderShelfSpecificRulesUI();
             console.log("Displayed new shelf unit:", currentDisplayedShelfUnit.name);
         }
            
@@ -1281,7 +1503,12 @@
                 planogramListDiv.appendChild(item);
             });
         }
-        get_products().then(d => {populateProductList(d);});
+        get_products().then(d => {
+            if (d) {
+                populateProductList(d);
+                getAvailableCategories(); // Обновляем кэш категорий
+            }
+        });
         get_shelfUnits().then(d => {populateShelfUnitList(d);});
         get_planograms().then(d => {populatePlanogramList(d);});
 
@@ -1391,6 +1618,7 @@
         const loadedRulesFilenameSpan = document.getElementById('loaded-rules-filename');
 
         // Обработчики для загрузки правил
+        /*
         if (loadRulesButton && rulesFileInput && loadedRulesFilenameSpan) {
             loadRulesButton.addEventListener('click', () => {
                 rulesFileInput.click(); // Открыть диалог выбора файла
@@ -1447,6 +1675,69 @@
                     alert(`Ошибка: ${error.message}`);
                 } finally {
                     rulesFileInput.value = ""; 
+                }
+            });
+        }
+        */
+        if (applyRulesButton) {
+            applyRulesButton.addEventListener('click', async () => {
+                if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave || !currentShelfUnitDataForSave.id) {
+                    alert("Please select a shelf unit first. Its ID is required.");
+                    applyRulesStatus.textContent = "Error: Shelf unit not selected or ID missing.";
+                    return;
+                }
+
+                const rulesData = collectAllRulesData();
+                if (rulesData.shelves.length === 0 && 
+                    !confirm("No shelf-specific rules defined. Proceed with global rules only?")) {
+                    applyRulesStatus.textContent = "Calculation cancelled by user.";
+                    return;
+                }
+
+                applyRulesStatus.textContent = "Applying rules and calculating...";
+                applyRulesButton.disabled = true;
+
+                const payload = {
+                    shelf_unit_id: currentShelfUnitDataForSave.id,
+                    rules: rulesData // Вкладываем все правила сюда
+                };
+
+                console.log("Sending rules for auto placement:", JSON.stringify(payload, null, 2));
+
+                try {
+                    const response = await fetch('/editor/calculate_auto_placement', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json', // Теперь отправляем JSON
+                        },
+                        body: JSON.stringify(payload), 
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ error: "Unknown server error" }));
+                        throw new Error(`HTTP error ${response.status}: ${errorData.error || 'Failed to calculate auto placement'}`);
+                    }
+
+                    const calculatedPlanogramData = await response.json();
+                    console.log("Received calculated planogram:", calculatedPlanogramData);
+                    applyRulesStatus.textContent = "Auto placement calculated successfully!";
+
+                    if (calculatedPlanogramData) {
+                        if (planogramNameInput) planogramNameInput.value = calculatedPlanogramData.name || `Auto-Placement for Unit ${currentShelfUnitDataForSave.shelf_unit_number}`;
+                        await displayPlanogram(calculatedPlanogramData); // Отображаем результат
+                        // Переключиться на вкладку планограмм для удобства
+                        const planogramsTabButton = document.getElementById('planograms-vtab');
+                        if (planogramsTabButton) {
+                            var tab = new bootstrap.Tab(planogramsTabButton);
+                            tab.show();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error calculating auto placement:', error);
+                    applyRulesStatus.textContent = `Error: ${error.message}`;
+                    alert(`Error calculating auto placement: ${error.message}`);
+                } finally {
+                    applyRulesButton.disabled = false;
                 }
             });
         }
