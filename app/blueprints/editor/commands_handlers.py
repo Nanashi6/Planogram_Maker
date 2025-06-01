@@ -2,7 +2,7 @@ from .models import server_message, planogram_data, rules_data
 from .parser import CommandParser
 from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO, CategoryBrandPlacementDAO
 from DataLayer.shemas import ShelfUnit as SU, Category as Cat, Product as P, Brand as B, CategoryBrandPlacement as CBP
-
+from .models import category_rule, shelf_rule, rules_data
 
 COMANDS_EXAMPLE = """
 [
@@ -164,6 +164,31 @@ COMANDS_EXAMPLE = """
 ]
 """
 parser = CommandParser(COMANDS_EXAMPLE)
+
+def get_free_percentage(c_name, reply, shelf_number, shelf_id):
+    return 100 - reply.rules.get_total_percentage_on_shelf(shelf_number, shelf_id, c_name)
+
+def check_total_percentage(c_name, new_percentage, reply, shelf_number, shelf_id):
+    free_percentage = get_free_percentage(c_name, reply, shelf_number, shelf_id)
+    return False if free_percentage < new_percentage else True
+
+def get_all_categories_for_shelf(reply, shelf_number, shelf_id):
+    return reply.rules.get_all_categories_on_shelf(shelf_number, shelf_id)
+
+def can_place_product(product, reply, shelf_number, shelf_id, shelf_len, pps):
+    total_percentage_for_category = reply.rules.get_category_percentage_on_shelf(shelf_number, shelf_id, product.category_brand_placement.category.name)
+    category_length = total_percentage_for_category * shelf_len / 100
+
+    pps_len = 0
+    for pp in pps:
+        pproduct = ProductDAO.get_by_id(pp['product_id'])
+        if pp['shelf_id'] == shelf_id:
+            if pproduct.category_brand_placement.category.id == product.category_brand_placement.category.id:
+                pps_len += pproduct.depth + 0.5           # 0.5
+
+    return True if pps_len + product.depth <= category_length  else False
+
+
 
 def place_brand(parameters, reply, planogram):
     category_name = parameters['название_категории']
@@ -329,7 +354,7 @@ def place_product(parameters, reply, planogram):
         shelf = shelf_unit.get_shelf_by_number(shelf_number)
         if shelf:
             product = ProductDAO.get_one(P(barcode=barcode))
-            if product:
+            if product and product.category_brand_placement.category.name in get_all_categories_for_shelf(reply, shelf_number, shelf.id) and product.height <= shelf.height:
                 total_placed = 0
 
                 max_position_on_shelf = 0
@@ -349,10 +374,10 @@ def place_product(parameters, reply, planogram):
                         if pp['position'] > max_position_on_shelf:
                             max_position_on_shelf = pp['position']
 
-                free_length = shelf.length - sum(products_on_shelf_depths)                    # 0.5
-                while free_length - product.depth >= 0 and facings_count > 0:                 # BUG ВЕС
+                # free_length = shelf.length - sum(products_on_shelf_depths)                    # 0.5
+                while can_place_product(product, reply, shelf_number, shelf.id, shelf.length, pps) and facings_count > 0:                 # BUG ВЕС
                     max_position_on_shelf += 1
-                    free_length -= product.depth + 0.5                                        # 0.5
+                    # free_length -= product.depth + 0.5                                        # 0.5
                     facings_count -= 1
                     total_placed += 1
                     pps.append({
@@ -362,10 +387,11 @@ def place_product(parameters, reply, planogram):
                         'product': product.to_dict()
                     })
                 reply.data = planogram_data(planogram['id'], 'Пример', shelf_unit, pps)
-                reply.message = f'Установлено {total_placed} фейсингов исходя из свободного места на полке'
+                reply.message = f'Установлено {total_placed} фейсингов исходя из свободного места для категории "{product.category_brand_placement.category.name}" на полке'
                 # BUG Размер расстояния между товарами неизвестен, надо как-то его инициализировать (пока берётся 0.5)
             else:
-                reply.message = f'Не найден указанный товар {barcode}'
+                reply.message = f'Не найден указанный товар {barcode}, товар не подходит по высоте или категория товара не может размещаться на полке'
+                reply.data = None
         else:
             reply.message = f"Не найдена полка {shelf_number}"
     else:
@@ -384,7 +410,7 @@ def place_category(parameters, reply, planogram):
     if category and shelf_unit_id:
         shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
         shelf = shelf_unit.get_shelf_by_number(shelf_number)
-        if shelf:
+        if shelf and check_total_percentage(category_name, share, reply, shelf_number, shelf.id):
             products = ProductDAO.get_many_for_category(
                 category_name, 
                 shelf.height,                             # TODO учитывать вертикальный отступ
@@ -411,10 +437,12 @@ def place_category(parameters, reply, planogram):
                     'position': pp['position'],
                     'product': pproduct.to_dict()
                 })
+ 
+            free_share = get_free_percentage(category_name, reply, shelf_number, shelf.id)
+            share = share if share else 100
+            total_share = free_share if free_share < share else share
 
-            free_length = shelf.length - sum(products_on_shelf_depths)    
-            share_length = shelf.length * (share if share else 100) / 100
-            share_length = free_length if free_length < share_length else share_length
+            share_length = shelf.length * total_share / 100
 
             total_placed = 0
             for product in products:
@@ -430,8 +458,17 @@ def place_category(parameters, reply, planogram):
                   })
             reply.data = planogram_data(planogram['id'], 'Пример', shelf_unit, pps)
             reply.message = f'Установлено {total_placed} фейсингов исходя из свободного места на полке'
+
+            c_rule = category_rule(category_name, category.id, total_share, min_weight if min_weight else None, max_weight if max_weight else None)
+
+            reply.rules.delete_category_rule(shelf_number, shelf.id, c_rule)
+            reply.rules.add_category_rule(shelf_number, shelf.id, c_rule)
         else:
-            reply.message = f"Не найдена полка {shelf_number}"
+            if not shelf:
+              reply.message = f"Не найдена полка {shelf_number} или нет доступного  свободного пространства."
+            else:
+              reply.message = f"Без учёта указанной категории доступно {get_free_percentage(category_name, reply, shelf_number, shelf.id)}%"
+              reply.data = None
     else:
         reply.message = f"Не найдена категория {category_name} или рабочий стеллаж."
         
@@ -442,6 +479,7 @@ def place_shelf_unit(parameters, reply):
     if shelf_unit:
         reply.message = f"Стеллаж {shelf_unit_number} установлен."
         reply.data = planogram_data(shelf_unit=shelf_unit)
+        reply.rules = rules_data()
     else:
         reply.message = f"Стеллаж с номером {shelf_unit_number} не найден."
 
@@ -457,20 +495,20 @@ def commands_handler(user_message: str, planogram_data, rules) -> server_message
     try:
         command_name, parameters = parse_command(user_message)
     except Exception as e:
-        return server_message(message=f"Ошибка: {e}")
+        return server_message(message=f"Ошибка: {e}", rules = rules_data.from_dict(rules))
 
     reply = server_message()
     reply.rules = rules_data.from_dict(rules)
 
-    if command_name == "УСТАНОВИ СТЕЛЛАЖ":
+    if command_name == "УСТАНОВИ СТЕЛЛАЖ": ### стирает правила
         place_shelf_unit(parameters, reply)
-    elif command_name == "РАЗМЕСТИ КАТЕГОРИЮ":
+    elif command_name == "РАЗМЕСТИ КАТЕГОРИЮ": ### изменяет правила (добавляет категорию к полке), коллизия правил с процентом размещения
         place_category(parameters, reply, planogram_data)
-    elif command_name == "РАЗМЕСТИ ТОВАР":
+    elif command_name == "РАЗМЕСТИ ТОВАР": ### коллизия правил для процента занимаемого места товарами категории, коллизия с отсутствием категории товара на полке 
         place_product(parameters, reply, planogram_data)
     elif command_name == "ОГРАНИЧЬ ПОЛКУ": #
         shelf_constrain(parameters, reply, planogram_data)
-    elif command_name == "ЗАПОЛНИ ОСТАТОК ПОЛКИ":
+    elif command_name == "ЗАПОЛНИ ОСТАТОК ПОЛКИ": ### изменяет правила (добавляет категорию или процент к ней) ------------------
         fill_free_space_on_shelf(parameters, reply, planogram_data)
     elif command_name == "РАЗМЕСТИ БРЕНД":
         place_brand(parameters, reply, planogram_data)

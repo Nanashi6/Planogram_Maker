@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 from DataLayer.models import ShelfUnit
+from .enums import BrandSorting, ProductSorting
 
 class planogram_data():
     """
@@ -71,6 +72,38 @@ class shelf_rule():
         """Добавляет правило категории к полке."""
         self.category_rules.append(rule)
 
+    def delete_category_rule(self, rule: category_rule):
+        """Удаляет правило категории у полки."""
+        print('Длина: ', len(self.category_rules))
+        c_rule = None
+        for category in self.category_rules:
+            if category.category_name == rule.category_name:
+                c_rule = category
+                break
+        if c_rule:
+            print(c_rule.category_name, c_rule.percentage)
+            self.category_rules.remove(c_rule)
+
+    def get_categories(self):
+        return [c.category_name for c in self.category_rules]
+
+    def get_total_percentage(self, except_category_name):
+        total_percentage = 0
+        for c in self.category_rules:
+            if except_category_name != c.category_name:
+                total_percentage += c.percentage
+        return total_percentage
+
+    def get_category_percentage(self, category_name):
+        c_rule = None
+        for category in self.category_rules:
+            if category.category_name == category_name:
+                c_rule = category
+                break
+        if c_rule:
+            return c_rule.percentage
+        return 0
+
     def to_json(self) -> dict:
         return {
             "shelf_number": self.shelf_number,
@@ -105,7 +138,7 @@ class shelf_rule():
         )
 
 class rules_data():
-    def __init__(self, brand_sort: str = None, product_sort: str = None, 
+    def __init__(self, brand_sort: str = BrandSorting.RatingAsc, product_sort: str = ProductSorting.PriceAsc, 
                  spacing: float = 0.5, 
                  shelves_rules: Optional[List[shelf_rule]] = None):
         self.brand_sort = brand_sort
@@ -116,6 +149,45 @@ class rules_data():
     def add_shelf_rule(self, rule: shelf_rule):
         """Добавляет правило полки к общим правилам."""
         self.shelves_rules.append(rule)
+
+    def get_shelf_rule(self, shelf_number: int):
+        for shelf in self.shelves_rules:
+            if shelf.shelf_number == shelf_number:
+                return shelf
+
+    def add_category_rule(self, shelf_number : int, shelf_id : int, rule: category_rule):
+        """Добавляет правило категории к полке."""
+        s_rule = self.get_shelf_rule(shelf_number)
+        if s_rule:
+            s_rule.add_category_rule(rule)
+        else:
+            s_rule = shelf_rule(shelf_number, shelf_id)
+            s_rule.add_category_rule(rule)
+            self.add_shelf_rule(s_rule)
+
+    def delete_category_rule(self, shelf_number : int, shelf_id : int, rule: category_rule):
+        """Удаляет правило категории у полки."""
+        s_rule = self.get_shelf_rule(shelf_number)
+        if s_rule:
+            s_rule.delete_category_rule(rule)
+
+    def get_total_percentage_on_shelf(self, shelf_number : int, shelf_id : int, except_category_name):
+        s_rule = self.get_shelf_rule(shelf_number)
+        if s_rule:
+            return s_rule.get_total_percentage(except_category_name)
+        return 0
+    
+    def get_all_categories_on_shelf(self, shelf_number, shelf_id):
+        s_rule = self.get_shelf_rule(shelf_number)
+        if s_rule:
+            return s_rule.get_categories()
+        return []
+
+    def get_category_percentage_on_shelf(self, shelf_number, shelf_id, category_name):
+        s_rule = self.get_shelf_rule(shelf_number)
+        if s_rule:
+            return s_rule.get_category_percentage(category_name)
+        return 0
 
     def to_json(self) -> dict:
         return {

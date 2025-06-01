@@ -1073,11 +1073,13 @@
         // Функция для отображения планограммы
         async function displayPlanogram(planogramData) {
             deleteAllPlacedProducts(); // Очистка от всех размещённых товаров
-            if (planogramData.shelf_unit && (!currentDisplayedShelfUnit || currentDisplayedShelfUnit.name !== `shelfUnit_${planogramData.shelf_unit.shelf_unit_number}`)) {
+            /* if (planogramData.shelf_unit && (!currentDisplayedShelfUnit || currentDisplayedShelfUnit.name !== `shelfUnit_${planogramData.shelf_unit.shelf_unit_number}`)) {
                 currentShelfUnitDataForSave = planogramData.shelf_unit; // Обновляем данные для сохранения
                 displayShelfUnit(planogramData.shelf_unit);
-            } 
-            else if (!currentDisplayedShelfUnit) {
+            } */
+            currentShelfUnitDataForSave = planogramData.shelf_unit; // Обновляем данные для сохранения
+            displayShelfUnit(planogramData.shelf_unit);
+            if (!currentDisplayedShelfUnit) {
                 console.error("Нет данных о стеллаже для отображения планограммы и нет текущего отображаемого стеллажа.");
                 return;
             }
@@ -1873,8 +1875,10 @@
 
                 if (serverResponse.message) {
                     addChatMessage(serverResponse.message, false);
-                    handle_commands(serverResponse.data)
-                    updateRulesUI(serverResponse.rules)
+                    if (serverResponse.data) {
+                        handle_commands(serverResponse.data)
+                        updateRulesUI(serverResponse.rules)
+                    }
                 } else {
                     addChatMessage("Received an empty reply from the server.", false);
                 }
