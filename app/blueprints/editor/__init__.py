@@ -1,6 +1,8 @@
+from typing import Dict, List, Type
 from flask import Blueprint, render_template, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO
 from DataLayer.shemas import Planogram, PlacedProduct
+from .enums import *
 from .commands_handlers import commands_handler
 
 BASE_URL = 'editor'
@@ -25,6 +27,59 @@ async def get_shelfUnits():
 async def get_planograms():
     planograms = [planogram.to_dict() for planogram in PlanogramDAO.get_all()]
     return jsonify(planograms)
+
+def enum_to_select_options(enum_class: Type[enum.Enum], custom_labels: Dict[str, str] = None) -> List[Dict[str, str]]:
+    """
+    Преобразует Enum в список словарей для использования в HTML select.
+    Каждый словарь имеет ключи "value" и "label".
+    """
+    options = []
+    if custom_labels is None:
+        custom_labels = {}
+
+    for member in enum_class:
+        # Пытаемся создать "человекочитаемую" метку, если нет кастомной
+        default_label = member.name.replace('_', ' ')
+        if default_label.endswith(" Asc"):
+            default_label = f"{default_label[:-4]} (Low to High / A-Z)"
+        elif default_label.endswith(" Desc"):
+            default_label = f"{default_label[:-5]} (High to Low / Z-A)"
+        
+        label = custom_labels.get(member.value, default_label)
+        
+        options.append({"value": member.value, "label": label})
+    return options
+
+@editor_bp.route('/get_sorting_rules', methods=['GET'])
+async def get_sorting_rules():
+    brand_sort_labels = {
+        BrandSorting.RatingDesc.value: 'Rating (High to Low)',
+        BrandSorting.RatingAsc.value: 'Rating (Low to High)',
+        BrandSorting.NameAsc.value: 'Alphabetical (A-Z)',
+        BrandSorting.NameDesc.value: 'Alphabetical (Z-A)',
+    }
+
+    product_sort_labels = {
+        ProductSorting.PriceAsc.value: 'Price (Low to High)',
+        ProductSorting.PriceDesc.value: 'Price (High to Low)',
+        ProductSorting.RatingDesc.value: 'Sales Rating (High to Low)', # Метка из вашей формы
+        ProductSorting.RatingAsc.value: 'Sales Rating (Low to High)',   # Метка из вашей формы
+        ProductSorting.NameAsc.value: 'Alphabetical (A-Z)',
+        ProductSorting.NameDesc.value: 'Alphabetical (Z-A)',
+    }
+
+    brand_sorting_options = enum_to_select_options(BrandSorting, brand_sort_labels)
+    product_sorting_options = enum_to_select_options(ProductSorting, product_sort_labels)
+
+    sorting_rules = {
+        "brand_sort_options": brand_sorting_options,
+        "product_sort_options": product_sorting_options,
+        "defaults": {
+            "brand_sort": BrandSorting.RatingDesc.value,
+            "product_sort": ProductSorting.PriceAsc.value
+        }
+    }
+    return jsonify(sorting_rules)
 
 @editor_bp.route('/save_planogram', methods=['POST'])
 async def save_planogram():
@@ -76,13 +131,14 @@ async def message_handle():
         
         user_message = data.get('message')
         planogram_data = data.get('planogram')
+        rules = data.get('rules')
 
         if user_message is None:
             return jsonify({"reply": "Ошибка: Ключ 'message' отсутствует в JSON.", "parsed_command": None}), 400
         if not isinstance(user_message, str):
             return jsonify({"reply": "Ошибка: Значение 'message' должно быть строкой.", "parsed_command": None}), 400
 
-        message = commands_handler(user_message, planogram_data)
+        message = commands_handler(user_message, planogram_data, rules)
 
         return message.to_json(), 200
 
@@ -94,7 +150,7 @@ async def message_handle():
         return jsonify({
             "reply": "Внутренняя ошибка сервера при обработке сообщения чата.",
             "parsed_command": None
-        }), 200 #FIXME Тут можно 200 код сделать и в чат ошибку выводить а не код ошибки
+        }), 200
 
 # def solve_dp_for_category(products: List[prod], max_weight: float, max_length: int) -> List[prod]: #FIXME реализовать автовыкладку
 #     # FIXME Учитывать вес
@@ -131,79 +187,6 @@ async def message_handle():
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 def calculate_auto_placement_route():
     return "", 200
-    # data = request.get_json()
-    # if not data:
-    #     return jsonify({"error": "Invalid JSON payload"}), 400
-
-    # shelf_unit_id = data.get('shelf_unit_id')
-    # rules = data.get('rules') # Это будет словарь с 'global' и 'shelves'
-
-    # if not shelf_unit_id or not rules:
-    #     return jsonify({"error": "Missing shelf_unit_id or rules in payload"}), 400
-
-    # print(f"Received Shelf Unit ID: {shelf_unit_id}")
-    # print(f"Received Global Rules: {rules.get('global')}")
-    # print(f"Received Shelf Specific Rules: {rules.get('shelves')}")
-
-    # # Здесь ваша логика для получения данных стеллажа по shelf_unit_id,
-    # # получения товаров, и применения правил (rules) для генерации планограммы.
-    # # Это самая сложная часть, зависящая от вашей бизнес-логики.
-
-    # # --- Начало примера логики обработки (очень упрощенно) ---
-    # # 1. Получить данные стеллажа (shelf_unit_data) из БД по shelf_unit_id
-    # # 2. Получить все товары (all_products_data) из БД
-    # # 3. Применить global rules для общей сортировки товаров
-    # # 4. Для каждой полки в shelf_unit_data:
-    # #    - Найти соответствующие shelf-specific rules.
-    # #    - Для каждой категории в правилах полки:
-    # #        - Отфильтровать товары по категории.
-    # #        - Применить product sorting rules (из global или специфичные для категории, если есть).
-    # #        - Учесть вес, процент полки.
-    # #        - Разместить товары на полке.
-    # # 5. Сформировать `calculated_planogram_data` в том же формате, что и при загрузке планограммы.
-    # # --- Конец примера логики обработки ---
-    
-    # # Предположим, вы сформировали calculated_planogram_data
-    # # Это заглушка, замените реальной логикой
-    # try:
-    #     # Имитация вызова вашей основной функции расчета
-    #     # from your_placement_logic_module import calculate_layout
-    #     # calculated_planogram_data = calculate_layout(shelf_unit_id, rules, all_products_data)
-        
-    #     # Заглушка для демонстрации ответа
-    #     # Найдите реальный стеллаж и его полки
-    #     # shelf_unit_from_db = ShelfUnit.query.get(shelf_unit_id)
-    #     # if not shelf_unit_from_db:
-    #     #      return jsonify({"error": f"Shelf unit with ID {shelf_unit_id} not found"}), 404
-
-    #     # Просто для примера: создаем пустую планограмму с названием
-    #     # calculated_planogram_data = {
-    #     #     "name": f"Auto-Rules for Unit {shelf_unit_from_db.shelf_unit_number}",
-    #     #     "shelf_unit": shelf_unit_from_db.to_dict(rules=['shelves.products']), # Сериализуйте стеллаж
-    #     #     "placed_products": [], # Здесь должны быть размещенные товары
-    #     #     # "id": None, # т.к. это новая, не сохраненная планограмма
-    #     # }
-        
-    #     # # Очень простой пример: взять первые N товаров и поместить их на первую полку
-    #     # # Это НЕ РАБОЧИЙ КОД для реальной выкладки, а просто пример структуры ответа
-    #     # if shelf_unit_from_db.shelves:
-    #     #     first_shelf_db_id = shelf_unit_from_db.shelves[0].id
-    #     #     # products_to_place = Product.query.limit(2).all() # взять первые 2 товара из БД
-    #     #     # for i, p_to_place in enumerate(products_to_place):
-    #     #     #     calculated_planogram_data["placed_products"].append({
-    #     #     #         "product_id": p_to_place.id,
-    #     #     #         "shelf_id": first_shelf_db_id,
-    #     #     #         "position": i,
-    #     #     #         "product": p_to_place.to_dict() # Включаем полные данные товара
-    #     #     #     })
-    #     #     # Заполните placed_products реальной логикой!
-
-    #     # return jsonify(calculated_planogram_data), 200
-
-    # except Exception as e:
-    #     # import traceback
-    #     # traceback.print_exc()
-    #     return jsonify({"error": str(e)}), 500
 
 # # TODO Учитывать доли категорий на полках
 # # TODO Учитывать доли брендов на полках

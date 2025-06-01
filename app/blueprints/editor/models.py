@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 from DataLayer.models import ShelfUnit
 
 class planogram_data():
@@ -25,14 +26,150 @@ class planogram_data():
             "placed_products": self.placed_products
         }
 
+class category_rule():
+    def __init__(self, category_name: str, category_id: int, 
+                 percentage: Optional[int] = None, 
+                 min_weight: Optional[float] = None, 
+                 max_weight: Optional[float] = None):
+        self.category_name = category_name
+        self.category_id = category_id
+        self.percentage = percentage
+        self.min_weight = min_weight
+        self.max_weight = max_weight
+        
+    def to_json(self) -> dict:
+        return {
+            "category_name": self.category_name,
+            "category_id": self.category_id,
+            "percentage": self.percentage,
+            "min_weight": self.min_weight,
+            "max_weight": self.max_weight
+        }
+    
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'category_rule':
+        """Создает экземпляр category_rule из словаря."""
+        if not isinstance(data, dict):
+            raise TypeError("Input data for category_rule must be a dictionary.")
+            
+        return category_rule(
+            category_name=data.get("categoryName"),
+            category_id=data.get("categoryId"),
+            percentage=data.get("percentage"),
+            min_weight=data.get("minWeight"),
+            max_weight=data.get("maxWeight")
+        )
+
+class shelf_rule():
+    def __init__(self, shelf_number: int, shelf_id: int, 
+                 category_rules: Optional[List[category_rule]] = []):
+        self.shelf_number = shelf_number
+        self.shelf_id = shelf_id
+        self.category_rules = category_rules
+
+    def add_category_rule(self, rule: category_rule):
+        """Добавляет правило категории к полке."""
+        self.category_rules.append(rule)
+
+    def to_json(self) -> dict:
+        return {
+            "shelf_number": self.shelf_number,
+            "shelf_id": self.shelf_id,
+            "category_rules": [rule.to_json() for rule in self.category_rules]
+        }
+    
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'shelf_rule':
+        """Создает экземпляр shelf_rule из словаря."""
+        if not isinstance(data, dict):
+            raise TypeError("Input data for shelf_rule must be a dictionary.")
+
+        category_allocations_data = data.get("categoryAllocations", [])
+        parsed_category_rules = []
+        if isinstance(category_allocations_data, list):
+            for cat_rule_data in category_allocations_data:
+                if isinstance(cat_rule_data, dict):
+                    try:
+                        parsed_category_rules.append(category_rule.from_dict(cat_rule_data))
+                    except TypeError as e:
+                        print(f"Skipping invalid category rule data: {cat_rule_data}. Error: {e}")
+                else:
+                    print(f"Skipping non-dictionary item in categoryAllocations: {cat_rule_data}")
+        else:
+            print(f"Warning: categoryAllocations is not a list, it's {type(category_allocations_data)}. No category rules loaded.")
+            
+        return shelf_rule(
+            shelf_id=data.get("shelfDbId"),
+            shelf_number=data.get("shelfNumber"),
+            category_rules=parsed_category_rules
+        )
+
+class rules_data():
+    def __init__(self, brand_sort: str = None, product_sort: str = None, 
+                 spacing: float = 0.5, 
+                 shelves_rules: Optional[List[shelf_rule]] = None):
+        self.brand_sort = brand_sort
+        self.product_sort = product_sort
+        self.spacing = spacing
+        self.shelves_rules = shelves_rules if shelves_rules is not None else []
+
+    def add_shelf_rule(self, rule: shelf_rule):
+        """Добавляет правило полки к общим правилам."""
+        self.shelves_rules.append(rule)
+
+    def to_json(self) -> dict:
+        return {
+            "global_rules": { # Отдельный блок для глобальных правил для ясности
+                "brand_sort_by": self.brand_sort,
+                "product_sort_by": self.product_sort,
+                "spacing": self.spacing
+            },
+            "shelves_rules": [rule.to_json() for rule in self.shelves_rules]
+        }
+    
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> 'rules_data':
+        """Создает экземпляр rules_data из словаря."""
+        if not isinstance(data, dict):
+            raise TypeError("Input data for rules_data must be a dictionary.")
+
+        global_rules_data = data.get("global", {})
+        if not isinstance(global_rules_data, dict):
+            print(f"Warning: 'global' key in rules_data is not a dictionary. Using defaults.")
+            global_rules_data = {}
+            
+        shelves_data = data.get("shelves", [])
+        parsed_shelves_rules = []
+        if isinstance(shelves_data, list):
+            for shelf_data_item in shelves_data:
+                if isinstance(shelf_data_item, dict):
+                    try:
+                        parsed_shelves_rules.append(shelf_rule.from_dict(shelf_data_item))
+                    except TypeError as e:
+                         print(f"Skipping invalid shelf rule data: {shelf_data_item}. Error: {e}")
+                else:
+                    print(f"Skipping non-dictionary item in shelves: {shelf_data_item}")
+
+        else:
+            print(f"Warning: 'shelves' key in rules_data is not a list. No shelf rules loaded.")
+
+
+        return rules_data(
+            brand_sort=global_rules_data.get("brandSortBy"),
+            product_sort=global_rules_data.get("productSortBy"),
+            spacing=global_rules_data.get("spacing", 0.5),
+            shelves_rules=parsed_shelves_rules
+        )
+
 class server_message():
     """
     Серверное сообщение клиенту.
     """
-    def __init__(self, message = "", parsed_command = None, data : planogram_data = None):
+    def __init__(self, message = "", parsed_command = None, data : planogram_data = planogram_data(), rules : rules_data = rules_data()):
         self.message = message
         self.parsed_command = parsed_command
         self.data = data
+        self.rules = rules
 
     def to_json(self):
         """
@@ -42,8 +179,13 @@ class server_message():
         if self.data:
             data_json = self.data.to_json()
 
+        rules_data = []
+        if self.rules:
+            rules_data = self.rules.to_json()
+
         return {
             "message": self.message,
             "parsed_command": self.parsed_command,
-            "data": data_json
+            "data": data_json,
+            "rules": rules_data
         }

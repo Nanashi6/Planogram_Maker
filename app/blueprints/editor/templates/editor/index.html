@@ -251,27 +251,17 @@
                             <div class="col-md-6">
                                 <label for="brand-sort-select" class="form-label form-label-sm">Sort Brands By:</label>
                                 <select id="brand-sort-select" class="form-select form-select-sm">
-                                    <option value="rating_desc">Rating (High to Low)</option>
-                                    <option value="rating_asc">Rating (Low to High)</option>
-                                    <option value="alphabetical_asc">Alphabetical (A-Z)</option>
-                                    <option value="alphabetical_desc">Alphabetical (Z-A)</option>
-                                    {# другие варианты #}
+                                    {# варианты #}
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label for="product-sort-select" class="form-label form-label-sm">Sort Products By:</label>
                                 <select id="product-sort-select" class="form-select form-select-sm">
-                                    <option value="price_asc">Price (Low to High)</option>
-                                    <option value="price_desc">Price (High to Low)</option>
-                                    <option value="sales_rating_desc">Sales Rating (High to Low)</option>
-                                    <option value="sales_rating_asc">Sales Rating (Low to High)</option>
-                                    <option value="size_desc">Size (Largest to Smallest)</option>
-                                    <option value="size_asc">Size (Smallest to Largest)</option>
-                                    {# другие варианты #}
+                                    {# варианты #}
                                 </select>
                             </div>
                         </div>
-                         <div class="mt-2">
+                        <div class="mt-2">
                             <label for="product-spacing-input" class="form-label form-label-sm">Default Product Spacing (cm):</label>
                             <input type="number" id="product-spacing-input" class="form-control form-control-sm" value="0.5" step="0.1" min="0">
                         </div>
@@ -288,7 +278,7 @@
 
                     <button id="apply-rules-btn" class="btn btn-info btn-sm w-100">Apply Rules & Calculate Auto Placement</button>
                     <p id="apply-rules-status" class="mt-2 text-muted small"></p>
-                    
+
                     {# Старый загрузчик файла#}
                     <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
                     {# <button id="load-rules-btn" class="btn btn-info btn-sm">Load Rules from File</button> #}
@@ -443,6 +433,20 @@
             console.error("Error loading planograms list:", error);
         } finally {
             console.log('Планограммы удачно загружены')
+        }
+    }
+    
+    async function getSortingRules() {
+        try {
+            const response = await fetch('/editor/get_sorting_rules');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Could not fetch sorting rules:", error);
+            return null;
         }
     }
     //#endregion
@@ -1062,6 +1066,7 @@
             currentPlanogramId = null; 
 
             renderShelfSpecificRulesUI();
+            setDefaultGlobalRules();
             console.log("Displayed new shelf unit:", currentDisplayedShelfUnit.name);
         }
            
@@ -1231,13 +1236,13 @@
             // Убираем плейсхолдер, если это первая добавляемая строка
             const placeholder = categoryRulesList.querySelector('p.text-muted');
             if (placeholder) placeholder.remove();
-            
+
             const ruleRow = document.createElement('div');
             ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded';
-            
+
             let categoryOptions = '<option value="">Select Category...</option>';
             availableCategoriesCache.forEach(cat => {
-                categoryOptions += `<option value="${cat.id}" ${ruleData && ruleData.categoryId == cat.id ? 'selected' : ''}>${cat.name}</option>`;
+                categoryOptions += `<option value="${cat.id}" ${ruleData && ruleData.category_id == cat.id ? 'selected' : ''}>${cat.name}</option>`; // FIXME Есть вариант не определить категорию (оставить 'Select Category')
             });
 
             ruleRow.innerHTML = `
@@ -1247,13 +1252,13 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage : ''}">
+                    <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage ? ruleData.percentage : '' : ''}">
                 </div>
                 <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (g)" min="0" value="${ruleData ? ruleData.minWeightG : ''}">
+                    <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (kg)" min="0" value="${ruleData ? ruleData.min_weight ? ruleData.min_weight : '' : ''}">
                 </div>
                 <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (g)" min="0" value="${ruleData ? ruleData.maxWeightG : ''}">
+                    <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (kg)" min="0" value="${ruleData ? ruleData.max_weight ? ruleData.max_weight : '' : ''}">
                 </div>
                 <div class="col-md-1 text-end">
                     <button class="btn btn-danger btn-sm remove-category-rule-btn">×</button>
@@ -1271,18 +1276,103 @@
         }
 
         // Добавить слушатель на показ вкладки (если Bootstrap tabs)
-        const stackingRulesTab = document.getElementById('stackingRules-vtab');
+        /* const stackingRulesTab = document.getElementById('stackingRules-vtab');
         if (stackingRulesTab) {
             stackingRulesTab.addEventListener('shown.bs.tab', function () {
                 renderShelfSpecificRulesUI(); // Перерисовать при показе вкладки
             });
+        } */
+
+        function setDefaultGlobalRules() {
+            if (brandSortSelect.options.length > 0) {
+                // Попытка установить значение по умолчанию, если оно есть от getSortingRules, иначе - первое
+                const defaultBrandSort = window.sortingRulesDefaults ? window.sortingRulesDefaults.brand_sort : null;
+                if (defaultBrandSort && Array.from(brandSortSelect.options).some(o => o.value === defaultBrandSort)) {
+                    brandSortSelect.value = defaultBrandSort;
+                } else {
+                    brandSortSelect.selectedIndex = 0;
+                }
+            }
+            if (productSortSelect.options.length > 0) {
+                const defaultProductSort = window.sortingRulesDefaults ? window.sortingRulesDefaults.product_sort : null;
+                if (defaultProductSort && Array.from(productSortSelect.options).some(o => o.value === defaultProductSort)) {
+                    productSortSelect.value = defaultProductSort;
+                } else {
+                    productSortSelect.selectedIndex = 0;
+                }
+            }
+            productSpacingInput.value = 0.5;            
+        }
+
+        function updateRulesUI(rulesData) {
+            const global_rules = rulesData.global_rules;
+            if (global_rules) {
+                // 1. Установка значения для "Sort Brands By"
+                if (global_rules.brand_sort_by !== undefined) {
+                    // Проверяем, существует ли такая опция в select
+                    if (Array.from(brandSortSelect.options).some(option => option.value === global_rules.brand_sort_by)) {
+                        brandSortSelect.value = global_rules.brand_sort_by;
+                    } else {
+                        console.warn(`Value "${global_rules.brand_sort_by}" not found in brandSortSelect options. Select not changed.`);
+                        if (brandSortSelect.options.length > 0) brandSortSelect.selectedIndex = 0; // Сброс на первую опцию
+                    }
+                } else {
+                    console.warn("'brand_sort_by' is undefined in global_rules. Brand sort select will not be set.");
+                    // Можно сбросить к дефолту, если нужно
+                    // if (brandSortSelect.options.length > 0) brandSortSelect.selectedIndex = 0;
+                }
+
+                // 2. Установка значения для "Sort Products By"
+                if (global_rules.product_sort_by !== undefined) {
+                    if (Array.from(productSortSelect.options).some(option => option.value === global_rules.product_sort_by)) {
+                        productSortSelect.value = global_rules.product_sort_by;
+                    } else {
+                        console.warn(`Value "${global_rules.product_sort_by}" not found in productSortSelect options. Select not changed.`);
+                        if (productSortSelect.options.length > 0) productSortSelect.selectedIndex = 0; // Сброс на первую опцию
+                    }
+                } else {
+                    console.warn("'product_sort_by' is undefined in global_rules. Product sort select will not be set.");
+                    // if (productSortSelect.options.length > 0) productSortSelect.selectedIndex = 0;
+                }
+
+                // 3. Установка значения для "Default Product Spacing (cm)"
+                // Ваш JSON использует "spacing", а input ожидает числовое значение.
+                // В HTML у вас стоит id="product-spacing-input"
+                if (global_rules.spacing !== undefined && global_rules.spacing !== null) {
+                    const spacingValue = parseFloat(global_rules.spacing);
+                    if (!isNaN(spacingValue)) {
+                        productSpacingInput.value = spacingValue;
+                    } else {
+                        console.warn(`Invalid value for 'spacing': "${global_rules.spacing}". Could not parse as float. Input not changed.`);
+                        // productSpacingInput.value = 0.5; // Можно установить дефолт
+                    }
+                } else {
+                    console.warn("'spacing' is undefined or null in global_rules. Product spacing input will not be set.");
+                    // productSpacingInput.value = 0.5; // Можно установить дефолт
+                }
+            } 
+            else {
+                // Если global_rules не предоставлен (например, null), сбрасываем к дефолтным значениям
+                console.warn("updateGlobalRulesUI called with no or invalid data. Resetting global rules UI to defaults.");
+                setDefaultGlobalRules();
+            }
+
+            const shelves_rules = rulesData.shelves_rules
+            if (shelves_rules) {
+                shelves_rules.forEach(rule => {
+                    const shelfId = rule.shelf_id;
+                    rule.category_rules.forEach(cr => {
+                        addCategoryRuleRow("shelf-" + shelfId, cr);
+                    });
+                });
+            }
         }
 
         function collectAllRulesData() {
             const globalRules = {
                 brandSortBy: brandSortSelect.value,
                 productSortBy: productSortSelect.value,
-                defaultProductSpacingCm: parseFloat(productSpacingInput.value) || 0.5,
+                spacing: parseFloat(productSpacingInput.value) || 0.5,
             };
 
             const shelfRules = [];
@@ -1304,8 +1394,8 @@
                             categoryId: parseInt(categorySelect.value),
                             categoryName: categorySelect.options[categorySelect.selectedIndex].text, // для отладки
                             percentage: parseInt(percentageInput.value) || null,
-                            minWeightG: minWeightInput.value ? parseInt(minWeightInput.value) : null,
-                            maxWeightG: maxWeightInput.value ? parseInt(maxWeightInput.value) : null,
+                            minWeight: minWeightInput.value ? parseInt(minWeightInput.value) : null,
+                            maxWeight: maxWeightInput.value ? parseInt(maxWeightInput.value) : null,
                         });
                     }
                 });
@@ -1512,6 +1602,38 @@
         get_shelfUnits().then(d => {populateShelfUnitList(d);});
         get_planograms().then(d => {populatePlanogramList(d);});
 
+        getSortingRules().then(d => {
+            console.log("Brand Sorting Options:", d.brand_sort_options);
+            console.log("Product Sorting Options:", d.product_sort_options);
+            console.log("Defaults:", d.defaults);
+
+            const brandSortSelect = document.getElementById('brand-sort-select');
+            if (brandSortSelect && d.brand_sort_options) {
+                d.brand_sort_options.forEach(opt => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = opt.value;
+                    optionElement.textContent = opt.label;
+                    brandSortSelect.appendChild(optionElement); 
+                });
+                if (d.defaults && d.defaults.brand_sort) {
+                    brandSortSelect.value = d.defaults.brand_sort;
+                }
+            }
+
+            const productSortSelect = document.getElementById('product-sort-select');
+            if (productSortSelect && d.product_sort_options) {
+                d.product_sort_options.forEach(opt => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = opt.value;
+                    optionElement.textContent = opt.label;
+                    productSortSelect.appendChild(optionElement); 
+                });
+                if (d.defaults && d.defaults.product_sort) {
+                    productSortSelect.value = d.defaults.product_sort;
+                }
+            }
+        });
+
         function collectPlanogramData() {
             const placedProductsData = [];
             // Сгруппируем все меши товаров по их полкам (по UUID полки)
@@ -1617,69 +1739,7 @@
         const rulesFileInput = document.getElementById('rules-file-input');
         const loadedRulesFilenameSpan = document.getElementById('loaded-rules-filename');
 
-        // Обработчики для загрузки правил
-        /*
-        if (loadRulesButton && rulesFileInput && loadedRulesFilenameSpan) {
-            loadRulesButton.addEventListener('click', () => {
-                rulesFileInput.click(); // Открыть диалог выбора файла
-            });
-
-            rulesFileInput.addEventListener('change', async (event) => {
-                const file = event.target.files[0];
-                if (!file) {
-                    loadedRulesFilenameSpan.textContent = "";
-                    return;
-                }
-
-                if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
-                    alert("Пожалуйста, сначала выберите или загрузите стеллаж для применения правил.");
-                    rulesFileInput.value = ""; // Сброс выбора файла
-                    loadedRulesFilenameSpan.textContent = "";
-                    return;
-                }
-
-                loadedRulesFilenameSpan.textContent = `Загружен: ${file.name}`;
-
-                // Отправка файла и ID стеллажа на сервер
-                const formData = new FormData();
-                formData.append('rules_file', file);
-                if (!currentShelfUnitDataForSave.id) {
-                    alert("Ошибка: ID текущего стеллажа не определен. Невозможно применить правила.");
-                    return;
-                }
-                formData.append('shelf_unit_id', currentShelfUnitDataForSave.id);
-
-                try {
-                    console.log("Отправка правил на расчет...");
-                    const response = await fetch('/editor/calculate_auto_placement', {
-                        method: 'POST',
-                        body: formData, // FormData устанавливает Content-Type автоматически
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`HTTP ошибка ${response.status}: ${errorData.error || 'Не удалось рассчитать автовыкладку'}`);
-                    }
-
-                    const calculatedPlanogramData = await response.json();
-                    console.log("Получена рассчитанная планограмма:", calculatedPlanogramData);
-
-                    // Отображение результата
-                    if (calculatedPlanogramData) {
-                        if(planogramNameInput) planogramNameInput.value = calculatedPlanogramData.name || `Автовыкладка для стеллажа ${currentShelfUnitDataForSave.shelf_unit_number}`;
-                        await displayPlanogram(calculatedPlanogramData);
-                        alert("Автовыкладка рассчитана и отображена.");
-                    }
-                } catch (error) {
-                    console.error('Ошибка при расчете автовыкладки:', error);
-                    alert(`Ошибка: ${error.message}`);
-                } finally {
-                    rulesFileInput.value = ""; 
-                }
-            });
-        }
-        */
-        if (applyRulesButton) {
+        if (applyRulesButton) { // TODO Отправлять данные на сохранение в БД (лучше на две кнопки разбить 1. сохраняет 2. выкладку производит)
             applyRulesButton.addEventListener('click', async () => {
                 if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave || !currentShelfUnitDataForSave.id) {
                     alert("Please select a shelf unit first. Its ID is required.");
@@ -1783,13 +1843,15 @@
             if (!messageText) return;
 
             const currentPlanogram = collectPlanogramData();
+            const currentRules = collectAllRulesData()
 
             addChatMessage(messageText, true);
             chatInput.value = "";
             chatInput.disabled = true;
             chatSendButton.disabled = true;
 
-            console.warn(currentPlanogram)
+            // console.warn("Планограмма " + JSON.stringify(currentPlanogram))
+            // console.warn("Правила " + JSON.stringify(currentRules))
 
             try {
                 const response = await fetch('/editor/chat_message', {
@@ -1797,7 +1859,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: messageText, planogram: currentPlanogram }),
+                    body: JSON.stringify({ message: messageText, planogram: currentPlanogram, rules: currentRules }),
                 });
 
                 if (!response.ok) {
@@ -1812,6 +1874,7 @@
                 if (serverResponse.message) {
                     addChatMessage(serverResponse.message, false);
                     handle_commands(serverResponse.data)
+                    updateRulesUI(serverResponse.rules)
                 } else {
                     addChatMessage("Received an empty reply from the server.", false);
                 }

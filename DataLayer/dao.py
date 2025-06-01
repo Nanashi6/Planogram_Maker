@@ -336,6 +336,34 @@ class ProductDAO(BaseDAO[Product]):
             raise
 
     @classmethod
+    def get_all_basic_info_as_dicts(cls) -> List[Dict[str, Any]]:
+        """
+        Получает базовую информацию (id, name, brand_name, category_name) 
+        для всех товаров в виде списка словарей.
+        """
+        query = select(
+            Product.id,
+            Product.name,
+            Brand.name.label("brand_name"),
+            Category.name.label("category_name")
+        ).select_from(Product).join(
+            Product.category_brand_placement
+        ).join(
+            CategoryBrandPlacement.category
+        ).join(
+            CategoryBrandPlacement.brand
+        ).order_by(Product.id)
+
+        try:
+            result_rows = db.session.execute(query).all()
+            products_info_list = [row._asdict() for row in result_rows]
+            return products_info_list
+        except SQLAlchemyError as e:
+            print(f"Ошибка SQLAlchemy при получении информации о товарах в виде словарей: {e}")
+            db.session.rollback()
+            return []
+
+    @classmethod
     def get_all_paginated(
         cls,
         page: int,
@@ -463,8 +491,48 @@ class PlacedProductDAO(BaseDAO[PlacedProduct]):
 class ShelfUnitDAO(BaseDAO[ShelfUnit]):
     model = ShelfUnit
 
+    @classmethod
+    def get_all_basic_info_as_dicts(cls) -> List[Dict[str, Any]]:
+        """
+        Получает базовую информацию (id, name) 
+        для всех стеллажей в виде списка словарей.
+        """
+        query = select(
+            ShelfUnit.id,
+            ShelfUnit.shelf_unit_number
+        ).order_by(ShelfUnit.id)
+
+        try:
+            result_rows = db.session.execute(query).all()
+            shelf_units_info_list = [row._asdict() for row in result_rows]
+            return shelf_units_info_list
+        except SQLAlchemyError as e:
+            print(f"Ошибка SQLAlchemy при получении информации о стеллажах в виде словарей: {e}")
+            db.session.rollback()
+            return []
+
 class PlanogramDAO(BaseDAO[Planogram]):
     model = Planogram
+
+    @classmethod
+    def get_all_basic_info_as_dicts(cls) -> List[Dict[str, Any]]:
+        """
+        Получает базовую информацию (id, name) 
+        для всех планограмм в виде списка словарей.
+        """
+        query = select(
+            Planogram.id,
+            Planogram.name
+        ).order_by(Planogram.id)
+
+        try:
+            result_rows = db.session.execute(query).all()
+            planograms_info_list = [row._asdict() for row in result_rows]
+            return planograms_info_list
+        except SQLAlchemyError as e:
+            print(f"Ошибка SQLAlchemy при получении информации о планограммах в виде словарей: {e}")
+            db.session.rollback()
+            return []
 
 class CategoryBrandPlacementDAO(BaseDAO[CategoryBrandPlacement]):
     model = CategoryBrandPlacement

@@ -1,4 +1,4 @@
-from .models import server_message, planogram_data
+from .models import server_message, planogram_data, rules_data
 from .parser import CommandParser
 from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO, CategoryBrandPlacementDAO
 from DataLayer.shemas import ShelfUnit as SU, Category as Cat, Product as P, Brand as B, CategoryBrandPlacement as CBP
@@ -453,13 +453,14 @@ def parse_command(command: str):
 
     return parsed_result['command'], parsed_result['parameters']
 
-def commands_handler(user_message: str, planogram_data) -> server_message:
+def commands_handler(user_message: str, planogram_data, rules) -> server_message:
     try:
         command_name, parameters = parse_command(user_message)
     except Exception as e:
         return server_message(message=f"Ошибка: {e}")
 
     reply = server_message()
+    reply.rules = rules_data.from_dict(rules)
 
     if command_name == "УСТАНОВИ СТЕЛЛАЖ":
         place_shelf_unit(parameters, reply)
