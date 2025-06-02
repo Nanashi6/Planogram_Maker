@@ -237,9 +237,8 @@ class server_message():
     """
     Серверное сообщение клиенту.
     """
-    def __init__(self, message = "", parsed_command = None, data : planogram_data = planogram_data(), rules : rules_data = rules_data()):
+    def __init__(self, message = "", data : planogram_data = planogram_data(), rules : rules_data = rules_data()):
         self.message = message
-        self.parsed_command = parsed_command
         self.data = data
         self.rules = rules
 
@@ -257,7 +256,6 @@ class server_message():
 
         return {
             "message": self.message,
-            "parsed_command": self.parsed_command,
             "data": data_json,
             "rules": rules_data
         }

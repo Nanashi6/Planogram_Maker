@@ -3,7 +3,9 @@ from flask import Blueprint, render_template, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO
 from DataLayer.shemas import Planogram, PlacedProduct
 from .enums import *
+from .models import rules_data
 from .commands_handlers import commands_handler
+from .auto_placement import calculate_auto_placement
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -127,16 +129,16 @@ async def message_handle():
     try: 
         data = request.get_json()
         if not data:
-            return jsonify({"reply": "Ошибка: Тело запроса не содержит JSON.", "parsed_command": None}), 400
+            return jsonify({"message": "Ошибка: Тело запроса не содержит JSON."}), 400
         
         user_message = data.get('message')
         planogram_data = data.get('planogram')
         rules = data.get('rules')
 
         if user_message is None:
-            return jsonify({"reply": "Ошибка: Ключ 'message' отсутствует в JSON.", "parsed_command": None}), 400
+            return jsonify({"message": "Ошибка: Ключ 'message' отсутствует в JSON."}), 400
         if not isinstance(user_message, str):
-            return jsonify({"reply": "Ошибка: Значение 'message' должно быть строкой.", "parsed_command": None}), 400
+            return jsonify({"message": "Ошибка: Значение 'message' должно быть строкой."}), 400
 
         message = commands_handler(user_message, planogram_data, rules)
 
@@ -148,45 +150,31 @@ async def message_handle():
         print(e)
         traceback.print_exc()
         return jsonify({
-            "reply": "Внутренняя ошибка сервера при обработке сообщения чата.",
-            "parsed_command": None
+            "message": "Внутренняя ошибка сервера при обработке сообщения чата."
         }), 200
-
-# def solve_dp_for_category(products: List[prod], max_weight: float, max_length: int) -> List[prod]: #FIXME реализовать автовыкладку
-#     # FIXME Учитывать вес
-    
-#     N = len(products)
-#     M = int(max_length * 10) # Миллиметры
-
-#     dp = [[0 for _ in range(M + 1)] for _ in range(N + 1)]
-
-#     for i in range(1, N + 1):
-#         item_idx = i - 1
-#         item_length = int(products[item_idx].depth * 10) # Миллиметры
-#         item_cost = 1
-#         for w in range(M + 1):
-#             cost_without = dp[i-1][w]
-#             cost_with = 0
-#             if item_length <= w:
-#                 cost_with = dp[i-1][w - item_length] + item_cost
-#             dp[i][w] = max(cost_without, cost_with)
-
-#     taken_products = []
-#     current_w = M
-
-#     for i in range(N, 0, -1):
-#         item_idx = i - 1
-#         item_length = int(products[item_idx].depth * 10) # Миллиметры
-#         item_cost = 1
-#         if item_length <= current_w and dp[i][current_w] != dp[i-1][current_w]:
-#             taken_products.append(products[item_idx])
-#             current_w -= item_length
-
-#     return taken_products
 
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 def calculate_auto_placement_route():
-    return "", 200
+    try: 
+        data = request.get_json()
+        if not data:
+            return jsonify({"message": "Ошибка: Тело запроса не содержит JSON."}), 400
+        
+        rules = data.get('rules')
+        shelf_unit_id = data.get('shelf_unit_id')
+
+        if not rules or not shelf_unit_id:
+            return jsonify({"message": "Ошибка: Запрос не содержит правила или указатель на стеллаж."}), 400
+
+        server_message = calculate_auto_placement(shelf_unit_id, rules_data.from_dict(rules))    
+
+        return jsonify(server_message.to_json()), 200
+
+    except Exception as e:
+        print("Critical error in /calculate_auto_placement endpoint")
+        return jsonify({
+            "message": "Внутренняя ошибка сервера при обработке сообщения чата."
+        }), 200
 
 # # TODO Учитывать доли категорий на полках
 # # TODO Учитывать доли брендов на полках

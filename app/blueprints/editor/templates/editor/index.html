@@ -1786,7 +1786,7 @@
 
                     if (calculatedPlanogramData) {
                         if (planogramNameInput) planogramNameInput.value = calculatedPlanogramData.name || `Auto-Placement for Unit ${currentShelfUnitDataForSave.shelf_unit_number}`;
-                        await displayPlanogram(calculatedPlanogramData); // Отображаем результат
+                        await displayPlanogram(calculatedPlanogramData.data); // Отображаем результат
                         // Переключиться на вкладку планограмм для удобства
                         const planogramsTabButton = document.getElementById('planograms-vtab');
                         if (planogramsTabButton) {

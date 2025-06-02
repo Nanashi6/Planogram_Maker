@@ -13,6 +13,3 @@ class ProductSorting(str, enum.Enum):
     RatingDesc = "RatingDesc"
     NameAsc = "NameAsc"
     NameDesc = "NameDesc"
-
-    # SegmentAsc = "SegmentAsc" # TODO Эти варики Хз как реализовать пока
-    # SegmentDesc = "SegmentDesc"
