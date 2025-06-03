@@ -1787,12 +1787,16 @@
                     if (calculatedPlanogramData) {
                         if (planogramNameInput) planogramNameInput.value = calculatedPlanogramData.name || `Auto-Placement for Unit ${currentShelfUnitDataForSave.shelf_unit_number}`;
                         await displayPlanogram(calculatedPlanogramData.data); // Отображаем результат
-                        // Переключиться на вкладку планограмм для удобства
-                        const planogramsTabButton = document.getElementById('planograms-vtab');
-                        if (planogramsTabButton) {
-                            var tab = new bootstrap.Tab(planogramsTabButton);
+
+                        updateRulesUI(calculatedPlanogramData.rules);
+                        addChatMessage(calculatedPlanogramData.message, false);
+                        
+                        // Переключиться на вкладку чата для удобства
+                        /* const chatTabButton = document.getElementById('chat-vtab');
+                        if (chatTabButton) {
+                            var tab = new bootstrap.Tab(chatTabButton);
                             tab.show();
-                        }
+                        } */
                     }
                 } catch (error) {
                     console.error('Error calculating auto placement:', error);
