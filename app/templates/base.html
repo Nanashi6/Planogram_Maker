@@ -5,9 +5,9 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
 
       {% if title %}
-      <title>{{ title }} - Planogram_Maker</title>
+      <title>{{ title }} - Конструктор планограмм</title>
       {% else %}
-      <title>Planogram_Maker</title>
+      <title>Конструктор планограмм</title>
       {% endif %}
 
 
@@ -24,41 +24,41 @@
     <body>
       <nav class="navbar navbar-expand-lg navbar-dark custom-navbar-bg ">
         <div class="container-fluid">
-          <a class="navbar-brand" href="{{ url_for('index') }}">Planogram Maker</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <a class="navbar-brand" href="{{ url_for('index') }}">Конструктор планограмм</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
             <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav">
               <!-- <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                <a class="nav-link" href="{{ url_for('index') }}">Главная</a>
               </li> -->
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('brands.read_all') }}">Brands</a>
+                <a class="nav-link" href="{{ url_for('brands.read_all') }}">Бренды</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('categories.read_all') }}">Categories</a>
+                <a class="nav-link" href="{{ url_for('categories.read_all') }}">Категории</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('categoryBrandPlacements.read_all') }}">CategoryBrandPlacements</a>
+                <a class="nav-link" href="{{ url_for('categoryBrandPlacements.read_all') }}">Связки Категория-Бренд</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('products.read_all') }}">Products</a>
+                <a class="nav-link" href="{{ url_for('products.read_all') }}">Продукты</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('shelves.read_all') }}">Shelves</a>
+                <a class="nav-link" href="{{ url_for('shelves.read_all') }}">Полки</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('shelfUnits.read_all') }}">ShelfUnits</a>
+                <a class="nav-link" href="{{ url_for('shelfUnits.read_all') }}">Стеллажи</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('placedProducts.read_all') }}">PlacedProducts</a>
+                <a class="nav-link" href="{{ url_for('placedProducts.read_all') }}">Размещенные продукты</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('planograms.read_all') }}">Planograms</a>
+                <a class="nav-link" href="{{ url_for('planograms.read_all') }}">Планограммы</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('editor.index') }}">Editor</a>
+                <a class="nav-link" href="{{ url_for('editor.index') }}">Редактор</a>
               </li>
             </ul>
           </div>

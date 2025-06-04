@@ -197,19 +197,19 @@
         <div class="d-flex flex-grow-1 overflow-hidden"> 
             <div class="tab-navigation nav flex-column nav-pills p-2 border-end vertical-tabs-container" id="editorVerticalTabs" role="tablist" aria-orientation="vertical" style="min-width: 55px;">
                 <button class="tab-button nav-link text-center w-100 active vertical-tab-text" id="products-vtab" data-bs-toggle="pill" data-bs-target="#products-vtab-pane" type="button" role="tab" aria-controls="products-vtab-pane" aria-selected="true">
-                    <span class="tab-button-text">Products</span>
+                    <span class="tab-button-text">Продукты</span>
                 </button>
                 <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="shelfUnits-vtab" data-bs-toggle="pill" data-bs-target="#shelfUnits-vtab-pane" type="button" role="tab" aria-controls="shelfUnits-vtab-pane" aria-selected="false">
-                    <span class="tab-button-text">Shelf Units</span>
+                    <span class="tab-button-text">Стеллажи</span>
                 </button>
                 <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="planograms-vtab" data-bs-toggle="pill" data-bs-target="#planograms-vtab-pane" type="button" role="tab" aria-controls="planograms-vtab-pane" aria-selected="false">
-                    <span class="tab-button-text">Planograms</span>
+                    <span class="tab-button-text">Планограммы</span>
                 </button>
                 <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="stackingRules-vtab" data-bs-toggle="pill" data-bs-target="#stackingRules-vtab-pane" type="button" role="tab" aria-controls="stackingRules-vtab-pane" aria-selected="false">
-                    <span class="tab-button-text">Stacking Rules</span>
+                    <span class="tab-button-text">Правила выкладки</span>
                 </button>
                 <button class="tab-button nav-link text-center w-100 mt-1 vertical-tab-text" id="chat-vtab" data-bs-toggle="pill" data-bs-target="#chat-vtab-pane" type="button" role="tab" aria-controls="chat-vtab-pane" aria-selected="false">
-                    <span class="tab-button-text">Chat</span>
+                    <span class="tab-button-text">Чат</span>
                 </button>
             </div>
 
@@ -217,82 +217,82 @@
             <div class="tab-content p-3 flex-grow-1" id="editorVerticalTabsContent" style="overflow-y: auto;">
 
                 <div class="tab-pane fade show active" id="products-vtab-pane" role="tabpanel" aria-labelledby="products-vtab">
-                    <h3 class="h5 mb-3">Products</h3>
+                    <h3 class="h5 mb-3">Продукты</h3>
                     <div id="product-list">
                         {# Элементы будут '.list-group-item list-group-item-action product-item' #}
                     </div>
                 </div>
 
                 <div class="tab-pane fade" id="shelfUnits-vtab-pane" role="tabpanel" aria-labelledby="shelfUnits-vtab">
-                    <h3 class="h5 mb-3">Shelf Units</h3>
+                    <h3 class="h5 mb-3">Стеллажи</h3>
                     <div id="shelfUnit-list" class="list-group list-group-flush small">
                         {# Элементы будут '.list-group-item list-group-item-action shelfUnit-item' #}
                     </div>
                 </div>
 
                 <div class="tab-pane fade" id="planograms-vtab-pane" role="tabpanel" aria-labelledby="planograms-vtab">
-                    <h3 class="h5 mb-3">Planograms</h3>
+                    <h3 class="h5 mb-3">Планограммы</h3>
                     <div id="planogram-list" class="list-group list-group-flush small mb-3">
                         {# Элементы будут '.list-group-item list-group-item-action planogram-item' #}
                     </div>
                     <div class="mb-2">
-                        <input type="text" id="planogram-name-input" class="form-control form-control-sm" placeholder="Planogram Name">
+                        <input type="text" id="planogram-name-input" class="form-control form-control-sm" placeholder="Название планограммы">
                     </div>
-                    <button id="save-planogram-btn" class="btn btn-primary btn-sm w-100">Save Current Planogram</button>
+                    <button id="save-planogram-btn" class="btn btn-primary btn-sm w-100">Сохранить текущую планограмму</button>
                 </div>
 
                 <div class="tab-pane fade" id="stackingRules-vtab-pane" role="tabpanel" aria-labelledby="stackingRules-vtab">
-                    <h3 class="h5 mb-3">Stacking Rules</h3>
+                    <h3 class="h5 mb-3">Правила выкладки</h3>
 
                     {# Глобальные правила сортировки #}
                     <div class="mb-3 p-2 border rounded">
-                        <h6 class="mb-2">Global Sorting Rules</h6>
+                        <h6 class="mb-2">Глобальные правила сортировки</h6>
                         <div class="row g-2">
                             <div class="col-md-6">
-                                <label for="brand-sort-select" class="form-label form-label-sm">Sort Brands By:</label>
+                                <label for="brand-sort-select" class="form-label form-label-sm">Сортировать бренды по:</label>
                                 <select id="brand-sort-select" class="form-select form-select-sm">
                                     {# варианты #}
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="product-sort-select" class="form-label form-label-sm">Sort Products By:</label>
+                                <label for="product-sort-select" class="form-label form-label-sm">Сортировать продукты по:</label>
                                 <select id="product-sort-select" class="form-select form-select-sm">
                                     {# варианты #}
                                 </select>
                             </div>
                         </div>
                         <div class="mt-2">
-                            <label for="product-spacing-input" class="form-label form-label-sm">Default Product Spacing (cm):</label>
+                            <label for="product-spacing-input" class="form-label form-label-sm">Стандартный отступ между продуктами (см):</label>
                             <input type="number" id="product-spacing-input" class="form-control form-control-sm" value="0.5" step="0.1" min="0">
                         </div>
                     </div>
 
                     {# Правила для конкретных полок #}
                     <div class="mb-3 p-2 border rounded">
-                        <h6 class="mb-2">Shelf-Specific Category Allocation</h6>
+                        <h6 class="mb-2">Распределение категорий по полкам</h6>
                         <div id="shelf-specific-rules-container">
-                            <p class="text-muted" id="shelf-rules-placeholder">Select a shelf unit to define rules for its shelves.</p>
+                            <p class="text-muted" id="shelf-rules-placeholder">Выберите стеллаж, чтобы определить правила для его полок.</p>
                             {# Сюда будут динамически добавляться правила для каждой полки #}
                         </div>
                     </div>
 
-                    <button id="apply-rules-btn" class="btn btn-info btn-sm w-100">Apply Rules & Calculate Auto Placement</button>
+                    <button id="apply-rules-btn" class="btn btn-info btn-sm w-100">Применить правила и рассчитать авторазмещение</button>
                     <p id="apply-rules-status" class="mt-2 text-muted small"></p>
 
                     {# Старый загрузчик файла#}
                     <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
-                    {# <button id="load-rules-btn" class="btn btn-info btn-sm">Load Rules from File</button> #}
+                    {# <button id="load-rules-btn" class="btn btn-info btn-sm">Загрузить правила из файла</button> #}
                     {# <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span> #}
                 </div>
 
                 <div class="tab-pane fade" id="chat-vtab-pane" role="tabpanel" aria-labelledby="chat-vtab">
-                    <h3 class="h5 mb-3">Chat Assistant</h3>
+                    <h3 class="h5 mb-3">Чат-ассистент</h3>
                     <div id="chat-messages-container" style="height: calc(94.95vh - 160px); overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff;">
                         <!-- Сообщения будут здесь -->
                     </div>
                     <div class="input-group">
-                        <textarea id="chat-input" class="form-control form-control-sm" placeholder="Type your message... (Shift+Enter for new line)" rows="2" style="resize: none;"></textarea>
-                        <button id="chat-send-btn" class="btn btn-primary btn-sm align-self-end">Send</button>
+                        <textarea id="chat-input" class="form-control form-control-sm" placeholder="Введите ваше сообщение... (Shift+Enter для новой строки)" rows="2" style="resize: none;"></textarea>
+                        <button id="chat-send-btn" class="btn btn-primary btn-sm align-self-end">Отправить</button>
                     </div>
                 </div>
             </div>
@@ -1770,7 +1770,7 @@
                     const response = await fetch('/editor/calculate_auto_placement', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json', // Теперь отправляем JSON
+                            'Content-Type': 'application/json',
                         },
                         body: JSON.stringify(payload), 
                     });

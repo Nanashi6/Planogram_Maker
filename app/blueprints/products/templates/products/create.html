@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
-        <h1 class="mb-4">Create New Product</h1>
+        <h1 class="mb-4">Создать новый продукт</h1>
 
         <form action="" method="post" novalidate>
             {{ form.hidden_tag() }}
@@ -11,8 +11,8 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        {{ form.name.label(class="form-label") }}
-                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Enter product name") }}
+                        {{ form.name.label(class="form-label") }} 
+                        {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Введите название продукта") }}
                         {% if form.name.errors %}
                             <div class="invalid-feedback">
                                 {% for error in form.name.errors %}{{ error }}<br>{% endfor %}
@@ -22,7 +22,7 @@
 
                     <div class="mb-3">
                         {{ form.barcode.label(class="form-label") }}
-                        {{ form.barcode(class="form-control" + (" is-invalid" if form.barcode.errors else ""), placeholder="Scan or enter barcode") }}
+                        {{ form.barcode(class="form-control" + (" is-invalid" if form.barcode.errors else ""), placeholder="Отсканируйте или введите штрихкод") }}
                         {% if form.barcode.errors %}
                             <div class="invalid-feedback">
                                 {% for error in form.barcode.errors %}{{ error }}<br>{% endfor %}
@@ -31,7 +31,7 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ form.segment.label(class="form-label") }}
+                        {{ form.segment.label(class="form-label") }} 
                         {{ form.segment(class="form-select" + (" is-invalid" if form.segment.errors else "")) }}
                         {% if form.segment.errors %}
                             <div class="invalid-feedback">
@@ -41,7 +41,7 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ form.SKU_rating.label(class="form-label") }}
+                        {{ form.SKU_rating.label(class="form-label") }} 
                         {{ form.SKU_rating(class="form-select" + (" is-invalid" if form.SKU_rating.errors else "")) }}
                         {% if form.SKU_rating.errors %}
                             <div class="invalid-feedback">
@@ -70,16 +70,16 @@
                                 {% for error in form.price.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% else %}
-                            <div class="form-text">Enter price (e.g., 19.99).</div>
+                            <div class="form-text">Введите цену (например, 19.99).</div>
                         {% endif %}
                     </div>
 
                     <fieldset class="mb-3 p-3 border rounded">
-                        <legend class="w-auto px-2 h6">Dimensions (cm)</legend>
+                        <legend class="w-auto px-2 h6">Размеры (см)</legend>
                         <div class="row g-2">
                             <div class="col">
                                 {{ form.length.label(class="form-label") }}
-                                {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), placeholder="Length", step="any") }}
+                                {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), placeholder="Длина", step="any") }}
                                 {% if form.length.errors %}
                                     <div class="invalid-feedback">
                                         {% for error in form.length.errors %}{{ error }}<br>{% endfor %}
@@ -88,7 +88,7 @@
                             </div>
                             <div class="col">
                                 {{ form.depth.label(class="form-label") }}
-                                {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), placeholder="Depth", step="any") }}
+                                {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), placeholder="Глубина", step="any") }}
                                 {% if form.depth.errors %}
                                     <div class="invalid-feedback">
                                         {% for error in form.depth.errors %}{{ error }}<br>{% endfor %}
@@ -97,7 +97,7 @@
                             </div>
                             <div class="col">
                                 {{ form.height.label(class="form-label") }}
-                                {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), placeholder="Height", step="any") }}
+                                {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), placeholder="Высота", step="any") }}
                                 {% if form.height.errors %}
                                     <div class="invalid-feedback">
                                         {% for error in form.height.errors %}{{ error }}<br>{% endfor %}
@@ -106,19 +106,19 @@
                             </div>
                         </div>
                          {% if not form.length.errors and not form.depth.errors and not form.height.errors %}
-                            <div class="form-text mt-2">Enter product dimensions. Specify units if not standard.</div>
+                            <div class="form-text mt-2">Введите размеры продукта. Укажите единицы измерения, если они не стандартные.</div>
                          {% endif %}
                     </fieldset>
 
                     <div class="mb-3">
                         {{ form.weight.label(class="form-label") }}
-                        {{ form.weight(class="form-control" + (" is-invalid" if form.weight.errors else ""), placeholder="Weight (e.g., 0.5 kg)", step="any") }}
+                        {{ form.weight(class="form-control" + (" is-invalid" if form.weight.errors else ""), placeholder="Вес (например, 0.5 кг)", step="any") }}
                         {% if form.weight.errors %}
                             <div class="invalid-feedback">
                                 {% for error in form.weight.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% else %}
-                             <div class="form-text">Enter product weight, specify units if necessary.</div>
+                             <div class="form-text">Введите вес продукта, при необходимости укажите единицы измерения.</div>
                         {% endif %}
                     </div>
                 </div>
@@ -126,7 +126,7 @@
 
             <div class="mt-4">
                 {{ form.submit(class="btn btn-success") }}
-                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
             </div>
         </form>
     </div>
