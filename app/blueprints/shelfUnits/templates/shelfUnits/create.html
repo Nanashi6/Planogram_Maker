@@ -3,14 +3,14 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <h1 class="mb-4">Create New Shelf Unit</h1>
+        <h1 class="mb-4">Создать новый стеллаж</h1>
 
         <form action="" method="post" novalidate>
             {{ form.hidden_tag() }}
 
             <div class="mb-3">
                 {{ form.shelf_unit_number.label(class="form-label") }}
-                {{ form.shelf_unit_number(class="form-control" + (" is-invalid" if form.shelf_unit_number.errors else ""), placeholder="Enter unit number (e.g., 1, 101)") }}
+                {{ form.shelf_unit_number(class="form-control" + (" is-invalid" if form.shelf_unit_number.errors else ""), placeholder="Введите номер стеллажа (например, 1, 101)") }}
                 {% if form.shelf_unit_number.errors %}
                     <div class="invalid-feedback">
                         {% for error in form.shelf_unit_number.errors %}
@@ -19,14 +19,14 @@
                     </div>
                 {% else %}
                      <div class="form-text">
-                        Identifier for the shelf unit or bay.
+                        Идентификатор стеллажа или секции.
                     </div>
                 {% endif %}
             </div>
 
             <div class="mt-4">
                 {{ form.submit(class="btn btn-success") }}
-                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
             </div>
         </form>
     </div>

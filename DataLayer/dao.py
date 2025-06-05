@@ -7,7 +7,7 @@ from sqlalchemy import select, and_, or_, case, asc, desc
 from sqlalchemy.orm import joinedload
 
 from DataLayer.enums import SegmentEnum
-from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram, CategoryBrandPlacement
+from DataLayer.models import Base, Category, Brand, Product, PlacedProduct, Shelf, ShelfUnit, Planogram, Rule, ShelfRule, CategoryRule
 from app import db
 from flask_sqlalchemy.pagination import Pagination
 
@@ -199,7 +199,7 @@ class ProductDAO(BaseDAO[Product]):
         """Найти запись по ID с загрузкой связанных данных."""
         try:
             query = select(cls.model).where(cls.model.id == data_id).options(
-                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+                joinedload(cls.model.category),joinedload(cls.model.brand)
             )
             return db.session.execute(query).scalar_one_or_none()
         except SQLAlchemyError as e:
@@ -213,7 +213,7 @@ class ProductDAO(BaseDAO[Product]):
         try:
             query = select(cls.model).filter_by(**filters_dict)
             query = query.options(
-                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+                joinedload(cls.model.category),joinedload(cls.model.brand)
             )
             result = db.session.execute(query)
             record = result.scalar_one_or_none()
@@ -233,19 +233,16 @@ class ProductDAO(BaseDAO[Product]):
         try:
             query = select(cls.model)\
                 .join(cls.model.category_brand_placement)\
-                .join(CategoryBrandPlacement.category)\
+                .join(cls.model.category)\
                 .where(
-                    CategoryBrandPlacement.category.has(name=category_name),
+                    cls.model.category.has(name=category_name),
                     min_volume <= cls.model.weight,
                     cls.model.weight <= max_volume,
                     cls.model.height <= max_height
                 )
 
             query = query.options(
-                joinedload(cls.model.category_brand_placement).options(
-                    joinedload(CategoryBrandPlacement.category),
-                    joinedload(CategoryBrandPlacement.brand)
-                )
+                joinedload(cls.model.category),joinedload(cls.model.brand)
             )
             result = db.session.execute(query)
             records = result.scalars().all()
@@ -266,51 +263,18 @@ class ProductDAO(BaseDAO[Product]):
         try:
             query = select(cls.model)\
                 .join(cls.model.category_brand_placement)\
-                .join(CategoryBrandPlacement.category)\
-                .join(CategoryBrandPlacement.brand)\
+                .join(cls.model.category)\
+                .join(cls.model.brand)\
                 .where(
-                    CategoryBrandPlacement.category.has(name=category_name),
-                    CategoryBrandPlacement.brand.has(name=brand_name),
+                    cls.model.category.has(name=category_name),
+                    cls.model.brand.has(name=brand_name),
                     min_volume <= cls.model.weight,
                     cls.model.weight <= max_volume,
                     cls.model.height <= max_height
                 )
 
             query = query.options(
-                joinedload(cls.model.category_brand_placement).options(
-                    joinedload(CategoryBrandPlacement.category),
-                    joinedload(CategoryBrandPlacement.brand)
-                )
-            )
-            result = db.session.execute(query)
-            records = result.scalars().all()
-            return records
-        except SQLAlchemyError as e:
-            raise
-
-    @classmethod
-    def get_many_for_cb(
-        cls, 
-        cbp_id,
-        max_height: float,
-        min_volume: float = 0, 
-        max_volume: float = float('inf')
-    ) -> List[T]:
-        """Найти несколько записей по категории и фильтрам"""
-        try:
-            query = select(cls.model)\
-                .where(
-                    cbp_id == cls.model.category_brand_placement_id,
-                    min_volume <= cls.model.weight,
-                    cls.model.weight <= max_volume,
-                    cls.model.height <= max_height
-                )
-
-            query = query.options(
-                joinedload(cls.model.category_brand_placement).options(
-                    joinedload(CategoryBrandPlacement.category),
-                    joinedload(CategoryBrandPlacement.brand)
-                )
+                joinedload(cls.model.category),joinedload(cls.model.brand)
             )
             result = db.session.execute(query)
             records = result.scalars().all()
@@ -327,41 +291,13 @@ class ProductDAO(BaseDAO[Product]):
                 filters_dict = filters.model_dump(exclude_unset=True)
                 query = query.filter_by(**filters_dict)
             query = query.options(
-                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+                joinedload(cls.model.category),joinedload(cls.model.brand)
             )
             result = db.session.execute(query)
             records = result.scalars().all()
             return records
         except SQLAlchemyError as e:
             raise
-
-    @classmethod
-    def get_all_basic_info_as_dicts(cls) -> List[Dict[str, Any]]:
-        """
-        Получает базовую информацию (id, name, brand_name, category_name) 
-        для всех товаров в виде списка словарей.
-        """
-        query = select(
-            Product.id,
-            Product.name,
-            Brand.name.label("brand_name"),
-            Category.name.label("category_name")
-        ).select_from(Product).join(
-            Product.category_brand_placement
-        ).join(
-            CategoryBrandPlacement.category
-        ).join(
-            CategoryBrandPlacement.brand
-        ).order_by(Product.id)
-
-        try:
-            result_rows = db.session.execute(query).all()
-            products_info_list = [row._asdict() for row in result_rows]
-            return products_info_list
-        except SQLAlchemyError as e:
-            print(f"Ошибка SQLAlchemy при получении информации о товарах в виде словарей: {e}")
-            db.session.rollback()
-            return []
 
     @classmethod
     def get_all_paginated(
@@ -392,7 +328,7 @@ class ProductDAO(BaseDAO[Product]):
                     query = query.order_by(cls.model.name)
 
             query = query.options(
-                joinedload(cls.model.category_brand_placement).options(joinedload(CategoryBrandPlacement.category),joinedload(CategoryBrandPlacement.brand))
+                joinedload(cls.model.category),joinedload(cls.model.brand)
             )
 
             pagination_obj = db.paginate(
@@ -422,8 +358,8 @@ class ProductDAO(BaseDAO[Product]):
         """
 
         eager_load_options = joinedload(Product.category_brand_placement).options(
-            joinedload(CategoryBrandPlacement.category),
-            joinedload(CategoryBrandPlacement.brand)
+            joinedload(cls.model.category),
+            joinedload(cls.model.brand)
         )
 
         # Основной запрос
@@ -471,7 +407,7 @@ class ProductDAO(BaseDAO[Product]):
         final_query = base_query.join(
             Product.category_brand_placement
         ).join(
-            CategoryBrandPlacement.category
+            cls.model.category
         ).filter(final_filter)
 
         try:
@@ -533,6 +469,12 @@ class PlanogramDAO(BaseDAO[Planogram]):
             print(f"Ошибка SQLAlchemy при получении информации о планограммах в виде словарей: {e}")
             db.session.rollback()
             return []
+        
+class CategoryRuleDAO(BaseDAO[CategoryRule]):
+    model = CategoryRule
 
-class CategoryBrandPlacementDAO(BaseDAO[CategoryBrandPlacement]):
-    model = CategoryBrandPlacement
+class ShelfRuleDAO(BaseDAO[ShelfRule]):
+    model = ShelfRule
+
+class RuleDAO(BaseDAO[Rule]):
+    model = Rule

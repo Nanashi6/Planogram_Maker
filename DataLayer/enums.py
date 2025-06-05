@@ -18,3 +18,23 @@ class RatingEnum(str, enum.Enum):
     NINE = '9'
     TEN = '10'
     NONE = '-'
+
+    def to_int(self) -> int:
+        if self == RatingEnum.NONE:
+            return 0
+        else:
+            return int(self.value)
+        
+class BrandSorting(str, enum.Enum):
+    NameAsc = "NameAsc"
+    NameDesc = "NameDesc"
+    RatingAsc = "RatingAsc"
+    RatingDesc = "RatingDesc"
+
+class ProductSorting(str, enum.Enum):
+    PriceAsc = "PriceAsc"
+    PriceDesc = "PriceDesc"
+    RatingAsc = "RatingAsc"
+    RatingDesc = "RatingDesc"
+    NameAsc = "NameAsc"
+    NameDesc = "NameDesc"

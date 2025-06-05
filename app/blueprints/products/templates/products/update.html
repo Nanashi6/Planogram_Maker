@@ -11,7 +11,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
-                        {{ form.name.label(class="form-label") }} 
+                        {{ form.name.label(class="form-label") }}
                         {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else "")) }}
                         {% if form.name.errors %}
                             <div class="invalid-feedback">
@@ -21,7 +21,7 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ form.barcode.label(class="form-label") }} 
+                        {{ form.barcode.label(class="form-label") }}
                         {{ form.barcode(class="form-control" + (" is-invalid" if form.barcode.errors else "")) }}
                         {% if form.barcode.errors %}
                             <div class="invalid-feedback">
@@ -31,7 +31,7 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ form.segment.label(class="form-label") }} 
+                        {{ form.segment.label(class="form-label") }}
                         {{ form.segment(class="form-select" + (" is-invalid" if form.segment.errors else "")) }}
                         {% if form.segment.errors %}
                             <div class="invalid-feedback">
@@ -51,11 +51,21 @@
                     </div>
 
                     <div class="mb-3">
-                        {{ form.category_brand_placement_id.label(class="form-label") }}
-                        {{ form.category_brand_placement_id(class="form-select" + (" is-invalid" if form.category_brand_placement_id.errors else "")) }}
-                        {% if form.category_brand_placement_id.errors %}
+                        {{ form.brand_id.label(class="form-label") }}
+                        {{ form.brand_id(class="form-select" + (" is-invalid" if form.brand_id.errors else "")) }}
+                        {% if form.brand_id.errors %}
                             <div class="invalid-feedback">
-                                {% for error in form.category_brand_placement_id.errors %}{{ error }}<br>{% endfor %}
+                                {% for error in form.brand_id.errors %}{{ error }}<br>{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                     <div class="mb-3">
+                        {{ form.category_id.label(class="form-label") }}
+                        {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
+                        {% if form.category_id.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.category_id.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% endif %}
                     </div>
@@ -78,7 +88,7 @@
                         <legend class="w-auto px-2 h6">Размеры (см)</legend>
                         <div class="row g-2">
                             <div class="col">
-                                {{ form.length.label(class="form-label") }} 
+                                {{ form.length.label(class="form-label") }}
                                 {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), step="any") }}
                                 {% if form.length.errors %}
                                     <div class="invalid-feedback">
@@ -87,7 +97,7 @@
                                 {% endif %}
                             </div>
                             <div class="col">
-                                {{ form.depth.label(class="form-label") }} 
+                                {{ form.depth.label(class="form-label") }}
                                 {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), step="any") }}
                                 {% if form.depth.errors %}
                                     <div class="invalid-feedback">
@@ -96,7 +106,7 @@
                                 {% endif %}
                             </div>
                             <div class="col">
-                                {{ form.height.label(class="form-label") }} 
+                                {{ form.height.label(class="form-label") }}
                                 {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), step="any") }}
                                 {% if form.height.errors %}
                                     <div class="invalid-feedback">

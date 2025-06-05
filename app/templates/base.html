@@ -40,9 +40,6 @@
                 <a class="nav-link" href="{{ url_for('categories.read_all') }}">Категории</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('categoryBrandPlacements.read_all') }}">Связки Категория-Бренд</a>
-              </li>
-              <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('products.read_all') }}">Продукты</a>
               </li>
               <li class="nav-item">
@@ -59,6 +56,15 @@
               </li>
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('editor.index') }}">Редактор</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('rules.read_all') }}">Правила</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('shelf-rules.read_all') }}">Правила полок</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('category-rules.read_all') }}">Правила категорий</a>
               </li>
             </ul>
           </div>

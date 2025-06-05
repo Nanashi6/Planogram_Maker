@@ -3,11 +3,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1>
-        Shelf Details:
+        Детали полки:
         <span class="fw-normal">
-            Shelf #{{ shelf.shelf_number }}
+            Полка №{{ shelf.shelf_number }}
             {% if shelf.shelf_unit %}
-                (Unit #{{ shelf.shelf_unit.shelf_unit_number }})
+                (Стеллаж №{{ shelf.shelf_unit.shelf_unit_number }})
             {% endif %}
         </span>
     </h1>
@@ -15,33 +15,33 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-header">
-        <h5 class="mb-0">Shelf Information (ID: {{ shelf.id }})</h5>
+        <h5 class="mb-0">Информация о полке (ID: {{ shelf.id }})</h5>
     </div>
     <div class="card-body">
         <dl class="row">
-            <dt class="col-sm-4 col-md-3 text-muted">Shelf Unit:</dt>
+            <dt class="col-sm-4 col-md-3 text-muted">Стеллаж:</dt>
             <dd class="col-sm-8 col-md-9">
                 {% if shelf.shelf_unit %}
-                    <a href="{{ url_for('shelfUnits.read', id=shelf.shelf_unit.id) }}">Unit #{{ shelf.shelf_unit.shelf_unit_number }}</a>
+                    <a href="{{ url_for('shelfUnits.read', id=shelf.shelf_unit.id) }}">Стеллаж №{{ shelf.shelf_unit.shelf_unit_number }}</a>
                     <span class="text-muted">(ID: {{ shelf.shelf_unit_id }})</span>
                 {% else %}
-                    <span class="text-muted">N/A</span>
+                    <span class="text-muted">Н/Д</span>
                 {% endif %}
             </dd>
 
-            <dt class="col-sm-4 col-md-3 text-muted">Shelf Number:</dt>
+            <dt class="col-sm-4 col-md-3 text-muted">Номер полки:</dt>
             <dd class="col-sm-8 col-md-9">{{ shelf.shelf_number }}</dd>
 
-            <dt class="col-sm-4 col-md-3 text-muted">Dimensions (LxDxH):</dt>
+            <dt class="col-sm-4 col-md-3 text-muted">Размеры (ДxГxВ):</dt>
             <dd class="col-sm-8 col-md-9">
-                {{ shelf.length if shelf.length is not none else '?'}} x
-                {{ shelf.depth if shelf.depth is not none else '?'}} x
-                {{ shelf.height if shelf.height is not none else '?'}}
+                {{ "%.2f"|format(shelf.length) if shelf.length is not none else '?'}} x
+                {{ "%.2f"|format(shelf.depth) if shelf.depth is not none else '?'}} x
+                {{ "%.2f"|format(shelf.height) if shelf.height is not none else '?'}}
             </dd>
 
-            <dt class="col-sm-4 col-md-3 text-muted">Max Weight:</dt>
+            <dt class="col-sm-4 col-md-3 text-muted">Макс. вес:</dt>
             <dd class="col-sm-8 col-md-9">
-                {{ shelf.max_weight if shelf.max_weight is not none else '-' }} kg
+                {{ "%.2f"|format(shelf.max_weight) if shelf.max_weight is not none else '-' }} кг
             </dd>
         </dl>
     </div>
@@ -53,19 +53,19 @@
             <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.813z"/>
             <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
         </svg>
-        Edit
+        Изменить
     </a>
-    <a href="{{ url_for('.delete', id=shelf.id) }}" class="btn btn-danger me-2" onclick="return confirm('Are you sure you want to delete shelf #{{ shelf.shelf_number }} (ID: {{ shelf.id }})? This action cannot be undone.');">
+    <a href="{{ url_for('.delete', id=shelf.id) }}" class="btn btn-danger me-2" onclick="return confirm('Вы уверены, что хотите удалить полку №{{ shelf.shelf_number }} (ID: {{ shelf.id }})? Это действие необратимо.');">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill me-1" viewBox="0 0 16 16">
             <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
         </svg>
-        Delete
+        Удалить
     </a>
     <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-1" viewBox="0 0 16 16">
           <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
         </svg>
-        Back to List
+        Назад к списку
     </a>
 </div>
 {% endblock %}

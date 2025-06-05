@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <h1 class="mb-4">Update Shelf Unit: <span class="fw-normal">#{{ form.shelf_unit_number.data or "ID " + form.id.data }}</span></h1>
+        <h1 class="mb-4">Изменить стеллаж: <span class="fw-normal">№{{ form.shelf_unit_number.data or "ID " + form.id.data }}</span></h1>
 
         <form action="" method="post" novalidate>
             {{ form.hidden_tag() }}
@@ -19,14 +19,14 @@
                     </div>
                 {% else %}
                      <div class="form-text">
-                        Unique identifier for the shelf unit or bay.
+                        Уникальный идентификатор стеллажа или секции.
                     </div>
                 {% endif %}
             </div>
 
             <div class="mt-4">
                 {{ form.submit(class="btn btn-primary") }}
-                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
             </div>
         </form>
     </div>

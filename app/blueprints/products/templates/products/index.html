@@ -31,11 +31,11 @@
             <tr class="clickable-row" data-href="{{ url_for('.read', id=product.id) }}" style="cursor: pointer;">
                 <td>{{ product.name }}</td>
                 <td>{{ product.barcode or '-' }}</td>
-                <td>{{ product.segment.value if product.segment else '-' }}</td>
+                <td>{{ product.segment.value if product.segment and product.segment.value is not none else (product.segment if product.segment is not none else '-') }}</td>
                 <td>
-                    {% if product.SKU_rating %}
+                    {% if product.SKU_rating and product.SKU_rating.value is not none %}
                         {{ product.SKU_rating.value }}
-                    {% elif product.SKU_rating %}
+                    {% elif product.SKU_rating is not none %}
                         {{ product.SKU_rating }}
                     {% else %}
                         <span class="text-muted">-</span>
@@ -43,15 +43,15 @@
                 </td>
                 <td class="text-end">{{ "%.2f"|format(product.price) if product.price is not none else '-' }}</td>
                 <td>
-                    {% if product.category_brand_placement.category %}
-                        <a href="{{ url_for('categories.read', id=product.category_brand_placement.category_id) }}">{{ product.category_brand_placement.category.name }}</a>
+                    {% if product.category %}
+                        <a href="{{ url_for('categories.read', id=product.category_id) }}">{{ product.category.name }}</a>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
                 </td>
                 <td>
-                    {% if product.category_brand_placement.brand %}
-                        <a href="{{ url_for('brands.read', id=product.category_brand_placement.brand_id) }}">{{ product.category_brand_placement.brand.name }}</a>
+                    {% if product.brand %}
+                        <a href="{{ url_for('brands.read', id=product.brand_id) }}">{{ product.brand.name }}</a>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}

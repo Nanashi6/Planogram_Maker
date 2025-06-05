@@ -32,7 +32,7 @@ async def read(id: int):
 async def create():
     form = CreateCategory()
     if form.validate_on_submit():
-        category = Category(name=form.name.data, share=form.share.data)
+        category = Category(name=form.name.data)
         CategoryDAO.add(category)
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/create.html', title='Home', form=form)
@@ -45,7 +45,7 @@ async def update(id: int):
     
     form = UpdateCategory(obj=category)
     if form.validate_on_submit():
-        category1 = Category(name=form.name.data, share=form.share.data)
+        category1 = Category(name=form.name.data)
         CategoryDAO.update_by_id(id, category1)
         return redirect(url_for('.read_all'))
     return render_template(f'{BASE_URL}/update.html', title='Home', form=form)

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="mb-4">Создать новое правило выкладки</h1>
+
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.brand_sorting.label(class="form-label") }}
+                {{ form.brand_sorting(class="form-select" + (" is-invalid" if form.brand_sorting.errors else "")) }}
+                {% if form.brand_sorting.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.brand_sorting.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.product_sorting.label(class="form-label") }}
+                {{ form.product_sorting(class="form-select" + (" is-invalid" if form.product_sorting.errors else "")) }}
+                {% if form.product_sorting.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.product_sorting.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.spacing.label(class="form-label") }}
+                {{ form.spacing(class="form-control" + (" is-invalid" if form.spacing.errors else ""), placeholder="0.5", step="0.01") }}
+                {% if form.spacing.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.spacing.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% else %}
+                    <div class="form-text">Введите отступ между продуктами в сантиметрах.</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.planogram_id.label(class="form-label") }}
+                {{ form.planogram_id(class="form-select" + (" is-invalid" if form.planogram_id.errors else "")) }}
+                {% if form.planogram_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.planogram_id.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% else %}
+                    <div class="form-text">Выберите планограмму, к которой будет привязано это правило (необязательно).</div>
+                {% endif %}
+            </div>
+
+
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-success") }}
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

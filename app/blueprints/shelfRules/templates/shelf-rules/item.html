@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Детали правила для полки (ID: {{ shelf_rule.id }})</h1>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Информация о правиле для полки</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4 col-md-3 text-muted">ID правила для полки:</dt>
+            <dd class="col-sm-8 col-md-9">{{ shelf_rule.id }}</dd>
+
+            <dt class="col-sm-4 col-md-3 text-muted">Общее правило:</dt>
+            <dd class="col-sm-8 col-md-9">
+                {% if shelf_rule.rule %}
+                    <a href="{{ url_for('rules.read', id=shelf_rule.rule.id) }}">
+                        ID {{ shelf_rule.rule.id }} (Бренды: {{ shelf_rule.rule.brand_sorting.name.replace('_', ' ').title() if shelf_rule.rule.brand_sorting else '-' }},
+                        Продукты: {{ shelf_rule.rule.product_sorting.name.replace('_', ' ').title() if shelf_rule.rule.product_sorting else '-' }})
+                    </a>
+                {% else %}
+                    <span class="text-muted">Не указано (ID: {{ shelf_rule.rule_id }})</span>
+                {% endif %}
+            </dd>
+
+            <dt class="col-sm-4 col-md-3 text-muted">Полка:</dt>
+            <dd class="col-sm-8 col-md-9">
+                {% if shelf_rule.shelf %}
+                    <a href="{{ url_for('shelves.read', id=shelf_rule.shelf.id) }}">
+                        Стеллаж №{{ shelf_rule.shelf.shelf_unit.shelf_unit_number if shelf_rule.shelf.shelf_unit else '?'}},
+                        Полка №{{ shelf_rule.shelf.shelf_number }}
+                    </a>
+                    (ID полки: {{ shelf_rule.shelf_id }})
+                {% else %}
+                    <span class="text-muted">Не указана (ID: {{ shelf_rule.shelf_id }})</span>
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Правила распределения категорий для этой полки</h5>
+        <a href="{{ url_for('categoryRules.create', shelf_rule_id=shelf_rule.id) }}" class="btn btn-sm btn-outline-success">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle-fill me-1" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/></svg>
+            Добавить правило категории
+        </a>
+    </div>
+    <div class="card-body">
+        {% if shelf_rule.category_allocation_rules %}
+        <ul class="list-group list-group-flush">
+            {% for cat_rule in shelf_rule.category_allocation_rules %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ cat_rule.category.name if cat_rule.category else 'Категория ID ' + cat_rule.category_id|string }}</strong>:
+                    Доля {{ "%.2f"|format(cat_rule.share) }}%
+                    {% if cat_rule.min_weight is not none or cat_rule.max_weight is not none %}
+                        (Вес:
+                        {% if cat_rule.min_weight is not none %}{{ "%.2f"|format(cat_rule.min_weight) }}{% else %}0{% endif %}
+                        -
+                        {% if cat_rule.max_weight is not none %}{{ "%.2f"|format(cat_rule.max_weight) }}{% else %}неогр.{% endif %} кг)
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{{ url_for('categoryRules.update', id=cat_rule.id) }}" class="btn btn-sm btn-outline-secondary me-1">Изменить</a>
+                    <a href="{{ url_for('categoryRules.delete', id=cat_rule.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить правило?');">Удалить</a>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Для этой полки еще не заданы правила распределения категорий.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('.update', id=shelf_rule.id) }}" class="btn btn-primary me-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square me-1" viewBox="0 0 16 16">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.813z"/>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+        </svg>
+        Изменить привязки
+    </a>
+    <a href="{{ url_for('.delete', id=shelf_rule.id) }}" class="btn btn-danger me-2" onclick="return confirm('Вы уверены, что хотите удалить правило для полки ID {{ shelf_rule.id }}? Это действие также удалит все связанные правила категорий.');">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill me-1" viewBox="0 0 16 16">
+            <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
+        </svg>
+        Удалить правило полки
+    </a>
+    <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-1" viewBox="0 0 16 16">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+        </svg>
+        Назад к списку
+    </a>
+</div>
+{% endblock %}

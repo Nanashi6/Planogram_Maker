@@ -20,10 +20,10 @@
                     <dd class="col-sm-8">{{ product.barcode or '-' }}</dd>
 
                     <dt class="col-sm-4 text-muted">Сегмент:</dt>
-                    <dd class="col-sm-8">{{ product.segment.value if product.segment else '-' }}</dd>
+                    <dd class="col-sm-8">{{ product.segment.value if product.segment and product.segment.value is not none else (product.segment if product.segment is not none else '-') }}</dd>
 
                     <dt class="col-sm-4 text-muted">Рейтинг SKU:</dt>
-                    <dd class="col-sm-8">{{ product.SKU_rating.value if product.SKU_rating else '-' }}</dd>
+                    <dd class="col-sm-8">{{ product.SKU_rating.value if product.SKU_rating and product.SKU_rating.value is not none else (product.SKU_rating if product.SKU_rating is not none else '-') }}</dd>
 
                     <dt class="col-sm-4 text-muted">Цена:</dt>
                     <dd class="col-sm-8">{{ "%.2f"|format(product.price) if product.price is not none else '-' }}</dd>
@@ -39,23 +39,23 @@
                     </dd>
 
                     <dt class="col-sm-4 text-muted">Вес:</dt>
-                    <dd class="col-sm-8">{{ product.weight if product.weight is not none else '-' }}</dd>
+                    <dd class="col-sm-8">{{ "%.3f"|format(product.weight) if product.weight is not none else '-' }}</dd>
 
                     <dt class="col-sm-4 text-muted">Категория:</dt>
                     <dd class="col-sm-8">
-                        {% if product.category_brand_placement.category %}
-                            <a href="{{ url_for('categories.read', id=product.category_brand_placement.category.id) }}">{{ product.category_brand_placement.category.name }}</a>
-                            <span class="text-muted">(ID: {{ product.category_brand_placement.category_id }})</span>
+                        {% if product.category %}
+                            <a href="{{ url_for('categories.read', id=product.category.id) }}">{{ product.category.name }}</a>
+                            <span class="text-muted">(ID: {{ product.category_id }})</span>
                         {% else %}
-                            <span class="text-muted">Н/Д</span> 
+                            <span class="text-muted">Н/Д</span>
                         {% endif %}
                     </dd>
 
                     <dt class="col-sm-4 text-muted">Бренд:</dt>
                     <dd class="col-sm-8">
-                        {% if product.category_brand_placement.brand %}
-                             <a href="{{ url_for('brands.read', id=product.category_brand_placement.brand.id) }}">{{ product.category_brand_placement.brand.name }}</a>
-                             <span class="text-muted">(ID: {{ product.category_brand_placement.brand_id }})</span>
+                        {% if product.brand %}
+                             <a href="{{ url_for('brands.read', id=product.brand.id) }}">{{ product.brand.name }}</a>
+                             <span class="text-muted">(ID: {{ product.brand_id }})</span>
                         {% else %}
                              <span class="text-muted">Н/Д</span>
                         {% endif %}

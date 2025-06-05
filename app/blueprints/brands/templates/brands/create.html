@@ -3,14 +3,14 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <h1 class="mb-4">Create New Brand</h1>
+        <h1 class="mb-4">Создать новый бренд</h1>
 
         <form action="" method="post" novalidate>
             {{ form.hidden_tag() }}
 
             <div class="mb-3">
                 {{ form.name.label(class="form-label") }}
-                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Enter brand name") }}
+                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Введите название бренда") }}
                 {% if form.name.errors %}
                     <div class="invalid-feedback">
                         {% for error in form.name.errors %}
@@ -34,7 +34,7 @@
 
             <div class="mt-4">
                 {{ form.submit(class="btn btn-success") }}
-                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
             </div>
         </form>
     </div>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="mb-4">Изменить правило категории (ID: {{ form.id.data }})</h1>
+
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }} <!-- Включая form.id.data -->
+
+            <div class="mb-3">
+                {{ form.shelf_rule_id.label(class="form-label") }}
+                {# Обычно это поле не редактируется напрямую здесь, т.к. правило категории жестко связано с правилом полки #}
+                {{ form.shelf_rule_id(class="form-select" + (" is-invalid" if form.shelf_rule_id.errors else ""), disabled=True) }}
+                {% if form.shelf_rule_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.shelf_rule_id.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% else %}
+                    <div class="form-text">Привязка к правилу полки. Не изменяется.</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.category_id.label(class="form-label") }}
+                {{ form.category_id(class="form-select" + (" is-invalid" if form.category_id.errors else "")) }}
+                {% if form.category_id.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.category_id.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                {{ form.share.label(class="form-label") }}
+                {{ form.share(class="form-control" + (" is-invalid" if form.share.errors else ""), type="number", step="0.01") }}
+                {% if form.share.errors %}
+                    <div class="invalid-feedback">
+                        {% for error in form.share.errors %}{{ error }}<br>{% endfor %}
+                    </div>
+                {% else %}
+                    <div class="form-text">Доля категории на полке (в процентах, от 0 до 100).</div>
+                {% endif %}
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.min_weight.label(class="form-label") }}
+                    {{ form.min_weight(class="form-control" + (" is-invalid" if form.min_weight.errors else ""), type="number", step="0.001") }}
+                    {% if form.min_weight.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.min_weight.errors %}{{ error }}<br>{% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="form-text">Минимальный вес (кг). Оставьте пустым для сброса.</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.max_weight.label(class="form-label") }}
+                    {{ form.max_weight(class="form-control" + (" is-invalid" if form.max_weight.errors else ""), type="number", step="0.001") }}
+                    {% if form.max_weight.errors %}
+                        <div class="invalid-feedback">
+                            {% for error in form.max_weight.errors %}{{ error }}<br>{% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="form-text">Максимальный вес (кг). Оставьте пустым для сброса.</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

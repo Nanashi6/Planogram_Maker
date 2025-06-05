@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <h1 class="mb-4">Update Brand</h1> {# <h1 class="mb-4">Update Brand: <span class="fw-normal">{{ brand.name }}</span></h1> #}
+        <h1 class="mb-4">Изменить бренд</h1> {# <h1 class="mb-4">Изменить бренд: <span class="fw-normal">{{ brand.name }}</span></h1> #}
 
         <form action="" method="post" novalidate>
             {{ form.hidden_tag() }}
@@ -35,9 +35,9 @@
             <div class="mt-4">
                 {{ form.submit(class="btn btn-primary") }}
                 {% if form.id.data %}
-                <a href="{{ url_for('.read', id=form.id.data) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read', id=form.id.data) }}" class="btn btn-outline-secondary ms-2">Отмена</a>
                 {% else %}
-                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
                 {% endif %}
             </div>
         </form>

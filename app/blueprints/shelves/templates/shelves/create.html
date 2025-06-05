@@ -3,7 +3,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
-        <h1 class="mb-4">Create New Shelf</h1>
+        <h1 class="mb-4">Создать новую полку</h1>
 
         <form action="" method="post" novalidate>
             {{ form.hidden_tag() }}
@@ -22,24 +22,24 @@
 
                     <div class="mb-3">
                         {{ form.shelf_number.label(class="form-label") }}
-                        {{ form.shelf_number(class="form-control" + (" is-invalid" if form.shelf_number.errors else ""), placeholder="Enter shelf number (e.g., 1, 2, A)") }}
+                        {{ form.shelf_number(class="form-control" + (" is-invalid" if form.shelf_number.errors else ""), placeholder="Введите номер полки (например, 1, 2, A)") }}
                         {% if form.shelf_number.errors %}
                             <div class="invalid-feedback">
                                 {% for error in form.shelf_number.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% else %}
-                            <div class="form-text">Identifier for the shelf within its unit.</div>
+                            <div class="form-text">Идентификатор полки внутри ее стеллажа.</div>
                         {% endif %}
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <fieldset class="mb-3 p-3 border rounded">
-                        <legend class="w-auto px-2 h6">Shelf Dimensions (e.g., cm)</legend>
+                        <legend class="w-auto px-2 h6">Размеры полки (например, см)</legend>
                         <div class="row g-2">
                             <div class="col">
                                 {{ form.length.label(class="form-label") }}
-                                {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), placeholder="Length", step="any") }}
+                                {{ form.length(class="form-control" + (" is-invalid" if form.length.errors else ""), placeholder="Длина", step="any") }}
                                 {% if form.length.errors %}
                                     <div class="invalid-feedback">
                                         {% for error in form.length.errors %}{{ error }}<br>{% endfor %}
@@ -48,7 +48,7 @@
                             </div>
                             <div class="col">
                                 {{ form.depth.label(class="form-label") }}
-                                {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), placeholder="Depth", step="any") }}
+                                {{ form.depth(class="form-control" + (" is-invalid" if form.depth.errors else ""), placeholder="Глубина", step="any") }}
                                 {% if form.depth.errors %}
                                     <div class="invalid-feedback">
                                         {% for error in form.depth.errors %}{{ error }}<br>{% endfor %}
@@ -57,7 +57,7 @@
                             </div>
                             <div class="col">
                                 {{ form.height.label(class="form-label") }}
-                                {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), placeholder="Height", step="any") }}
+                                {{ form.height(class="form-control" + (" is-invalid" if form.height.errors else ""), placeholder="Высота", step="any") }}
                                 {% if form.height.errors %}
                                     <div class="invalid-feedback">
                                         {% for error in form.height.errors %}{{ error }}<br>{% endfor %}
@@ -66,19 +66,19 @@
                             </div>
                         </div>
                          {% if not form.length.errors and not form.depth.errors and not form.height.errors %}
-                            <div class="form-text mt-2">Enter physical dimensions of the shelf.</div>
+                            <div class="form-text mt-2">Введите физические размеры полки.</div>
                          {% endif %}
                     </fieldset>
 
                     <div class="mb-3">
                         {{ form.max_weight.label(class="form-label") }}
-                        {{ form.max_weight(class="form-control" + (" is-invalid" if form.max_weight.errors else ""), placeholder="e.g., 50 kg", step="any") }}
+                        {{ form.max_weight(class="form-control" + (" is-invalid" if form.max_weight.errors else ""), placeholder="например, 50 кг", step="any") }}
                         {% if form.max_weight.errors %}
                             <div class="invalid-feedback">
                                 {% for error in form.max_weight.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% else %}
-                             <div class="form-text">Maximum weight capacity of the shelf.</div>
+                             <div class="form-text">Максимальная грузоподъемность полки.</div>
                         {% endif %}
                     </div>
                 </div>
@@ -86,7 +86,7 @@
 
             <div class="mt-4">
                 {{ form.submit(class="btn btn-success") }}
-                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
             </div>
         </form>
     </div>

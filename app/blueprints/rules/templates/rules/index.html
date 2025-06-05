@@ -1,69 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
-
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>{{ title }}</h1>
+    <h1>Правила выкладки</h1>
     <a href="{{ url_for('.create') }}" class="btn btn-success">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle-fill me-1" viewBox="0 0 16 16">
             <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/>
         </svg>
-        Create New Placement
+        Создать новое правило
     </a>
 </div>
 
-{% if placements %}
+{% if rules %}
 <div class="table-responsive">
     <table class="table table-striped table-hover table-bordered align-middle">
         <thead class="table-light">
             <tr>
-                <th scope="col" style="min-width: 180px;">Category</th>
-                <th scope="col" style="min-width: 180px;">Brand</th>
-                <th scope="col" class="text-end" style="min-width: 100px;">Share (%)</th>
-                <th scope="col" class="text-center" style="min-width: 150px;">Actions</th>
+                <th scope="col">ID</th>
+                <th scope="col">Сортировка брендов</th>
+                <th scope="col">Сортировка продуктов</th>
+                <th scope="col" class="text-end">Отступ (см)</th>
+                <th scope="col">Планограмма</th>
+                <th scope="col" class="text-center" style="min-width: 130px;">Действия</th>
             </tr>
         </thead>
         <tbody>
-            {% for placement in placements %}
-            <tr class="clickable-row" data-href="{{ url_for('.read', id=placement.id) }}" style="cursor: pointer;">
+            {% for rule_item in rules %}
+            <tr class="clickable-row" data-href="{{ url_for('.read', id=rule_item.id) }}" style="cursor: pointer;">
+                <td>{{ rule_item.id }}</td>
+                <td>{{ rule_item.brand_sorting.name.replace('_', ' ').title() if rule_item.brand_sorting else '-' }}</td>
+                <td>{{ rule_item.product_sorting.name.replace('_', ' ').title() if rule_item.product_sorting else '-' }}</td>
+                <td class="text-end">{{ "%.2f"|format(rule_item.spacing) if rule_item.spacing is not none else '-' }}</td>
                 <td>
-                    {% if placement.category %}
-                        <a href="{{ url_for('categories.read', id=placement.category.id) }}" class="text-decoration-none">{{ placement.category.name }}</a>
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if placement.brand %}
-                         <a href="{{ url_for('brands.read', id=placement.brand.id) }}" class="text-decoration-none">{{ placement.brand.name }}</a>
-                    {% else %}
-                        <span class="text-muted">-</span>
-                    {% endif %}
-                </td>
-                <td class="text-end">
-                    {% if placement.share is not none %}
-                        {{ "%.2f"|format(placement.share) }}
+                    {% if rule_item.planogram %}
+                        <a href="{{ url_for('planograms.read', id=rule_item.planogram_id) }}">{{ rule_item.planogram.name }}</a>
                     {% else %}
                         <span class="text-muted">-</span>
                     {% endif %}
                 </td>
                 <td class="text-center">
-                    <div class="btn-group btn-group-sm" role="group" aria-label="Placement actions">
-                        <a href="{{ url_for('.update', id=placement.id) }}" class="btn btn-outline-primary" title="Edit">
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Действия с правилом">
+                        <a href="{{ url_for('.update', id=rule_item.id) }}" class="btn btn-outline-primary">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
                                 <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.813z"/>
                                 <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
-                            </svg> Edit
+                            </svg>
+                            Изменить
                         </a>
-                        <form action="{{ url_for('.delete', id=placement.id) }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-outline-danger" title="Delete"
-                                    onclick="return confirm('Are you sure you want to delete the placement for \'{{ placement.category.name|e }} - {{ placement.brand.name|e }}\'?');">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16">
-                                    <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
-                                </svg> Delete
-                            </button>
-                        </form>
+                        <a href="{{ url_for('.delete', id=rule_item.id) }}" class="btn btn-outline-danger" onclick="return confirm('Вы уверены, что хотите удалить правило ID {{ rule_item.id }}?');">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill me-1" viewBox="0 0 16 16">
+                                <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
+                            </svg>
+                            Удалить
+                        </a>
                     </div>
                 </td>
             </tr>
@@ -73,14 +62,13 @@
 </div>
 
 {% if pagination and pagination.pages > 1 %}
-<nav aria-label="Page navigation">
+<nav aria-label="Навигация по страницам">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
             <a class="page-link" href="{{ url_for('.read_all', page=pagination.prev_num) if pagination.has_prev else '#' }}" tabindex="-1" aria-disabled="{{ 'true' if not pagination.has_prev else 'false' }}">
-                Previous
+                Предыдущая
             </a>
         </li>
-
         {% for p_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if p_num %}
                 {% if p_num == pagination.page %}
@@ -96,22 +84,21 @@
                  <li class="page-item disabled"><span class="page-link">…</span></li>
             {% endif %}
         {% endfor %}
-
         <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
             <a class="page-link" href="{{ url_for('.read_all', page=pagination.next_num) if pagination.has_next else '#' }}">
-                Next
+                Следующая
             </a>
         </li>
     </ul>
 </nav>
 <p class="text-center text-muted">
-    Page {{ pagination.page }} of {{ pagination.pages }}. (Total {{ pagination.total }} items)
+    Страница {{ pagination.page }} из {{ pagination.pages }}. (Всего {{ pagination.total }} элементов)
 </p>
 {% endif %}
 
 {% else %}
 <div class="alert alert-info" role="alert">
-    No category-brand placements found. <a href="{{ url_for('.create') }}" class="alert-link">Create one?</a>
+    Правила не найдены. <a href="{{ url_for('.create') }}" class="alert-link">Создать?</a>
 </div>
 {% endif %}
 {% endblock %}

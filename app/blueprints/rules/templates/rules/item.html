@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Детали правила выкладки (ID: {{ rule.id }})</h1>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Информация о правиле</h5>
+    </div>
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4 col-md-3 text-muted">ID:</dt>
+            <dd class="col-sm-8 col-md-9">{{ rule.id }}</dd>
+
+            <dt class="col-sm-4 col-md-3 text-muted">Сортировка брендов:</dt>
+            <dd class="col-sm-8 col-md-9">{{ rule.brand_sorting.name.replace('_', ' ').title() if rule.brand_sorting else '-' }}</dd>
+
+            <dt class="col-sm-4 col-md-3 text-muted">Сортировка продуктов:</dt>
+            <dd class="col-sm-8 col-md-9">{{ rule.product_sorting.name.replace('_', ' ').title() if rule.product_sorting else '-' }}</dd>
+
+            <dt class="col-sm-4 col-md-3 text-muted">Отступ (см):</dt>
+            <dd class="col-sm-8 col-md-9">{{ "%.2f"|format(rule.spacing) if rule.spacing is not none else '-' }}</dd>
+
+            <dt class="col-sm-4 col-md-3 text-muted">Связанная планограмма:</dt>
+            <dd class="col-sm-8 col-md-9">
+                {% if rule.planogram %}
+                    <a href="{{ url_for('planograms.read', id=rule.planogram.id) }}">{{ rule.planogram.name }}</a>
+                    (ID: {{ rule.planogram_id }})
+                {% else %}
+                    <span class="text-muted">Не привязана</span>
+                {% endif %}
+            </dd>
+        </dl>
+    </div>
+</div>
+
+{# Опционально: Отображение связанных ShelfRules, если это необходимо #}
+{% if rule.shelf_rules %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Правила для полок, использующие это общее правило</h5>
+    </div>
+    <div class="card-body">
+        {% if rule.shelf_rules %}
+        <ul class="list-group list-group-flush">
+            {% for shelf_rule in rule.shelf_rules %}
+            <li class="list-group-item">
+                <a href="{{ url_for('shelfRules.read', id=shelf_rule.id) }}">Правило для полки ID {{ shelf_rule.shelf_id }}</a>
+                (ID правила полки: {{ shelf_rule.id }})
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">Нет специфических правил для полок, связанных с этим общим правилом.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+
+<div class="mt-4">
+    <a href="{{ url_for('.update', id=rule.id) }}" class="btn btn-primary me-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square me-1" viewBox="0 0 16 16">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.813z"/>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+        </svg>
+        Изменить
+    </a>
+    <a href="{{ url_for('.delete', id=rule.id) }}" class="btn btn-danger me-2" onclick="return confirm('Вы уверены, что хотите удалить правило ID {{ rule.id }}? Это действие необратимо.');">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill me-1" viewBox="0 0 16 16">
+            <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528M8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5"/>
+        </svg>
+        Удалить
+    </a>
+    <a href="{{ url_for('.read_all') }}" class="btn btn-outline-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left-circle-fill me-1" viewBox="0 0 16 16">
+          <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m3.5 7.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5z"/>
+        </svg>
+        Назад к списку
+    </a>
+</div>
+{% endblock %}

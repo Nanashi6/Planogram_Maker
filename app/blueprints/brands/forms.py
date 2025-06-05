@@ -1,20 +1,19 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, SelectField, SubmitField, DecimalField
-from wtforms.validators import DataRequired, NumberRange
-from DataLayer.dao import CategoryDAO
-
+from wtforms import StringField, IntegerField, SelectField, SubmitField
+from wtforms.validators import DataRequired, Optional
 from DataLayer.enums import RatingEnum
 
 class CreateBrand(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])
+    name = StringField('Название', validators=[DataRequired(message="Пожалуйста, введите название бренда.")])
     rating = SelectField(
-        'Rating',
-        validators=[DataRequired()],
-        choices=[(rating.value, rating.value) for rating in RatingEnum],
-        coerce=RatingEnum
+        'Рейтинг',
+        validators=[Optional()],
+        choices=[('', '--- Выберите рейтинг ---')] + [(r.value, r.value) for r in RatingEnum], 
+        coerce=str, 
+        default='' 
     )
-    submit = SubmitField('Create')
+    submit = SubmitField('Создать')
 
-class UpdateBrand(CreateBrand):
-    id = IntegerField('ID', validators=[DataRequired()])
-    submit = SubmitField('Update')
+class UpdateBrand(CreateBrand): 
+    id = IntegerField('ID', render_kw={'readonly': True})
+    submit = SubmitField('Сохранить изменения') 

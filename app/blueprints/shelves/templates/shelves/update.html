@@ -4,16 +4,18 @@
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
         <h1 class="mb-4">
-            Update Shelf:
+            Изменить полку:
             <span class="fw-normal">
-                #{{ form.shelf_number.data }}
-                {% set shelf_unit_id = form.shelf_unit_id.data %}
-                {% if shelf_unit_id %}
-                    {# Пытаемся получить объект shelf_unit, если форма передает его или вы загружаете его в view #}
-                    {# Это пример, вам может потребоваться передать `shelf_units` в контекст или сам `shelf.shelf_unit` #}
-                    {% for unit_id, unit_name in form.shelf_unit_id.choices %}
-                        {% if unit_id == shelf_unit_id %} (Unit {{ unit_name.split('#')[-1].split(')')[0].strip() if '#' in unit_name else unit_name }}){% endif %}
+                №{{ form.shelf_number.data }}
+                {% set shelf_unit_id_val = form.shelf_unit_id.data %}
+                {% if shelf_unit_id_val %}
+                    {% for choice_val, choice_label in form.shelf_unit_id.choices %}
+                        {% if choice_val == shelf_unit_id_val %}
+                            (Стеллаж {{ choice_label.split('№')[-1].split('(')[0].strip() if '№' in choice_label else choice_label }})
+                        {% endif %}
                     {% endfor %}
+                {% elif form.obj and form.obj.shelf_unit %} {# Если объект передан в форму и есть связанный стеллаж #}
+                     (Стеллаж №{{ form.obj.shelf_unit.shelf_unit_number }})
                 {% endif %}
             </span>
         </h1>
@@ -41,14 +43,14 @@
                                 {% for error in form.shelf_number.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% else %}
-                            <div class="form-text">Identifier for the shelf within its unit.</div>
+                            <div class="form-text">Идентификатор полки внутри ее стеллажа.</div>
                         {% endif %}
                     </div>
                 </div>
 
                 <div class="col-md-6">
                      <fieldset class="mb-3 p-3 border rounded">
-                        <legend class="w-auto px-2 h6">Shelf Dimensions (e.g., cm)</legend>
+                        <legend class="w-auto px-2 h6">Размеры полки (например, см)</legend>
                         <div class="row g-2">
                             <div class="col">
                                 {{ form.length.label(class="form-label") }}
@@ -79,7 +81,7 @@
                             </div>
                         </div>
                         {% if not form.length.errors and not form.depth.errors and not form.height.errors %}
-                            <div class="form-text mt-2">Enter physical dimensions of the shelf.</div>
+                            <div class="form-text mt-2">Введите физические размеры полки.</div>
                         {% endif %}
                     </fieldset>
 
@@ -91,7 +93,7 @@
                                 {% for error in form.max_weight.errors %}{{ error }}<br>{% endfor %}
                             </div>
                         {% else %}
-                             <div class="form-text">Maximum weight capacity of the shelf.</div>
+                             <div class="form-text">Максимальная грузоподъемность полки.</div>
                         {% endif %}
                     </div>
                 </div>
@@ -99,7 +101,7 @@
 
             <div class="mt-4">
                 {{ form.submit(class="btn btn-primary") }}
-                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="{{ url_for('.read', id=form.id.data) if form.id.data else url_for('.read_all') }}" class="btn btn-outline-secondary ms-2">Отмена</a>
             </div>
         </form>
     </div>
