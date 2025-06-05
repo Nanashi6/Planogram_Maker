@@ -31,7 +31,7 @@
                 <td>{{ cat_rule_item.id }}</td>
                 <td>
                     {% if cat_rule_item.shelf_rule %}
-                        <a href="{{ url_for('shelf_rules.read', id=cat_rule_item.shelf_rule_id) }}">
+                        <a href="{{ url_for('shelf-rules.read', id=cat_rule_item.shelf_rule_id) }}">
                            ID {{ cat_rule_item.shelf_rule_id }}
                            {% if cat_rule_item.shelf_rule.shelf %}
                              (Полка №{{ cat_rule_item.shelf_rule.shelf.shelf_number }})
