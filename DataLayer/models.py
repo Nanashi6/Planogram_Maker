@@ -172,7 +172,7 @@ class Planogram(Base):
         cascade="all, delete-orphan"
     )
 
-    rule: Mapped[Optional["Rule"]] = relationship(
+    rule: Mapped["Rule"] = relationship(
         "Rule",
         back_populates="planogram",
         cascade="all, delete-orphan",
