@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, List, Tuple
 from DataLayer.dao import ProductDAO, ShelfUnitDAO
 from DataLayer.models import Brand, Product, Shelf
 from .models import planogram_data, rules_data, server_message, shelf_rule
-from .enums import BrandSorting, ProductSorting
+from DataLayer.enums import BrandSorting, ProductSorting
 
 def get_product_sort_key_and_reverse(sort_option: ProductSorting):
     """
@@ -42,14 +42,6 @@ def get_combined_sorting_steps(rules: rules_data) -> List[Tuple[Callable[[Produc
     brand_key_func, brand_reverse_flag = get_brand_sort_key_and_reverse(rules.brand_sort)
     product_key_func, product_reverse_flag = get_product_sort_key_and_reverse(rules.product_sort)
 
-    # sorting_steps = []
-
-    # if product_key_func:
-    #     sorting_steps.append((product_key_func, product_reverse_flag))
-    
-    # if brand_key_func:
-    #     sorting_steps.append((brand_key_func, brand_reverse_flag))
-
     return (brand_key_func, brand_reverse_flag), (product_key_func, product_reverse_flag)
 
 def get_total_product_length_on_category(pps):
@@ -60,7 +52,7 @@ def group_and_sort_by_brand(key, reverse, products: List[Product]) -> Dict[Brand
     grouped_products = defaultdict(list)
 
     for product in products:
-        grouped_products[product.category_brand_placement.brand].append(product)
+        grouped_products[product.brand].append(product)
     sorted_brands_list = sorted(list(grouped_products.keys()), key=key, reverse=reverse) 
     return sorted_brands_list, grouped_products 
 
@@ -125,16 +117,16 @@ def calculate_auto_placement_for_shelf(shelf : Shelf, shelf_rule : shelf_rule, b
         category_length = share * shelf.length / 100
         category_placed_products = solve_dp_for_category(products_for_shelf, shelf.max_weight, category_length) # FIXME вес исходя из уже стоящих продуктов 
                     
+        # Установка дополнительный фейсингов из того же пула товаров, если осталось свободное место
         flag = True if len(category_placed_products) > 0 else False
         products_length = get_total_product_length_on_category(category_placed_products)
+        print(products_length, category_length, flag)
         while flag and products_length < category_length:
             new_products = solve_dp_for_category(products_for_shelf, shelf.max_weight, category_length - products_length)
             flag = True if len(new_products) > 0 else False
             category_placed_products.extend(new_products)
             products_length = get_total_product_length_on_category(category_placed_products)
 
-        # for key_func, reverse_flag in sorting_steps:
-        #     category_placed_products.sort(key=key_func, reverse=reverse_flag)
         category_placed_products = category_sort(brand_sorts, product_sorts, category_placed_products)
                     
         shelf_placed_products.extend(category_placed_products)
@@ -162,7 +154,7 @@ def calculate_auto_placement(shelf_unit_id : int, rules : rules_data) -> server_
                     "product": p.to_dict()
                 } for i, p in enumerate(calculate_auto_placement_for_shelf(shelf, shelf_rule, brand_sorts, product_sorts))])
             else:
-                # тут сообнение об ошибке с полкой
+                # BUG тут сообнение об ошибке с полкой
                 ...
         server_mes = server_message(
             "Сформирована автовыкладка",
@@ -176,5 +168,5 @@ def calculate_auto_placement(shelf_unit_id : int, rules : rules_data) -> server_
         ) # Присылать данные о текущей планограмме если она есть с клиента
         return server_mes
     else:
-        # тут сообщение об ошибке со стеллажом
+        # BUG тут сообщение об ошибке со стеллажом
         ...

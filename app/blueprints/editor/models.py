@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 from DataLayer.models import ShelfUnit
-from .enums import BrandSorting, ProductSorting
+from DataLayer.enums import BrandSorting, ProductSorting
 
 class planogram_data():
     """

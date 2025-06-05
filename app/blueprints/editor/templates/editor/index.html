@@ -188,13 +188,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="row g-0 cont"> 
+<div class="row g-0 cont">
     <div class="col-md-8 h-100">
         <canvas id="c" class="w-100 h-100"></canvas>
     </div>
 
     <div class="col-md-4 d-flex flex-column border-start h-100" style="background-color: #f8f9fa;" id="sidebar-container">
-        <div class="d-flex flex-grow-1 overflow-hidden"> 
+        <div class="d-flex flex-grow-1 overflow-hidden">
             <div class="tab-navigation nav flex-column nav-pills p-2 border-end vertical-tabs-container" id="editorVerticalTabs" role="tablist" aria-orientation="vertical" style="min-width: 55px;">
                 <button class="tab-button nav-link text-center w-100 active vertical-tab-text" id="products-vtab" data-bs-toggle="pill" data-bs-target="#products-vtab-pane" type="button" role="tab" aria-controls="products-vtab-pane" aria-selected="true">
                     <span class="tab-button-text">Продукты</span>
@@ -232,13 +232,13 @@
 
                 <div class="tab-pane fade" id="planograms-vtab-pane" role="tabpanel" aria-labelledby="planograms-vtab">
                     <h3 class="h5 mb-3">Планограммы</h3>
+                    <div class="mb-2 d-flex flex-row">
+                        <input type="text" id="planogram-name-input" class="form-control form-control-sm" placeholder="Название планограммы">
+                        <button id="save-planogram-btn" class="btn btn-primary btn-sm w-100">Сохранить текущую планограмму</button>
+                    </div>
                     <div id="planogram-list" class="list-group list-group-flush small mb-3">
                         {# Элементы будут '.list-group-item list-group-item-action planogram-item' #}
                     </div>
-                    <div class="mb-2">
-                        <input type="text" id="planogram-name-input" class="form-control form-control-sm" placeholder="Название планограммы">
-                    </div>
-                    <button id="save-planogram-btn" class="btn btn-primary btn-sm w-100">Сохранить текущую планограмму</button>
                 </div>
 
                 <div class="tab-pane fade" id="stackingRules-vtab-pane" role="tabpanel" aria-labelledby="stackingRules-vtab">
@@ -505,15 +505,11 @@
             let brandNameForHash = "default_brand";
             let categoryNameForHash = "default_category";
 
-            if (productData.category_brand_placement) {
-                if (productData.category_brand_placement.brand && productData.category_brand_placement.brand.name) {
-                    brandNameForHash = productData.category_brand_placement.brand.name;
-                }
-                if (productData.category_brand_placement.category && productData.category_brand_placement.category.name) {
-                    categoryNameForHash = productData.category_brand_placement.category.name;
-                }
-            } else if (productData.name) {
-                brandNameForHash = productData.name;
+            if (productData.brand) {
+                brandNameForHash = productData.brand.name;
+            }
+            if (productData.category) {
+                categoryNameForHash = productData.category.name;
             }
 
             const identifierForHash = brandNameForHash + " " + categoryNameForHash;
@@ -1172,8 +1168,8 @@
         function getAvailableCategories() {
             const categories = new Map(); // Используем Map для уникальности по ID категории
             allProductsFromListCache.forEach(product => {
-                if (product.category_brand_placement && product.category_brand_placement.category) {
-                    const cat = product.category_brand_placement.category;
+                if (product.category) {
+                    const cat = product.category;
                     if (cat.id && cat.name && !categories.has(cat.id)) {
                         categories.set(cat.id, { id: cat.id, name: cat.name });
                     }
@@ -1198,7 +1194,7 @@
                 .sort((a, b) => a.userData.shelfNumber - b.userData.shelfNumber);
 
             if (shelves.length === 0) {
-                shelfSpecificRulesContainer.innerHTML = '<p class="text-muted">No shelves found in the current unit.</p>';
+                shelfSpecificRulesContainer.innerHTML = '<p class="text-muted">Не найдено полок для текущего стеллажа.</p>';
                 return;
             }
             
@@ -1215,11 +1211,11 @@
 
                 shelfRuleDiv.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0">Shelf ${shelfData.shelfNumber} (ID: ${shelfData.db_id})</h6>
-                        <button class="btn btn-outline-success btn-sm add-category-rule-btn" data-shelf-id="${shelfId}">+ Add Category</button>
+                        <h6 class="mb-0">Полка ${shelfData.shelfNumber} (ID: ${shelfData.db_id})</h6>
+                        <button class="btn btn-outline-success btn-sm add-category-rule-btn" data-shelf-id="${shelfId}">+ Добавить категорию</button>
                     </div>
                     <div class="category-rules-list" id="category-rules-${shelfId}">
-                        Тип списка <p class="text-muted small">No category rules defined for this shelf yet.</p>
+                        <p class="text-muted small">Не найдено правил размещения категорий для полки.</p>
                     </div>
                 `;
                 shelfSpecificRulesContainer.appendChild(shelfRuleDiv);
@@ -1242,7 +1238,7 @@
             const ruleRow = document.createElement('div');
             ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded';
 
-            let categoryOptions = '<option value="">Select Category...</option>';
+            let categoryOptions = '<option value="">Выберите категорию...</option>';
             availableCategoriesCache.forEach(cat => {
                 categoryOptions += `<option value="${cat.id}" ${ruleData && ruleData.category_id == cat.id ? 'selected' : ''}>${cat.name}</option>`; // FIXME Есть вариант не определить категорию (оставить 'Select Category')
             });
@@ -1436,13 +1432,11 @@
                 let categoryName = "Uncategorized";
                 let brandName = "Unbranded";
 
-                if (product.category_brand_placement) {
-                    if (product.category_brand_placement.category && product.category_brand_placement.category.name) {
-                        categoryName = product.category_brand_placement.category.name;
-                    }
-                    if (product.category_brand_placement.brand && product.category_brand_placement.brand.name) {
-                        brandName = product.category_brand_placement.brand.name;
-                    }
+                if (product.category) {
+                    categoryName = product.category.name;
+                }
+                if (product.brand) {
+                    brandName = product.brand.name;
                 }
 
                 if (!productsByGroup[categoryName]) {

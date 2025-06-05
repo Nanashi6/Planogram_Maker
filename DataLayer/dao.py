@@ -232,7 +232,6 @@ class ProductDAO(BaseDAO[Product]):
         """Найти несколько записей по категории и фильтрам"""
         try:
             query = select(cls.model)\
-                .join(cls.model.category_brand_placement)\
                 .join(cls.model.category)\
                 .where(
                     cls.model.category.has(name=category_name),

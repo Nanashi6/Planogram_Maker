@@ -1,7 +1,7 @@
 from .models import server_message, planogram_data, rules_data
 from .parser import CommandParser
-from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO, CategoryBrandPlacementDAO
-from DataLayer.shemas import ShelfUnit as SU, Category as Cat, Product as P, Brand as B, CategoryBrandPlacement as CBP
+from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO
+from DataLayer.shemas import ShelfUnit as SU, Category as Cat, Product as P, Brand as B
 from .models import category_rule, shelf_rule, rules_data
 from .check_rules import can_place_product, get_all_categories_for_shelf, check_total_percentage, get_free_percentage
 
@@ -167,6 +167,7 @@ COMANDS_EXAMPLE = """
 parser = CommandParser(COMANDS_EXAMPLE)
 
 
+# FIXME Поиск по категории и бренду
 def place_brand(parameters, reply, planogram):
     category_name = parameters['название_категории']
     shelf_number = parameters['номер_полки']
@@ -185,8 +186,7 @@ def place_brand(parameters, reply, planogram):
         shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
         shelf = shelf_unit.get_shelf_by_number(shelf_number)
         if shelf:
-            cbp = CategoryBrandPlacementDAO.get_one(CBP(category_id=category.id, brand_id=brand.id))
-            products = ProductDAO.get_many_for_category_and_brand(category_name, brand_name, shelf.height) if cbp else ProductDAO.get_many_for_category(category_name, shelf.height)
+            products = ProductDAO.get_many_for_category(category_name, shelf.height)
             
             max_position_on_shelf = 0
             products_on_shelf_depths = []
@@ -390,7 +390,7 @@ def place_category(parameters, reply, planogram):
         if shelf and check_total_percentage(category_name, share, reply, shelf_number, shelf.id):
             products = ProductDAO.get_many_for_category(
                 category_name, 
-                shelf.height,                             # TODO учитывать вертикальный отступ
+                shelf.height,
                 min_weight if min_weight else 0,
                 max_weight if max_weight else float('inf')
             )

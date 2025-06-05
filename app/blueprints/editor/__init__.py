@@ -2,7 +2,7 @@ from typing import Dict, List, Type
 from flask import Blueprint, render_template, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO
 from DataLayer.shemas import Planogram, PlacedProduct
-from .enums import *
+from DataLayer.enums import *
 from .models import rules_data
 from .commands_handlers import commands_handler
 from .auto_placement import calculate_auto_placement
@@ -54,24 +54,24 @@ def enum_to_select_options(enum_class: Type[enum.Enum], custom_labels: Dict[str,
 
 @editor_bp.route('/get_sorting_rules', methods=['GET'])
 async def get_sorting_rules():
-    brand_sort_labels = {
-        BrandSorting.RatingDesc.value: 'Rating (High to Low)',
-        BrandSorting.RatingAsc.value: 'Rating (Low to High)',
-        BrandSorting.NameAsc.value: 'Alphabetical (A-Z)',
-        BrandSorting.NameDesc.value: 'Alphabetical (Z-A)',
+    p_sort_keys = {
+        ProductSorting.PriceAsc:    "Цена по возрастанию",
+        ProductSorting.PriceDesc:   "Цена по убыванию",
+        ProductSorting.RatingAsc:   "Рейтинг по возрастанию",
+        ProductSorting.RatingDesc:  "Рейтинг по убыванию",
+        ProductSorting.NameAsc:     "Название (А-Я)",
+        ProductSorting.NameDesc:    "Название (Я-А)",
     }
 
-    product_sort_labels = {
-        ProductSorting.PriceAsc.value: 'Price (Low to High)',
-        ProductSorting.PriceDesc.value: 'Price (High to Low)',
-        ProductSorting.RatingDesc.value: 'Sales Rating (High to Low)', # Метка из вашей формы
-        ProductSorting.RatingAsc.value: 'Sales Rating (Low to High)',   # Метка из вашей формы
-        ProductSorting.NameAsc.value: 'Alphabetical (A-Z)',
-        ProductSorting.NameDesc.value: 'Alphabetical (Z-A)',
+    b_sort_keys = {
+        BrandSorting.NameAsc:    "Название бренда (А-Я)",
+        BrandSorting.NameDesc:   "Название бренда (Я-А)",
+        BrandSorting.RatingAsc:  "Рейтинг бренда (по возрастанию)",
+        BrandSorting.RatingDesc: "Рейтинг бренда (по убыванию)",
     }
 
-    brand_sorting_options = enum_to_select_options(BrandSorting, brand_sort_labels)
-    product_sorting_options = enum_to_select_options(ProductSorting, product_sort_labels)
+    brand_sorting_options = enum_to_select_options(BrandSorting, b_sort_keys)
+    product_sorting_options = enum_to_select_options(ProductSorting, p_sort_keys)
 
     sorting_rules = {
         "brand_sort_options": brand_sorting_options,
@@ -177,28 +177,8 @@ def calculate_auto_placement_route():
         }), 200
 
 # # TODO Учитывать доли категорий на полках
-# # TODO Учитывать доли брендов на полках
-# # TODO Убрать дубляжи товаров на разных полках
-
-# # TODO Дополнительные фейсинги
 # # TODO Сортировать товары по правилам из JSON
 
-# # IDEA Формализованный чат с последовательными инструкциями (МБ с подсказками всплывающими)
-# # IDEA "1 Полка для категорий ...,...,...", "Порядок сортировок По категориям, По рейтингу бренда, По цене товара", 
-
-
-            # calculated_planogram_response = {
-            #     "id": None,
-            #     "name": f"Выкладка для стеллажа {shelf_unit_model.shelf_unit_number}",
-            #     "shelf_unit": shelf_unit_model.to_dict(),
-            #     "placed_products": placed_products_list
-            # }
-            
-
-			# ТОВАР для клиента
-                                # placed_products_list.append({
-                                #     "shelf_id": shelf_id,
-                                #     "product_id": product.id,
-                                #     "position": ind,
-                                #     "product": product.to_dict() # Полные данные о товаре для клиента
-                                # })
+# # TODO Учитывать доли брендов на полках-----------------------------------------------------
+# # TODO Убрать дубляжи товаров на разных полках
+# # TODO Дополнительные фейсинги
