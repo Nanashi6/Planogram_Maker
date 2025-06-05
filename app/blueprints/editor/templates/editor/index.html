@@ -232,9 +232,10 @@
 
                 <div class="tab-pane fade" id="planograms-vtab-pane" role="tabpanel" aria-labelledby="planograms-vtab">
                     <h3 class="h5 mb-3">Планограммы</h3>
-                    <div class="mb-2 d-flex flex-row">
-                        <input type="text" id="planogram-name-input" class="form-control form-control-sm" placeholder="Название планограммы">
-                        <button id="save-planogram-btn" class="btn btn-primary btn-sm w-100">Сохранить текущую планограмму</button>
+                    <div class="mb-2 d-flex flex-row align-items-center gap-2">
+                        <input type="text" id="planogram-name-input" class="form-control form-control-sm flex-grow-1" placeholder="Название планограммы">
+                        <button id="save-planogram-btn" class="btn btn-primary btn-sm flex-shrink-0">Сохранить</button>
+                        <button id="download-planogram-btn" class="btn btn-secondary btn-sm flex-shrink-0">Скачать JSON</button>
                     </div>
                     <div id="planogram-list" class="list-group list-group-flush small mb-3">
                         {# Элементы будут '.list-group-item list-group-item-action planogram-item' #}
@@ -587,6 +588,7 @@
 
         const savePlanogramButton = document.getElementById('save-planogram-btn');
         const planogramNameInput = document.getElementById('planogram-name-input');
+        const downloadPlanogramButton = document.getElementById('download-planogram-btn');
 
         let currentDisplayedShelfUnit = null;
         let currentPlanogramId = null;
@@ -1152,6 +1154,80 @@
             }
             console.log("Планограмма/автовыкладка отображена:", planogramData.name || "Результат автовыкладки");
         }
+
+
+        
+        // --- Save JSON ---
+        function collectFullPlanogramDataForDownload() {
+            if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
+                // alert("Пожалуйста, сначала выберите или загрузите стеллаж.");
+                console.warn("Shelf unit not selected or loaded for download.");
+                return null;
+            }
+
+            const planogramName = planogramNameInput.value.trim() || `Planogram_ShelfUnit_${currentShelfUnitDataForSave.shelf_unit_number || 'unknown'}`;
+
+            const basePlanogramData = collectPlanogramData(); 
+            if (!basePlanogramData) {
+                console.warn("Could not collect base planogram data for download.");
+                return null;
+            }
+
+            const enrichedPlacedProducts = basePlanogramData.placed_products.map(pp => {
+                const productData = allProductsFromListCache.get(pp.product_id);
+                const shelfMesh = currentDisplayedShelfUnit.children.find(
+                    child => child.userData.isShelf && child.userData.db_id === pp.shelf_id
+                );
+                return {
+                    position: pp.position,
+                    shelf_db_id: pp.shelf_id,
+                    shelf_number: shelfMesh ? shelfMesh.userData.shelfNumber : null,
+                    product: productData ? { ...productData } : { id: pp.product_id, name: "Product data not found in cache" }
+                };
+            });
+
+            const fullData = {
+                name: planogramName,
+                id: currentPlanogramId, 
+                shelf_unit: { ...currentShelfUnitDataForSave }, 
+                placed_products: enrichedPlacedProducts,
+                rules: collectAllRulesData() 
+            };
+            return fullData;
+        }
+
+        function downloadJSONFile(data, filename) {
+            const jsonData = JSON.stringify(data, null, 2); 
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        if (downloadPlanogramButton) {
+            downloadPlanogramButton.addEventListener('click', () => {
+                const dataToDownload = collectFullPlanogramDataForDownload();
+                if (dataToDownload) {
+                    let filename = dataToDownload.name; 
+                    if (!filename || filename.startsWith("Planogram_ShelfUnit_")) { 
+                         filename = `planogram_shelf-unit-${dataToDownload.shelf_unit.shelf_unit_number || 'unknown'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}`;
+                    }
+                    // Очистка имени файла от нежелательных символов и добавление .json
+                    filename = filename.replace(/[^\w\s.-]/gi, '').replace(/\s+/g, '_') + ".json";
+                    
+                    downloadJSONFile(dataToDownload, filename);
+                } else {
+                    alert("Не удалось собрать данные для скачивания. Убедитесь, что стеллаж выбран и на нем есть товары.");
+                }
+            });
+        }
+        // --- Save JSON ---
+
 
 
         // --- Rules UI ---
