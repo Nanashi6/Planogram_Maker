@@ -133,7 +133,7 @@ def calculate_auto_placement_for_shelf(shelf : Shelf, shelf_rule : shelf_rule, b
 
     return shelf_placed_products
 
-def calculate_auto_placement(shelf_unit_id : int, rules : rules_data) -> server_message:
+def calculate_auto_placement(shelf_unit_id : int, planogram_id : int, planogram_name : str, rules : rules_data) -> server_message:
     brand_sorts, product_sorts = get_combined_sorting_steps(rules)
 
     # Берём стеллаж
@@ -160,7 +160,7 @@ def calculate_auto_placement(shelf_unit_id : int, rules : rules_data) -> server_
             "Сформирована автовыкладка",
             planogram_data(
                 None, 
-                "Автовыкладка", 
+                planogram_name if planogram_name else "Автовыкладка", 
                 shelf_unit, 
                 placed_products
             ),

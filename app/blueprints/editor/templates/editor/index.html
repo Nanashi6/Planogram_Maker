@@ -287,8 +287,7 @@
                 </div>
 
                 <div class="tab-pane fade" id="chat-vtab-pane" role="tabpanel" aria-labelledby="chat-vtab">
-                    <h3 class="h5 mb-3">Чат-ассистент</h3>
-                    <div id="chat-messages-container" style="height: calc(94.95vh - 160px); overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff;">
+                    <div id="chat-messages-container" style="height: calc(94.95vh - 100px); overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff;">
                         <!-- Сообщения будут здесь -->
                     </div>
                     <div class="input-group">
@@ -1160,40 +1159,79 @@
         // --- Save JSON ---
         function collectFullPlanogramDataForDownload() {
             if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
-                // alert("Пожалуйста, сначала выберите или загрузите стеллаж.");
-                console.warn("Shelf unit not selected or loaded for download.");
+                console.warn("Стеллаж не выбран или не загружен для скачивания.");
                 return null;
             }
 
             const planogramName = planogramNameInput.value.trim() || `Planogram_ShelfUnit_${currentShelfUnitDataForSave.shelf_unit_number || 'unknown'}`;
+            const allPlacedProducts = getAllPlacedProducts();
 
-            const basePlanogramData = collectPlanogramData(); 
-            if (!basePlanogramData) {
-                console.warn("Could not collect base planogram data for download.");
-                return null;
-            }
+            // <Базовая структура
+            const data = {
+                planogramName: planogramName,
+                shelfUnitNumber: currentShelfUnitDataForSave.shelf_unit_number,
+                shelves: []
+            };
 
-            const enrichedPlacedProducts = basePlanogramData.placed_products.map(pp => {
-                const productData = allProductsFromListCache.get(pp.product_id);
-                const shelfMesh = currentDisplayedShelfUnit.children.find(
-                    child => child.userData.isShelf && child.userData.db_id === pp.shelf_id
-                );
-                return {
-                    position: pp.position,
-                    shelf_db_id: pp.shelf_id,
-                    shelf_number: shelfMesh ? shelfMesh.userData.shelfNumber : null,
-                    product: productData ? { ...productData } : { id: pp.product_id, name: "Product data not found in cache" }
+            const shelfMeshes = currentDisplayedShelfUnit.children
+                .filter(child => child.userData.isShelf)
+                .sort((a, b) => a.userData.shelfNumber - b.userData.shelfNumber);
+
+            shelfMeshes.forEach(shelfMesh => {
+                const shelfUUID = shelfMesh.uuid;
+                const shelfNumber = shelfMesh.userData.shelfNumber;
+
+                const productsOnThisShelf = allPlacedProducts.filter(p => p.userData.placedOnShelfUUID === shelfUUID);
+
+                if (productsOnThisShelf.length === 0) {
+                    return;
+                }
+
+                productsOnThisShelf.sort((a, b) => a.position.z - b.position.z);
+                
+                const productPositionMap = new Map();
+                productsOnThisShelf.forEach((product, index) => {
+                    productPositionMap.set(product.uuid, index);
+                });
+
+                // Группировка товаров на полке по категориям
+                const productsByCategory = new Map();
+                productsOnThisShelf.forEach(productMesh => {
+                    const productData = productMesh.userData.productData;
+                    const categoryName = productData.category ? productData.category.name : "Без категории";
+
+                    if (!productsByCategory.has(categoryName)) {
+                        productsByCategory.set(categoryName, []);
+                    }
+                    productsByCategory.get(categoryName).push(productMesh);
+                });
+
+                // Объект полки
+                const shelfObject = {
+                    shelfNumber: shelfNumber,
+                    categories: []
                 };
+
+                productsByCategory.forEach((categoryProducts, categoryName) => {
+                    const categoryObject = {
+                        categoryName: categoryName,
+                        products: categoryProducts.map(productMesh => {
+                            const productData = productMesh.userData.productData;
+                            return {
+                                name: productData.name,
+                                barcode: productData.barcode || 'N/A', 
+                                positionOnShelf: productPositionMap.get(productMesh.uuid)
+                            };
+                        })
+                        .sort((a, b) => a.positionOnShelf - b.positionOnShelf)
+                    };
+                    shelfObject.categories.push(categoryObject);
+                });
+
+                data.shelves.push(shelfObject);
             });
 
-            const fullData = {
-                name: planogramName,
-                id: currentPlanogramId, 
-                shelf_unit: { ...currentShelfUnitDataForSave }, 
-                placed_products: enrichedPlacedProducts,
-                rules: collectAllRulesData() 
-            };
-            return fullData;
+            return data;
         }
 
         function downloadJSONFile(data, filename) {
@@ -1215,7 +1253,7 @@
                 if (dataToDownload) {
                     let filename = dataToDownload.name; 
                     if (!filename || filename.startsWith("Planogram_ShelfUnit_")) { 
-                         filename = `planogram_shelf-unit-${dataToDownload.shelf_unit.shelf_unit_number || 'unknown'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}`;
+                        filename = `planogram_shelf-unit-${dataToDownload.shelfUnitNumber || 'unknown'}_${new Date().toISOString().slice(0,10).replace(/-/g,'')}`;
                     }
                     // Очистка имени файла от нежелательных символов и добавление .json
                     filename = filename.replace(/[^\w\s.-]/gi, '').replace(/\s+/g, '_') + ".json";
@@ -1379,7 +1417,7 @@
         }
 
         function updateRulesUI(rulesData) {
-            const global_rules = rulesData.global_rules;
+            const global_rules = rulesData.global_rules || rulesData.global;
             if (global_rules) {
                 // 1. Установка значения для "Sort Brands By"
                 if (global_rules.brand_sort_by !== undefined) {
@@ -1435,6 +1473,8 @@
             if (shelves_rules) {
                 shelves_rules.forEach(rule => {
                     const shelfId = rule.shelf_id;
+                    const a = document.getElementById(`category-rules-shelf-` + shelfId);
+                    if (a) { a.innerHTML = ''; }
                     rule.category_rules.forEach(cr => {
                         addCategoryRuleRow("shelf-" + shelfId, cr);
                     });
@@ -1467,9 +1507,9 @@
                         categoryAllocations.push({
                             categoryId: parseInt(categorySelect.value),
                             categoryName: categorySelect.options[categorySelect.selectedIndex].text, // для отладки
-                            percentage: parseInt(percentageInput.value) || null,
-                            minWeight: minWeightInput.value ? parseInt(minWeightInput.value) : null,
-                            maxWeight: maxWeightInput.value ? parseInt(maxWeightInput.value) : null,
+                            percentage: parseFloat(percentageInput.value) || null,
+                            minWeight: minWeightInput.value ? parseFloat(minWeightInput.value) : null,
+                            maxWeight: maxWeightInput.value ? parseFloat(maxWeightInput.value) : null,
                         });
                     }
                 });
@@ -1644,6 +1684,7 @@
                 item.textContent = `Unit #${shelfUnitData.shelf_unit_number}`;
                 item.dataset.shelfUnitInfo = JSON.stringify(shelfUnitData);
                 item.addEventListener('click', function() {
+                    if (planogramNameInput) planogramNameInput.value = "";
                     const clickedShelfUnitData = JSON.parse(this.dataset.shelfUnitInfo);
                     displayShelfUnit(clickedShelfUnitData);
                 });
@@ -1661,6 +1702,7 @@
                 item.dataset.planogramInfo = JSON.stringify(planogramData);
                 item.addEventListener('click', function() {
                     displayPlanogram(planogramData);
+                    updateRulesUI(planogramData.rule);
                 });
                 planogramListDiv.appendChild(item);
             });
@@ -1753,17 +1795,18 @@
             return dataToSend;
         }
 
-        async function sendSavePlanogramRequest(planogramPayload) {
+        async function sendSavePlanogramRequest(planogramPayload, rules) {
             if (!planogramPayload) return;
     
             console.log("Sending to save:", JSON.stringify(planogramPayload, null, 2));
+            console.log("Rules to save:", JSON.stringify(rules, null, 2))
             try {
                 const response = await fetch('/editor/save_planogram', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(planogramPayload),
+                    body: JSON.stringify({'planogramData': planogramPayload, 'rules': rules}),
                 });
     
                 if (!response.ok) {
@@ -1772,16 +1815,28 @@
                 }
     
                 const result = await response.json();
-                console.log('Planogram saved successfully:', result);
-                // alert(`Planogram "${result.name}" saved with ID: ${result.id}`);
-                if (result.id) { // Обновить currentPlanogramId, если это была новая планограмма
-                    currentPlanogramId = result.id; 
+                
+                if(result.errors) {
+                    result.errors.forEach(err => {
+                        addChatMessage(err, false);
+                    });
+
+                    const chatTabButton = document.getElementById('chat-vtab');
+                    if (chatTabButton) {
+                        var tab = new bootstrap.Tab(chatTabButton);
+                        tab.show();
+                    }
                 }
-                get_planograms().then(d => { if (d) populatePlanogramList(d); }); // Перезагрузить список планограмм
-    
+                else {
+                    console.log('Planogram saved successfully:', result);
+                    if (result.id) { // Обновить currentPlanogramId, если это была новая планограмма
+                        currentPlanogramId = result.id; 
+                    }
+                    get_planograms().then(d => { if (d) populatePlanogramList(d); }); // Перезагрузить список планограмм
+                    updateRulesUI(result.rule);
+                }                
             } catch (error) {
                 console.error('Error saving planogram:', error);
-                // alert(`Error saving planogram: ${error.message}`);
             }
         }
     
@@ -1800,9 +1855,10 @@
                 }
 
                 const planogramDataToSave = collectPlanogramData();
+                const currentRules = collectAllRulesData()
                 if (planogramDataToSave) {
                     planogramDataToSave.name = planogramName;
-                    sendSavePlanogramRequest(planogramDataToSave);
+                    sendSavePlanogramRequest(planogramDataToSave, currentRules);
                 }
             });
         }
@@ -1831,6 +1887,8 @@
 
                 const payload = {
                     shelf_unit_id: currentShelfUnitDataForSave.id,
+                    planogram_id: currentPlanogramId,
+                    planogram_name: planogramNameInput ? planogramNameInput.value : null,
                     rules: rulesData // Вкладываем все правила сюда
                 };
 

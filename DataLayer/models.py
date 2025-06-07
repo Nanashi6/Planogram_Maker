@@ -10,39 +10,10 @@ class Base(db.Model):
     __abstract__ = True
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    def to_dict(self, exclude_relations: Optional[List[str]] = None) -> dict:
-        """Универсальный метод для конвертации объекта SQLAlchemy в словарь, исключая указанные отношения для предотвращения рекурсии."""
-        if exclude_relations is None:
-            exclude_relations = []
-
-        data = {}
-        for column in class_mapper(self.__class__).columns:
-            data[column.key] = getattr(self, column.key)
-
-        for rel_name, rel_obj in class_mapper(self.__class__).relationships.items():
-            if rel_name not in exclude_relations:
-                value = getattr(self, rel_name)
-                if value is None:
-                    data[rel_name] = None
-                elif isinstance(value, list):
-                    child_exclude = [rel_obj.back_populates] if rel_obj.back_populates else []
-                    data[rel_name] = [item.to_dict(exclude_relations=child_exclude) for item in value]
-                else:
-                    child_exclude = [rel_obj.back_populates] if rel_obj.back_populates else []
-                    data[rel_name] = value.to_dict(exclude_relations=child_exclude)
-            # else:
-            #     value = getattr(self, rel_name)
-            #     if value is not None:
-            #         fk_columns = list(rel_obj.local_columns)
-            #         if fk_columns:
-            #              # Попробуем получить значение FK, если это простое поле
-            #             try:
-            #                 data[rel_name + "_id"] = getattr(self, fk_columns[0].name)
-            #             except AttributeError:
-            #                 pass # Не удалось получить FK
-
-
-        return data
+    def to_dict(self) -> dict:
+        """Универсальный метод для конвертации объекта SQLAlchemy в словарь"""
+        columns = class_mapper(self.__class__).columns
+        return {column.key: getattr(self, column.key) for column in columns}
 
     def to_json(self, exclude_relations: Optional[List[str]] = None) -> str:
         return json.dumps(self.to_dict(exclude_relations=exclude_relations), ensure_ascii=False, default=str) # default=str для Enum и DateTime
@@ -99,6 +70,22 @@ class Product(Base):
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     category: Mapped["Category"] = relationship("Category", back_populates="products")
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект CategoryBrandPlacement в словарь, включая category."""
+        data = super().to_dict()
+
+        if self.category:
+            data['category'] = self.category.to_dict()
+        else:
+            data['category'] = None
+
+        if self.brand:
+            data['brand'] = self.brand.to_dict()
+        else:
+            data['brand'] = None
+
+        return data
+
 class Shelf(Base):
     __tablename__ = "shelves"
     shelf_number: Mapped[int]
@@ -135,6 +122,22 @@ class PlacedProduct(Base):
 
     position: Mapped[int]
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект PlacedProduct в словарь"""
+        data = super().to_dict()
+
+        # if self.shelf:
+        #     data['shelf'] = self.shelf.to_dict()
+        # else:
+        #     data['shelf'] = None
+
+        if self.product:
+            data['product'] = self.product.to_dict()
+        else:
+            data['product'] = None
+            
+        return data
+
 class ShelfUnit(Base):
     __tablename__ = "shelf_units"
     shelf_unit_number: Mapped[int]
@@ -158,6 +161,17 @@ class ShelfUnit(Base):
                 return shelf_obj
         return None
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект Shelf в словарь"""
+        data = super().to_dict()
+
+        if self.shelves:
+            data['shelves'] = [shelf.to_dict() for shelf in self.shelves]
+        else:
+            data['shelves'] = None
+            
+        return data
+
 class Planogram(Base):
     __tablename__ = "planograms"
     name: Mapped[str]
@@ -179,6 +193,27 @@ class Planogram(Base):
         uselist=False
     )
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект Planogram в словарь"""
+        data = super().to_dict()
+
+        if self.shelf_unit:
+            data['shelf_unit'] = self.shelf_unit.to_dict()
+        else:
+            data['shelf_unit'] = None
+
+        if self.rule:
+            data['rule'] = self.rule.to_dict()
+        else:
+            data['rule'] = None
+
+        if self.placed_products:
+            data['placed_products'] = [product.to_dict() for product in self.placed_products]
+        else:
+            data['placed_products'] = None
+            
+        return data
+
 class Rule(Base):
     __tablename__ = "rules"
     brand_sorting: Mapped[BrandSorting] = mapped_column(Enum(BrandSorting), nullable=False)
@@ -194,6 +229,16 @@ class Rule(Base):
     planogram_id: Mapped[int] = mapped_column(ForeignKey("planograms.id"), unique=True, nullable=False)
     planogram: Mapped["Planogram"] = relationship("Planogram", back_populates="rule")
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект Rule в словарь"""
+        return {
+            "global_rules": {
+                'brand_sort_by': self.brand_sorting,
+                'product_sort_by': self.product_sorting,
+                'spacing': self.spacing
+            },
+            'shelves_rules': [sr.to_dict() for sr in self.shelf_rules]
+        }
 
 class ShelfRule(Base):
     __tablename__ = "shelf_rules"
@@ -210,6 +255,13 @@ class ShelfRule(Base):
         cascade="all, delete-orphan"
     )
 
+    def to_dict(self) -> dict:
+        """Конвертирует объект ShelfRule в словарь"""
+        return {
+            'shelf_id': self.shelf_id,
+            'category_rules': [cr.to_dict() for cr in self.category_allocation_rules]
+        }
+
 class CategoryRule(Base):
     __tablename__ = "category_rules"
     share: Mapped[float] = mapped_column(Float, CheckConstraint("share >= 0 AND share <= 100"), default=0.0)
@@ -221,3 +273,13 @@ class CategoryRule(Base):
 
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     category: Mapped["Category"] = relationship("Category", back_populates="category_rules") 
+
+    def to_dict(self) -> dict:
+        """Конвертирует объект CategoryRule в словарь"""
+        return {
+            'category_id': self.category_id,
+            'percentage': self.share,
+            'min_weight': self.min_weight,
+            'max_weight': self.max_weight,
+            'category_name': self.category.name
+        }

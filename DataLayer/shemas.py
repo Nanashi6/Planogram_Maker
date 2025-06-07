@@ -29,10 +29,6 @@ class Product(OrmBaseModel):
     category_id: Optional[int] = None
     brand_id: Optional[int] = None
 
-class ShelfRule(OrmBaseModel):
-    rule_id: Optional[int] = None
-    shelf_id: Optional[int] = None
-
 class Shelf(OrmBaseModel):
     shelf_number: Optional[int] = None
     length: Optional[float] = None
@@ -61,6 +57,10 @@ class CategoryRule(OrmBaseModel):
     max_weight: Optional[float] = None
     shelf_rule_id: Optional[int] = None
     category_id: Optional[int] = None
+
+class ShelfRule(OrmBaseModel):
+    rule_id: Optional[int] = None
+    shelf_id: Optional[int] = None
 
 class Rule(OrmBaseModel):
     brand_sorting: Optional[BrandSorting] = None
