@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO, RuleDAO, ShelfRuleDAO, CategoryRuleDAO, CategoryDAO
 from DataLayer.shemas import Planogram, PlacedProduct, Category, Rule, ShelfRule, CategoryRule
 from DataLayer.enums import *
+from app.blueprints.editor.exceptions import AutoPlacementError
 from .models import rules_data
 from .commands_handlers import commands_handler
 from .auto_placement import calculate_auto_placement
@@ -133,13 +134,13 @@ async def save_planogram():
     shelf_unit_id = planogram_data.get('shelf_unit_id')
     placed_products_payload = planogram_data.get('placed_products', [])
 
+    if not name or shelf_unit_id is None:
+        return jsonify({"error": "Missing name or shelf_unit_id"}), 400
+    
     rules = rules_data.from_dict(data.get('rules'))
 
     is_correct, error_messages = is_correct_planogram(placed_products_payload, rules)
     if is_correct:
-        if not name or shelf_unit_id is None:
-            return jsonify({"error": "Missing name or shelf_unit_id"}), 400
-
         new_planogram = Planogram(name = name, shelf_unit_id = shelf_unit_id)
         try:
             if planogram_id: # Обновление существующей планограммы
@@ -170,7 +171,7 @@ async def save_planogram():
             print(f"Error saving planogram: {e}")
             return jsonify({"error": str(e)}), 500
     else:
-        return jsonify({'errors': error_messages}), 200 # FIXME Тут возвращать сообщение сервера со всеми ошибками в планограмме
+        return jsonify({'errors': error_messages}), 200
 
 @editor_bp.route('/chat_message', methods=['POST'])
 async def message_handle():
@@ -198,7 +199,7 @@ async def message_handle():
         print(e)
         traceback.print_exc()
         return jsonify({
-            "message": "Внутренняя ошибка сервера при обработке сообщения чата."
+            "message": "Внутренняя ошибка сервера при обработке сообщения."
         }), 200
 
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
@@ -214,17 +215,19 @@ def calculate_auto_placement_route():
         planogram_name = data.get('planogram_name')
 
         if not rules or not shelf_unit_id:
-            return jsonify({"message": "Ошибка: Запрос не содержит правила или указатель на стеллаж."}), 400
+            return jsonify({"message": "Ошибка: Запрос не содержит правила или ID стеллажа."}), 400
 
         server_message = calculate_auto_placement(shelf_unit_id, planogram_id, planogram_name, rules_data.from_dict(rules))
-
         return jsonify(server_message.to_json()), 200
 
+    except AutoPlacementError as e:
+        print(f"Ошибка авторасстановки: {e}")
+        return jsonify({"message": str(e)}), 400
     except Exception as e:
-        print("Critical error in /calculate_auto_placement endpoint")
+        print(f"Критическая ошибка в /calculate_auto_placement: {e}")
+        # traceback.print_exc()
         return jsonify({
-            "message": "Внутренняя ошибка сервера при обработке сообщения чата."
-        }), 200
+            "message": "Внутренняя ошибка сервера. Пожалуйста, обратитесь к администратору."
+        }), 500
 
-# # TODO Учитывать доли брендов на полках-----------------------------------------------------
-# # TODO Убрать дубляжи товаров на разных полках
+# # TODO Учитывать доли брендов на полках

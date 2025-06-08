@@ -1,0 +1,2 @@
+class AutoPlacementError(Exception):
+    pass
