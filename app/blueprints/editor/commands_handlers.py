@@ -167,74 +167,6 @@ COMANDS_EXAMPLE = """
 parser = CommandParser(COMANDS_EXAMPLE)
 
 
-# FIXME Поиск по категории и бренду
-def place_brand(parameters, reply, planogram):
-    category_name = parameters['название_категории']
-    shelf_number = parameters['номер_полки']
-    share = parameters['доля_процентов']
-    brand_name = parameters['название_бренда']
-
-    shelf_unit_id = planogram['shelf_unit_id']
-     
-    brand = BrandDAO.get_one(B(name=brand_name))
-    if not brand:
-        reply.message = f"Не найден бренд {brand_name}."
-        return
-
-    category = CategoryDAO.get_one(Cat(name=category_name))
-    if category and shelf_unit_id:
-        shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
-        shelf = shelf_unit.get_shelf_by_number(shelf_number)
-        if shelf:
-            products = ProductDAO.get_many_for_category(category_name, shelf.height)
-            
-            max_position_on_shelf = 0
-            products_on_shelf_depths = []
-            pps = []
-
-            for pp in planogram['placed_products']:
-                pproduct = ProductDAO.get_by_id(pp['product_id'])
-                if pp['shelf_id'] == shelf.id:
-                  if pproduct.category_brand_placement.category.id == category.id:
-                      if brand:
-                          if brand.id == pproduct.category_brand_placement.brand.id:
-                              continue
-                      else:    
-                        continue
-                  products_on_shelf_depths.append(pproduct.depth + 0.5)
-                  if pp['position'] > max_position_on_shelf:
-                      max_position_on_shelf = pp['position']
-                  
-                pps.append({
-                    'shelf_id': pp['shelf_id'],
-                    'product_id': pproduct.id,
-                    'position': pp['position'],
-                    'product': pproduct.to_dict()
-                })
-
-            free_length = shelf.length - sum(products_on_shelf_depths)    
-            share_length = shelf.length * (share if share else 100) / 100
-            share_length = free_length if free_length < share_length else share_length
-
-            total_placed = 0
-            for product in products:
-              if share_length - product.depth >= 0:                # BUG ВЕС
-                  max_position_on_shelf += 1
-                  share_length -= product.depth + 0.5                                        # 0.5
-                  total_placed += 1
-                  pps.append({
-                      'shelf_id': shelf.id,
-                      'product_id': product.id,
-                      'position': max_position_on_shelf,
-                      'product': product.to_dict()
-                  })
-            reply.data = planogram_data(planogram['id'], 'Пример', shelf_unit, pps)
-            reply.message = f'Установлено {total_placed} фейсингов исходя из свободного места на полке'
-        else:
-            reply.message = f"Не найдена полка {shelf_number}"
-    else:
-        reply.message = f"Не найдена категория {category_name} или рабочий стеллаж."
-
 def fill_free_space_on_shelf(parameters, reply, planogram):
     category_name = parameters['название_категории']
     shelf_number = parameters['номер_полки']
@@ -331,7 +263,7 @@ def place_product(parameters, reply, planogram):
         shelf = shelf_unit.get_shelf_by_number(shelf_number)
         if shelf:
             product = ProductDAO.get_one(P(barcode=barcode))
-            if product and product.category_brand_placement.category.name in get_all_categories_for_shelf(reply, shelf_number, shelf.id) and product.height <= shelf.height:
+            if product and product.category.name in get_all_categories_for_shelf(reply, shelf_number, shelf.id) and product.height <= shelf.height:
                 total_placed = 0
 
                 max_position_on_shelf = 0
@@ -402,7 +334,7 @@ def place_category(parameters, reply, planogram):
             for pp in planogram['placed_products']:
                 pproduct = ProductDAO.get_by_id(pp['product_id'])
                 if pp['shelf_id'] == shelf.id:
-                  if pproduct.category_brand_placement.category.id == category.id:
+                  if pproduct.category.id == category.id:
                       continue
                   products_on_shelf_depths.append(pproduct.depth + 0.5)
                   if pp['position'] > max_position_on_shelf:
@@ -487,7 +419,5 @@ def commands_handler(user_message: str, planogram_data, rules) -> server_message
         shelf_constrain(parameters, reply, planogram_data)
     elif command_name == "ЗАПОЛНИ ОСТАТОК ПОЛКИ": ### изменяет правила (добавляет категорию или процент к ней) ------------------
         fill_free_space_on_shelf(parameters, reply, planogram_data)
-    elif command_name == "РАЗМЕСТИ БРЕНД":
-        place_brand(parameters, reply, planogram_data)
 
     return reply
