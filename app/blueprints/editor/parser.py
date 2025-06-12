@@ -6,12 +6,101 @@ class CommandParser:
         self.commands_meta = json.loads(ex_comands_json_string)
         self._prepare_commands()
 
+    def _parse_shelf_categories_command(self, cmd_def, match_object):
+        """
+        Для команды 'ПОЛКА X: ...'.
+        """
+        try:
+            shelf_number = int(match_object.group('номер_полки'))
+            categories_string = match_object.group('categories_string').strip()
+        except (ValueError, IndexError):
+            return None, ["Не удалось извлечь номер полки или список категорий."]
+
+        # Процент выше 100
+        total_percentage = 0
+        all_percentages = re.findall(r'(\d+)\s*%', categories_string)
+        for p_str in all_percentages:
+            total_percentage += int(p_str)
+        
+        if total_percentage > 100:
+                return None, [f"Ошибка: Суммарный процент ({total_percentage}%) для полки превышает 100%."]
+
+        category_parts = re.split(r',\s*(?![^()]*\))', categories_string)
+        
+        parsed_rules = []
+        errors = []
+
+        for part in category_parts:
+            part = part.strip()
+            if not part:
+                continue
+
+            match = re.match(r'^(?P<category_name>.+?)(?:\s*\((?P<params>[^)]*)\))?$', part)
+            if not match:
+                errors.append(f"Неверный формат для '{part}'. Ожидалось 'имя' или 'имя (параметры)'.")
+                continue
+
+            category_name = match.group('category_name').strip()
+            params_str = match.group('params')
+            
+            rule = {
+                "categoryName": category_name,
+                "percentage": None,
+                "minWeight": None,
+                "maxWeight": None
+            }
+
+            # Если параметров в скобках нет, то правило все равно создается, но с пустыми значениями
+            if params_str is None:
+                errors.append(f"Для категории '{category_name}' не указаны параметры в скобках, включая обязательный процент.")
+                parsed_rules.append(rule)
+                continue
+
+            # Извлекаем параметры из строки внутри скобок
+            params = [p.strip() for p in params_str.split('/')]
+            
+            found_percentage = False
+            for param in params:
+                if not param: continue
+                
+                # Процент
+                p_match = re.match(r'^(\d+(?:[.,]\d+)?)\s*%$', param)
+                if p_match:
+                    rule['percentage'] = float(p_match.group(1).replace(',', '.'))
+                    found_percentage = True
+                    continue
+                
+                # Мин. вес
+                min_w_match = re.match(r'^от\s+(\d+(?:[.,]\d+)?)\s*кг$', param, re.IGNORECASE)
+                if min_w_match:
+                    rule['minWeight'] = float(min_w_match.group(1).replace(',', '.'))
+                    continue
+
+                # Макс. вес
+                max_w_match = re.match(r'^до\s+(\d+(?:[.,]\d+)?)\s*кг$', param, re.IGNORECASE)
+                if max_w_match:
+                    rule['maxWeight'] = float(max_w_match.group(1).replace(',', '.'))
+                    continue
+            
+            if not found_percentage:
+                errors.append(f"Для категории '{category_name}' не указан обязательный процент.")
+            
+            parsed_rules.append(rule)
+
+        if errors:
+            return None, errors
+        
+        final_params = {
+            "номер_полки": shelf_number,
+            "правила_категорий": parsed_rules
+        }
+        return final_params, []
+
     def _prepare_commands(self):
         for cmd_def in self.commands_meta:
             cmd_def['param_meta_dict'] = {p['name']: p for p in cmd_def.get('parameters', [])}
             command_name = cmd_def['command']
 
-            # Оставляем как есть, но убедимся, что _parse_parameters это учтет
             if command_name == "УСТАНОВИ СТЕЛЛАЖ":
                 cmd_def['regex'] = re.compile(r"^УСТАНОВИ\s+СТЕЛЛАЖ\s+(\d+)$", re.IGNORECASE | re.UNICODE)
                 cmd_def['param_names_from_groups'] = ["номер_стеллажа"] 
@@ -197,6 +286,19 @@ class CommandParser:
 
     def parse(self, text: str):
         text = text.strip()
+
+        shelf_cmd_regex = re.compile(r"^полка\s+(?P<номер_полки>\d+)\s*:\s*(?P<categories_string>.+)$", re.IGNORECASE | re.UNICODE)
+        shelf_match = shelf_cmd_regex.match(text)
+        if shelf_match:
+            cmd_def = next((cmd for cmd in self.commands_meta if cmd['command'] == "ОПРЕДЕЛИ ПРАВИЛА ДЛЯ ПОЛКИ"), None)
+            if not cmd_def:
+                return {"error": "Внутренняя ошибка: не найдено определение для команды 'ОПРЕДЕЛИ ПРАВИЛА ДЛЯ ПОЛКИ'."}
+            
+            parsed_params, errors = self._parse_shelf_categories_command(cmd_def, shelf_match)
+            if errors:
+                return {"error": f"Ошибка валидации параметров: {'; '.join(errors)}"}
+            return {"command": cmd_def['command'], "parameters": parsed_params}
+
         for cmd_def in self.commands_meta:
             group_names_ordered_for_cmd = cmd_def.get('group_names_ordered')
             param_names_legacy_for_cmd = cmd_def.get('param_names_from_groups')

@@ -37,7 +37,7 @@ class category_rule():
         self.percentage = percentage
         self.min_weight = min_weight
         self.max_weight = max_weight
-        
+
     def to_json(self) -> dict:
         return {
             "category_name": self.category_name,
@@ -67,6 +67,10 @@ class shelf_rule():
         self.shelf_number = shelf_number
         self.shelf_id = shelf_id
         self.category_rules = category_rules
+
+    def set_category_rules(self, rules: List['category_rule']):
+        """Полностью заменяет список правил для категорий."""
+        self.category_rules = rules
 
     def add_category_rule(self, rule: category_rule):
         """Добавляет правило категории к полке."""
@@ -145,6 +149,18 @@ class rules_data():
         self.product_sort = product_sort
         self.spacing = spacing
         self.shelves_rules = shelves_rules if shelves_rules is not None else []
+
+    def set_rules_for_shelf(self, shelf_number: int, shelf_id: int, new_category_rules):
+        """
+        Находит правило для полки и полностью заменяет его правила для категорий.
+        Если правило для полки не найдено, создает новое.
+        """
+        s_rule = self.get_shelf_rule(shelf_number)
+        if s_rule:
+            s_rule.set_category_rules(new_category_rules)
+        else:
+            new_s_rule = shelf_rule(shelf_number, shelf_id, category_rules=new_category_rules)
+            self.add_shelf_rule(new_s_rule)
 
     def add_shelf_rule(self, rule: shelf_rule):
         """Добавляет правило полки к общим правилам."""

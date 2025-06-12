@@ -134,7 +134,6 @@ def calculate_auto_placement_for_shelf(shelf: Shelf, shelf_rule: shelf_rule, bra
         if remaining_shelf_weight <= 0:
             break
 
-        # Шаг 1: Получаем всех возможных кандидатов для категории
         all_products_for_category = ProductDAO.get_many_for_category(
             category_rule.category_name,
             shelf.height,
@@ -142,19 +141,16 @@ def calculate_auto_placement_for_shelf(shelf: Shelf, shelf_rule: shelf_rule, bra
             category_rule.max_weight if category_rule.max_weight else float('inf')
         )
 
-        # <<< ИЗМЕНЕНИЕ 5: Фильтруем кандидатов, оставляя только те, которых еще нет на стеллаже.
         available_products = [
             p for p in all_products_for_category if p.id not in used_product_ids
         ]
         
-        # Если после фильтрации не осталось доступных товаров, переходим к следующему правилу
         if not available_products:
             continue
 
         share = category_rule.percentage
         category_length = share * shelf.length / 100
         
-        # <<< ИЗМЕНЕНИЕ 6: Используем отфильтрованный список `available_products` для вызова DP.
         category_placed_products = solve_dp_for_category(
             available_products, remaining_shelf_weight, category_length, spacing
         )
@@ -163,9 +159,7 @@ def calculate_auto_placement_for_shelf(shelf: Shelf, shelf_rule: shelf_rule, bra
         remaining_shelf_weight -= placed_weight
         products_length = get_total_product_length_on_category(category_placed_products, spacing)
         
-        # Добавление фейсингов (здесь также используется отфильтрованный список)
         while len(category_placed_products) > 0 and products_length < category_length and remaining_shelf_weight > 0:
-            # <<< ИЗМЕНЕНИЕ 7: И для фейсингов используем `available_products`.
             new_products = solve_dp_for_category(
                 available_products, remaining_shelf_weight, category_length - products_length, spacing
             )
