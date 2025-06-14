@@ -72,21 +72,38 @@ class shelf_rule():
         """Полностью заменяет список правил для категорий."""
         self.category_rules = rules
 
-    def add_category_rule(self, rule: category_rule):
-        """Добавляет правило категории к полке."""
-        self.category_rules.append(rule)
+    def get_category_rule(self, category_id: int) -> Optional[category_rule]:
+        """
+        Находит и возвращает правило для категории по ее ID.
+        Возвращает None, если правило не найдено.
+        """
+        for rule in self.category_rules:
+            if rule.category_id == category_id:
+                return rule
+        return None
 
-    def delete_category_rule(self, rule: category_rule):
-        """Удаляет правило категории у полки."""
-        print('Длина: ', len(self.category_rules))
-        c_rule = None
-        for category in self.category_rules:
-            if category.category_name == rule.category_name:
-                c_rule = category
-                break
-        if c_rule:
-            print(c_rule.category_name, c_rule.percentage)
-            self.category_rules.remove(c_rule)
+    def add_category_rule(self, rule_to_add: category_rule):
+        """
+        Добавляет или ОБНОВЛЯЕТ правило для категории на этой полке.
+        Сначала удаляет любое существующее правило для той же категории, а затем добавляет новое.
+        """
+        # self.category_rules = [
+        #     rule for rule in self.category_rules 
+        #     if rule.category_id != rule_to_add.category_id
+        # ]
+        self.category_rules.append(rule_to_add)
+
+    def delete_category_rule(self, rule_to_delete: category_rule):
+        """
+        Удаляет ВСЕ правила для указанной категории (по ID) с полки.
+        """
+        initial_len = len(self.category_rules)
+        self.category_rules = [
+            rule for rule in self.category_rules 
+            if rule.category_id != rule_to_delete.category_id
+        ]
+        if len(self.category_rules) < initial_len:
+            print(f"Удалено правило для категории ID: {rule_to_delete.category_id}")
 
     def get_categories(self):
         return [c.category_name for c in self.category_rules]
@@ -94,14 +111,14 @@ class shelf_rule():
     def get_total_percentage(self, except_category_name):
         total_percentage = 0
         for c in self.category_rules:
-            if except_category_name != c.category_name:
+            if except_category_name.lower() != c.category_name.lower():
                 total_percentage += c.percentage
         return total_percentage
 
     def get_category_percentage(self, category_name):
         c_rule = None
         for category in self.category_rules:
-            if category.category_name == category_name:
+            if category.category_name.lower() == category_name.lower():
                 c_rule = category
                 break
         if c_rule:
@@ -150,6 +167,13 @@ class rules_data():
         self.spacing = spacing
         self.shelves_rules = shelves_rules if shelves_rules is not None else []
 
+    def get_category_rule_on_shelf(self, shelf_number: int, category_id: int) -> Optional[category_rule]:
+        """Находит правило для категории на конкретной полке."""
+        shelf = self.get_shelf_rule(shelf_number)
+        if shelf:
+            return shelf.get_category_rule(category_id)
+        return None
+
     def set_rules_for_shelf(self, shelf_number: int, shelf_id: int, new_category_rules):
         """
         Находит правило для полки и полностью заменяет его правила для категорий.
@@ -172,14 +196,12 @@ class rules_data():
                 return shelf
 
     def add_category_rule(self, shelf_number : int, shelf_id : int, rule: category_rule):
-        """Добавляет правило категории к полке."""
+        """Добавляет или обновляет правило категории для полки."""
         s_rule = self.get_shelf_rule(shelf_number)
-        if s_rule:
-            s_rule.add_category_rule(rule)
-        else:
+        if not s_rule:
             s_rule = shelf_rule(shelf_number, shelf_id)
-            s_rule.add_category_rule(rule)
             self.add_shelf_rule(s_rule)
+        s_rule.add_category_rule(rule)
 
     def delete_category_rule(self, shelf_number : int, shelf_id : int, rule: category_rule):
         """Удаляет правило категории у полки."""
@@ -253,10 +275,10 @@ class server_message():
     """
     Серверное сообщение клиенту.
     """
-    def __init__(self, message = "", data : planogram_data = planogram_data(), rules : rules_data = rules_data()):
+    def __init__(self, message = "", data: any = None, rules : rules_data = None):
         self.message = message
         self.data = data
-        self.rules = rules
+        self.rules = rules if rules is not None else rules_data()
 
     def to_json(self):
         """
@@ -264,14 +286,15 @@ class server_message():
         """
         data_json = None
         if self.data:
-            data_json = self.data.to_json()
+            if hasattr(self.data, 'to_json') and callable(self.data.to_json):
+                data_json = self.data.to_json()
+            else:
+                data_json = self.data
 
-        rules_data = []
-        if self.rules:
-            rules_data = self.rules.to_json()
+        rules_json = self.rules.to_json() if self.rules else None
 
         return {
             "message": self.message,
             "data": data_json,
-            "rules": rules_data
+            "rules": rules_json
         }

@@ -1,6 +1,6 @@
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 from pydantic import BaseModel
-from sqlalchemy import ColumnElement, Integer, delete, literal_column, select, union_all, update
+from sqlalchemy import ColumnElement, Integer, delete, func, inspect, literal_column, select, union_all, update
 from sqlalchemy.exc import SQLAlchemyError
 
 from sqlalchemy import select, and_, or_, case, asc, desc
@@ -54,10 +54,27 @@ class BaseDAO(Generic[T]):
 
     @classmethod
     def get_one(cls, filters: BaseModel) -> T:
-        """Найти запись по фильтрам"""
+        """
+        Найти одну запись по фильтрам.
+        Для строковых полей поиск выполняется регистронезависимо.
+        """
         filters_dict = filters.model_dump(exclude_unset=True)
         try:
-            query = select(cls.model).filter_by(**filters_dict)
+            query = select(cls.model)
+            mapper = inspect(cls.model)
+            
+            for field_name, value in filters_dict.items():
+                if not hasattr(cls.model, field_name):
+                    continue
+                
+                column = mapper.columns[field_name]
+                is_string_column = isinstance(column.type, db.String)
+                
+                if is_string_column and isinstance(value, str):
+                    query = query.where(func.lower(getattr(cls.model, field_name)) == func.lower(value))
+                else:
+                    query = query.where(getattr(cls.model, field_name) == value)
+
             result = db.session.execute(query)
             record = result.scalar_one_or_none()
             return record
@@ -231,9 +248,12 @@ class ProductDAO(BaseDAO[Product]):
     ) -> List[T]:
         """Найти несколько записей по категории и фильтрам"""
         try:
+            CategoryModel = cls.model.category.property.mapper.class_
+
             query = select(cls.model)\
                 .join(cls.model.category)\
                 .where(
+                    func.lower(CategoryModel.name) == func.lower(category_name),
                     cls.model.category.has(name=category_name),
                     min_volume <= cls.model.weight,
                     cls.model.weight <= max_volume,

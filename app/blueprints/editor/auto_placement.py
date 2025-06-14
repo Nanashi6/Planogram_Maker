@@ -1,5 +1,4 @@
 from collections import defaultdict
-import operator
 from typing import Any, Callable, Dict, List, Set, Tuple
 from DataLayer.dao import ProductDAO, ShelfUnitDAO
 from DataLayer.models import Brand, Product, Shelf

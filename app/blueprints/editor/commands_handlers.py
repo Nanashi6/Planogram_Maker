@@ -1,3 +1,4 @@
+from app.blueprints.editor.exceptions import CommandError, ParsingError
 from .models import server_message, planogram_data, rules_data
 from .parser import CommandParser
 from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO
@@ -40,20 +41,6 @@ COMANDS_EXAMPLE = """
     ],
     "parameters": [
       {"name": "номер_стеллажа", "type": "integer", "required": true, "description": "Уникальный номер стеллажа."}
-    ]
-  },
-  {
-    "command": "РАЗМЕСТИ ТОВАР",
-    "description": "Размещает конкретный товар на указанной полке. Можно задать количество фейсингов.",
-    "syntax": "РАЗМЕСТИ ТОВАР <штрихкод_товара> НА ПОЛКЕ <номер_полки> [В КОЛИЧЕСТВЕ <количество_фейсингов> ФЕЙСИНГОВ]",
-    "examples": [
-      "РАЗМЕСТИ ТОВАР 4607123456789 НА ПОЛКЕ 2 В КОЛИЧЕСТВЕ 3 ФЕЙСИНГОВ",
-      "РАЗМЕСТИ ТОВАР 1234567890123 НА ПОЛКЕ 1"
-    ],
-    "parameters": [
-      {"name": "штрихкод_товара", "type": "integer", "required": true, "description": "Уникальный штрихкод товара (barcode)."},
-      {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки, на которую нужно разместить продукт."},
-      {"name": "количество_фейсингов", "type": "integer", "required": false, "description": "Количество единиц продукта, стоящих лицом к покупателю."}
     ]
   },
   {
@@ -106,35 +93,6 @@ COMANDS_EXAMPLE = """
     ]
   },
   {
-    "command": "ОГРАНИЧЬ ПОЛКУ",
-    "description": "Указывает, что на данной полке могут находиться только товары указанной категории или бренда. Если указан бренд, то должна быть указана и категория.",
-    "syntax": "ОГРАНИЧЬ ПОЛКУ <номер_полки> ТОЛЬКО ДЛЯ КАТЕГОРИИ '<название_категории>' | ТОЛЬКО ДЛЯ БРЕНДА '<название_бренда>' ИЗ КАТЕГОРИИ '<название_категории>'",
-    "examples": [
-      "ОГРАНИЧЬ ПОЛКУ 3 ТОЛЬКО ДЛЯ КАТЕГОРИИ 'Хлебобулочные изделия'",
-      "ОГРАНИЧЬ ПОЛКУ 4 ТОЛЬКО ДЛЯ БРЕНДА 'Mars' ИЗ КАТЕГОРИИ 'Шоколадные батончики'"
-    ],
-    "parameters": [
-      {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки для ограничения."},
-      {"name": "название_категории", "type": "string", "required": true, "description": "Название категории, если ограничение по категории или бренду. Должно быть в кавычках."},
-      {"name": "название_бренда", "type": "string", "required": false, "description": "Название бренда, если ограничение по бренду. Должно быть в кавычках."}
-    ]
-  },
-  {
-    "command": "РАЗМЕСТИ АВТОМАТИЧЕСКИ",
-    "description": "Автоматически размещает доступные товары указанной категории на полке, сортируя их по заданному атрибуту.",
-    "syntax": "РАЗМЕСТИ АВТОМАТИЧЕСКИ КАТЕГОРИЮ '<название_категории>' НА ПОЛКЕ <номер_полки> [СОРТИРУЯ ПО <атрибут_сортировки>] [ПО ВОЗРАСТАНИЮ|ПО УБЫВАНИЮ]",
-    "examples": [
-      "РАЗМЕСТИ АВТОМАТИЧЕСКИ КАТЕГОРИЮ 'Соки' НА ПОЛКЕ 5 СОРТИРУЯ ПО ЦЕНЕ ПО УБЫВАНИЮ",
-      "РАЗМЕСТИ АВТОМАТИЧЕСКИ КАТЕГОРИЮ 'Печенье' НА ПОЛКЕ 4 СОРТИРУЯ ПО РЕЙТИНГУ_SKU ПО ВОЗРАСТАНИЮ"
-    ],
-    "parameters": [
-      {"name": "название_категории", "type": "string", "required": true, "description": "Название категории, товары которой будут размещены. Должно быть в кавычках."},
-      {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки для автоматического размещения."},
-      {"name": "атрибут_сортировки", "type": "string", "required": false, "enum": ["ЦЕНЕ", "РЕЙТИНГУ_SKU", "ДЛИНЕ"], "description": "Атрибут товара для сортировки (price, SKU_rating, length)."},
-      {"name": "порядок_сортировки", "type": "string", "required": false, "enum": ["ПО ВОЗРАСТАНИЮ", "ПО УБЫВАНИЮ"], "description": "Порядок сортировки."}
-    ]
-  },
-  {
     "command": "ЗАПОЛНИ ОСТАТОК ПОЛКИ",
     "description": "Заполняет оставшееся свободное пространство на полке товарами указанной категории после выполнения всех других команд.",
     "syntax": "ЗАПОЛНИ ОСТАТОК ПОЛКИ <номер_полки> КАТЕГОРИЕЙ '<название_категории>'",
@@ -144,50 +102,6 @@ COMANDS_EXAMPLE = """
     "parameters": [
       {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки для заполнения."},
       {"name": "название_категории", "type": "string", "required": true, "description": "Название категории, товары которой будут использованы для заполнения. Должно быть в кавычках."}
-    ]
-  },
-  {
-    "command": "РАЗМЕСТИ БРЕНД",
-    "description": "Назначает конкретный бренд из определённой категории на указанную полку. Можно задать желаемую долю пространства внутри этой категории.",
-    "syntax": "РАЗМЕСТИ БРЕНД '<название_бренда>' ИЗ КАТЕГОРИИ '<название_категории>' НА ПОЛКЕ <номер_полки> [ЗАНЯВ <доля_процентов>% МЕСТА]",
-    "examples": [
-      "РАЗМЕСТИ БРЕНД 'Простоквашино' ИЗ КАТЕГОРИИ 'Молочные продукты' НА ПОЛКЕ 1 ЗАНЯВ 40% МЕСТА"
-    ],
-    "parameters": [
-      {"name": "название_бренда", "type": "string", "required": true, "description": "Название бренда, должно быть в кавычках."},
-      {"name": "название_категории", "type": "string", "required": true, "description": "Название категории, к которой относится бренд, должно быть в кавычках."},
-      {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки для размещения бренда."},
-      {"name": "доля_процентов", "type": "integer", "required": false, "min": 0, "max": 100, "description": "Желаемая доля пространства, которую должен занять бренд (от общего пространства, выделенного для категории на этой полке)."}
-    ]
-  },
-
-
-  
-
-
-  {
-    "command": "УДАЛИ ПРОДУКТ",
-    "description": "Удаляет конкретный продукт с указанной полки.",
-    "syntax": "УДАЛИ ПРОДУКТ <штрихкод_продукта> С ПОЛКИ <номер_полки>",
-    "examples": [
-      "УДАЛИ ПРОДУКТ 4607123456789 С ПОЛКИ 2"
-    ],
-    "parameters": [
-      {"name": "штрихкод_продукта", "type": "integer", "required": true, "description": "Уникальный штрихкод продукта."},
-      {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки, с которой нужно удалить продукт."}
-    ]
-  },
-  {
-    "command": "ПЕРЕМЕСТИ ПРОДУКТ",
-    "description": "Перемещает продукт с одной полки на другую.",
-    "syntax": "ПЕРЕМЕСТИ ПРОДУКТ <штрихкод_продукта> С ПОЛКИ <источник_полка> НА ПОЛКУ <цель_полка>",
-    "examples": [
-      "ПЕРЕМЕСТИ ПРОДУКТ 1234567890123 С ПОЛКИ 1 НА ПОЛКУ 3"
-    ],
-    "parameters": [
-      {"name": "штрихкод_продукта", "type": "integer", "required": true, "description": "Уникальный штрихкод продукта."},
-      {"name": "источник_полка", "type": "integer", "required": true, "description": "Номер полки, с которой перемещается продукт."},
-      {"name": "цель_полка", "type": "integer", "required": true, "description": "Номер полки, на которую перемещается продукт."}
     ]
   }
 ]
@@ -219,155 +133,84 @@ def fill_free_space_on_shelf(parameters, reply, planogram):
     else:
         reply.message = f"Не найдена категория {category_name} или рабочий стеллаж."
 
-def shelf_constrain(parameters, reply, planogram_data):
-    category_name = parameters.get('название_категории', parameters.get('название_категории_бренда', None))
-    shelf_number = parameters['номер_полки']
-    brand_name = parameters.get('название_бренда', None)
-
-    shelf_unit_id = planogram_data['shelf_unit_id']
-    
-    brand = None
-    if brand_name:
-        brand = BrandDAO.get_one(B(name=brand_name))
-        if not brand:
-            reply.message = f"Не найден бренд {brand_name}."
-            return
-
-    category = CategoryDAO.get_one(Cat(name=category_name))
-    if category and shelf_unit_id:
-        shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
-        shelf = shelf_unit.get_shelf_by_number(shelf_number)
-        if shelf:
-            reply.message = f'{category.name}, {brand.name if brand else None}, {shelf_number}'
-        else:
-            reply.message = f"Не найдена полка {shelf_number}"
-    else:
-        reply.message = f"Не найдена категория {category_name} или рабочий стеллаж."
-
-def place_product(parameters, reply, planogram):
-    barcode = parameters['штрихкод_товара']
-    shelf_number = parameters['номер_полки']
-    facings_count = parameters['количество_фейсингов'] if parameters['количество_фейсингов'] else 1
-
-    shelf_unit_id = planogram['shelf_unit_id']
-    
-    if shelf_unit_id:
-        shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
-        shelf = shelf_unit.get_shelf_by_number(shelf_number)
-        if shelf:
-            product = ProductDAO.get_one(P(barcode=barcode))
-            if product and product.category.name in get_all_categories_for_shelf(reply, shelf_number, shelf.id) and product.height <= shelf.height:
-                total_placed = 0
-
-                max_position_on_shelf = 0
-                products_on_shelf_depths = []
-                pps = []
-
-                for pp in planogram['placed_products']:
-                    pproduct = ProductDAO.get_by_id(pp['product_id'])
-                    pps.append({
-                        'shelf_id': pp['shelf_id'],
-                        'product_id': pproduct.id,
-                        'position': pp['position'],
-                        'product': pproduct.to_dict()
-                    })
-                    if pp['shelf_id'] == shelf.id:
-                        products_on_shelf_depths.append(pproduct.depth + 0.5)
-                        if pp['position'] > max_position_on_shelf:
-                            max_position_on_shelf = pp['position']
-
-                # free_length = shelf.length - sum(products_on_shelf_depths)                    # 0.5
-                while can_place_product(product, reply, shelf_number, shelf.id, shelf.length, pps) and facings_count > 0:                 # BUG ВЕС
-                    max_position_on_shelf += 1
-                    # free_length -= product.depth + 0.5                                        # 0.5
-                    facings_count -= 1
-                    total_placed += 1
-                    pps.append({
-                        'shelf_id': shelf.id,
-                        'product_id': product.id,
-                        'position': max_position_on_shelf,
-                        'product': product.to_dict()
-                    })
-                reply.data = planogram_data(planogram['id'], 'Пример', shelf_unit, pps)
-                reply.message = f'Установлено {total_placed} фейсингов исходя из свободного места для категории "{product.category_brand_placement.category.name}" на полке'
-                # BUG Размер расстояния между товарами неизвестен, надо как-то его инициализировать (пока берётся 0.5)
-            else:
-                reply.message = f'Не найден указанный товар {barcode}, товар не подходит по высоте или категория товара не может размещаться на полке'
-                reply.data = None
-        else:
-            reply.message = f"Не найдена полка {shelf_number}"
-    else:
-        reply.message = f"Не найден рабочий стеллаж."
-
-def place_category(parameters, reply, planogram):
-    category_name = parameters['название_категории']
-    shelf_number = parameters['номер_полки']
-    share = parameters.get('доля_процентов', 100)
-    min_weight = parameters.get('минимальный_вес', 0)
-    max_weight = parameters.get('максимальный_вес', float('inf'))
-
-    shelf_unit_id = planogram['shelf_unit_id']
-     
-    category = CategoryDAO.get_one(Cat(name=category_name))
-    if category and shelf_unit_id:
-        shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
-        shelf = shelf_unit.get_shelf_by_number(shelf_number)
-        if shelf and check_total_percentage(category_name, share, reply, shelf_number, shelf.id):
-            reply.message = f'Категория {category_name} добавлена к правилам полки'
-
-            c_rule = category_rule(category_name, category.id, share, min_weight if min_weight else None, max_weight if max_weight else None)
-
-            reply.rules.delete_category_rule(shelf_number, shelf.id, c_rule)
-            reply.rules.add_category_rule(shelf_number, shelf.id, c_rule)
-        else:
-            if not shelf:
-              reply.message = f"Не найдена полка {shelf_number} или нет доступного  свободного пространства."
-            else:
-              reply.message = f"Без учёта указанной категории доступно {get_free_percentage(category_name, reply, shelf_number, shelf.id)}%"
-              reply.data = None
-    else:
-        reply.message = f"Не найдена категория {category_name} или рабочий стеллаж."
-        
-def place_shelf_unit(parameters, reply):
+#INFO Меняет стеллаж и обнуляет правила
+def place_shelf_unit_handler(parameters):
+    """Устанавливает стеллаж. В случае успеха возвращает новый planogram_data."""
     shelf_unit_number = parameters['номер_стеллажа']
     shelf_unit = ShelfUnitDAO.get_one(SU(shelf_unit_number=shelf_unit_number))
 
-    if shelf_unit:
-        reply.message = f"Стеллаж {shelf_unit_number} установлен."
-        reply.data = planogram_data(shelf_unit=shelf_unit)
-        reply.rules = rules_data()
-    else:
-        reply.message = f"Стеллаж с номером {shelf_unit_number} не найден."
+    if not shelf_unit:
+        raise CommandError(f"Стеллаж с номером {shelf_unit_number} не найден.")
+    
+    new_planogram = planogram_data(shelf_unit=shelf_unit)
+    success_message = f"Стеллаж {shelf_unit_number} установлен. Все предыдущие правила и расстановка сброшены."
+    return success_message, new_planogram, rules_data()
 
-def define_shelf_rules(parameters, reply, planogram):
-    """
-    Обрабатывает команду 'ОПРЕДЕЛИ ПРАВИЛА ДЛЯ ПОЛКИ'.
-    """
+#INFO Перебивает текущие рправила для категории и заменяет их
+def place_category_handler(parameters, current_rules: rules_data, planogram: dict):
+    """Добавляет правило для категории. Возвращает измененные правила."""
+    category_name = parameters['название_категории']
+    shelf_number = parameters['номер_полки']
+    share = parameters.get('доля_процентов')
+    min_weight = parameters.get('минимальный_вес')
+    max_weight = parameters.get('максимальный_вес')
+    shelf_unit_id = planogram.get('shelf_unit_id')
+
+    if not shelf_unit_id:
+        raise CommandError("Сначала нужно установить стеллаж командой 'УСТАНОВИ СТЕЛЛАЖ' или при помощи графического интерфейса.")
+
+    category = CategoryDAO.get_one(Cat(name=category_name))
+    if not category:
+        raise CommandError(f"Категория '{category_name}' не найдена.")
+
+    shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
+    shelf = shelf_unit.get_shelf_by_number(shelf_number)
+    if not shelf:
+        raise CommandError(f"Полка с номером {shelf_number} не найдена на текущем стеллаже.")
+
+    if share is not None and not check_total_percentage(category_name, share, current_rules, shelf_number, shelf.id):
+        free_percentage = get_free_percentage(category_name, current_rules, shelf_number, shelf.id)
+        raise CommandError(f"Невозможно выделить {share}% для категории '{category_name}'. "
+                         f"Сумма процентов превысит 100%. Доступно: {free_percentage}%.")
+
+    c_rule = category_rule(
+        category_name, 
+        category.id, 
+        share, 
+        min_weight if min_weight is not None else None, 
+        max_weight if max_weight is not None else None
+    )
+
+    current_rules.delete_category_rule(shelf_number, shelf.id, c_rule)
+    current_rules.add_category_rule(shelf_number, shelf.id, c_rule)
+    
+    success_message = f"Правило для категории '{category_name}' на полке №{shelf_number} успешно добавлено/обновлено."
+    return success_message, current_rules
+
+#INFO Заменяет все правила (категории) для полки на указанные
+def define_shelf_rules_handler(parameters, current_rules: rules_data, planogram: dict):
+    """Полностью определяет правила для одной полки."""
     shelf_number = parameters['номер_полки']
     category_rules_payload = parameters['правила_категорий']
-    print(len(category_rules_payload))
-
     shelf_unit_id = planogram.get('shelf_unit_id')
+    
     if not shelf_unit_id:
-        reply.message = "Ошибка: Сначала необходимо установить стеллаж с помощью команды 'УСТАНОВИ СТЕЛЛАЖ'."
-        return
+        raise CommandError("Ошибка: Сначала необходимо установить стеллаж.")
         
     shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
     if not shelf_unit:
-        reply.message = f"Ошибка: Стеллаж с ID {shelf_unit_id} не найден в базе данных."
-        return
+        raise CommandError(f"Ошибка: Стеллаж не найден в базе данных.")
 
     shelf = shelf_unit.get_shelf_by_number(shelf_number)
     if not shelf:
-        reply.message = f"Ошибка: Полка с номером {shelf_number} не найдена в стеллаже {shelf_unit.shelf_unit_number}."
-        return
+        raise CommandError(f"Ошибка: Полка с номером {shelf_number} не найдена на стеллаже {shelf_unit.shelf_unit_number}.")
 
     new_category_rules = []
     errors = []
-    total_percentage = sum(rule['percentage'] for rule in category_rules_payload)
+    total_percentage = sum(rule.get('percentage', 0) or 0 for rule in category_rules_payload)
 
     if total_percentage > 100:
-        errors.append(f"Сумма процентов ({total_percentage}%) превышает 100%.")
+        errors.append(f"Сумма процентов ({total_percentage}%) не может превышать 100%.")
 
     for rule_payload in category_rules_payload:
         category = CategoryDAO.get_one(Cat(name=rule_payload['categoryName']))
@@ -375,55 +218,101 @@ def define_shelf_rules(parameters, reply, planogram):
             errors.append(f"Категория '{rule_payload['categoryName']}' не найдена.")
             continue
         
+        if rule_payload.get('percentage') is None:
+            errors.append(f"Для категории '{rule_payload['categoryName']}' не указан процент.")
+            continue
+
         new_rule = category_rule(
-            category_name=category.name,
-            category_id=category.id,
+            category_name=category.name, category_id=category.id,
             percentage=rule_payload['percentage'],
-            min_weight=rule_payload['minWeight'],
-            max_weight=rule_payload['maxWeight']
+            min_weight=rule_payload.get('minWeight'),
+            max_weight=rule_payload.get('maxWeight')
         )
         new_category_rules.append(new_rule)
         
     if errors:
-        reply.message = "Не удалось применить правила. Ошибки: " + "; ".join(errors)
-        return
+        raise CommandError("Не удалось применить правила. Ошибки:\n" + ";\n ".join(errors))
 
-    reply.rules.set_rules_for_shelf(shelf.shelf_number, shelf.id, new_category_rules)
+    current_rules.set_rules_for_shelf(shelf.shelf_number, shelf.id, new_category_rules)
     
-    reply.message = f"Правила для полки №{shelf_number} успешно обновлены. Всего правил: {len(new_category_rules)}."
+    success_message = f"Правила для полки №{shelf_number} успешно обновлены. Всего правил: {len(new_category_rules)}."
+    return success_message, current_rules
 
-def parse_command(command: str):
-    parsed_result = parser.parse(command)
+#INFO Добавляет новое правило / Изменяет процентаж уже существующего правила
+def fill_free_space_handler(parameters, current_rules: rules_data, planogram: dict):
+    """
+    Находит существующее правило для категории и добавляет к его проценту все оставшееся место.
+    Если правила нет, создает новое.
+    """
+    category_name = parameters['название_категории']
+    shelf_number = parameters['номер_полки']
+    shelf_unit_id = planogram.get('shelf_unit_id') if isinstance(planogram, dict) else getattr(planogram, 'id', None)
 
-    if "error" in parsed_result:
-        raise Exception(f"Ошибка разбора команды: {parsed_result['error']}")
+    if not shelf_unit_id:
+        raise CommandError("Сначала нужно установить стеллаж.")
 
-    return parsed_result['command'], parsed_result['parameters']
+    category = CategoryDAO.get_one(Cat(name=category_name))
+    if not category:
+        raise CommandError(f"Категория '{category_name}' не найдена.")
 
-def commands_handler(user_message: str, planogram_data, rules) -> server_message:
-    try:
-        command_name, parameters = parse_command(user_message)
-    except Exception as e:
-        if "command" in e.args[0] and e.args[0]["command"] == "ОПРЕДЕЛИ ПРАВИЛА ДЛЯ ПОЛКИ":
-            command_name = e.args[0]["command"]
-            parameters = e.args[0]["parameters"]
+    shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
+    shelf = shelf_unit.get_shelf_by_number(shelf_number)
+    if not shelf:
+        raise CommandError(f"Полка с номером {shelf_number} не найдена на текущем стеллаже.")
+
+    free_share = get_free_percentage(category_name, current_rules, shelf_number, shelf.id)
+
+    if free_share <= 0:
+        raise CommandError(f"На полке №{shelf_number} нет свободного места для заполнения.")
         
-        return server_message(message=f"Ошибка: {e}", rules = rules_data.from_dict(rules))
+    existing_rule = current_rules.get_category_rule_on_shelf(shelf_number, category.id)
 
-    reply = server_message()
-    reply.rules = rules_data.from_dict(rules)
+    if existing_rule:
+        current_percentage = existing_rule.percentage if existing_rule.percentage is not None else 0
+        new_percentage = current_percentage + free_share
+        
+        existing_rule.percentage = min(new_percentage, 100.0)
 
-    if command_name == "УСТАНОВИ СТЕЛЛАЖ": ### стирает правила
-        place_shelf_unit(parameters, reply)
-    elif command_name == "РАЗМЕСТИ КАТЕГОРИЮ": ### изменяет правила (добавляет категорию к полке), коллизия правил с процентом размещения
-        place_category(parameters, reply, planogram_data)
-    elif command_name == "РАЗМЕСТИ ТОВАР": ### коллизия правил для процента занимаемого места товарами категории, коллизия с отсутствием категории товара на полке 
-        place_product(parameters, reply, planogram_data)
-    elif command_name == "ОГРАНИЧЬ ПОЛКУ": #
-        shelf_constrain(parameters, reply, planogram_data)
-    elif command_name == "ОПРЕДЕЛИ ПРАВИЛА ДЛЯ ПОЛКИ":
-        define_shelf_rules(parameters, reply, planogram_data)
-    elif command_name == "ЗАПОЛНИ ОСТАТОК ПОЛКИ": ### изменяет правила (добавляет категорию или процент к ней) ------------------
-        fill_free_space_on_shelf(parameters, reply, planogram_data)
+        success_message = (f"Для категории '{category_name}' на полке №{shelf_number} выделено дополнительное место. "
+                         f"Итоговый процент: {existing_rule.percentage:.2f}%.")
+    else:
+        c_rule = category_rule(category.name, category.id, free_share)
+        current_rules.add_category_rule(shelf_number, shelf.id, c_rule)
+        
+        success_message = f"Категории '{category_name}' выделено оставшееся место на полке №{shelf_number} ({free_share:.2f}%)."
+        
+    
+    return success_message, current_rules
 
-    return reply
+
+def commands_handler(user_message: str, planogram_dict: dict, rules_dict: dict) -> server_message:
+    """
+    Главный обработчик команд.
+    """
+    try:
+        command_name, parameters = parser.parse(user_message)
+    except ParsingError as e:
+        raise CommandError(str(e))
+
+    current_rules = rules_data.from_dict(rules_dict)
+    
+    planogram_to_return = planogram_dict
+    rules_to_return = current_rules
+    message_to_return = ""
+
+    if command_name.upper() == "УСТАНОВИ СТЕЛЛАЖ":
+        message_to_return, planogram_to_return, rules_to_return = place_shelf_unit_handler(parameters)
+    elif command_name.upper() == "РАЗМЕСТИ КАТЕГОРИЮ":
+        message_to_return, rules_to_return = place_category_handler(parameters, current_rules, planogram_dict)
+    elif command_name.upper() == "ОПРЕДЕЛИ ПРАВИЛА ДЛЯ ПОЛКИ":
+        message_to_return, rules_to_return = define_shelf_rules_handler(parameters, current_rules, planogram_dict)
+    elif command_name.upper() == "ЗАПОЛНИ ОСТАТОК ПОЛКИ":
+        message_to_return, rules_to_return = fill_free_space_handler(parameters, current_rules, planogram_dict)
+    else:
+        raise CommandError(f"Команда '{command_name}' распознана, но ее обработка пока не реализована.")
+
+    return server_message(
+        message=message_to_return,
+        data=planogram_to_return,
+        rules=rules_to_return
+    )

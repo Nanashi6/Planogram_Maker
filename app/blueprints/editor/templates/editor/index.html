@@ -1157,7 +1157,7 @@
 
 
         
-        // --- Save JSON ---
+        // --- Save JSON --- # FIXME Отображать в xlsx 
         function collectFullPlanogramDataForDownload() {
             if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
                 console.warn("Стеллаж не выбран или не загружен для скачивания.");
@@ -1351,7 +1351,7 @@
             if (placeholder) placeholder.remove();
 
             const ruleRow = document.createElement('div');
-            ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded';
+            ruleRow.className = 'category-rule-row row g-2 mb-2 align-items-center p-1 bg-light rounded d-flex flex-column';
 
             let categoryOptions = '<option value="">Выберите категорию...</option>';
             availableCategoriesCache.forEach(cat => {
@@ -1359,31 +1359,37 @@
             });
 
             ruleRow.innerHTML = `
-                <div class="col-md-3">
+                <div class="">
                     <select class="form-select form-select-sm category-select">
                         ${categoryOptions}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage ? ruleData.percentage : '' : ''}">
+                <div class='align-items-center p-1 bg-light rounded d-flex flex-row'>
+                    <div class="col-md-3">
+                        <input type="number" class="form-control form-control-sm percentage-input" placeholder="%" min="1" max="100" value="${ruleData ? ruleData.percentage ? ruleData.percentage : '' : ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (kg)" min="0" value="${ruleData ? ruleData.min_weight ? ruleData.min_weight : '' : ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (kg)" min="0" value="${ruleData ? ruleData.max_weight ? ruleData.max_weight : '' : ''}">
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button class="btn btn-danger btn-sm remove-category-rule-btn">×</button>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm min-weight-input" placeholder="Min W (kg)" min="0" value="${ruleData ? ruleData.min_weight ? ruleData.min_weight : '' : ''}">
-                </div>
-                <div class="col-md-3">
-                    <input type="number" class="form-control form-control-sm max-weight-input" placeholder="Max W (kg)" min="0" value="${ruleData ? ruleData.max_weight ? ruleData.max_weight : '' : ''}">
-                </div>
-                <div class="col-md-1 text-end">
-                    <button class="btn btn-danger btn-sm remove-category-rule-btn">×</button>
-                </div>
+                
+                <!-- Добавленная горизонтальная линия -->
+                <hr class="my-2">
             `;
+
             categoryRulesList.appendChild(ruleRow);
 
             ruleRow.querySelector('.remove-category-rule-btn').addEventListener('click', function() {
                 ruleRow.remove();
-                // Если все строки удалены, можно вернуть плейсхолдер
+                // Если все строки удалены, возвращаем плейсхолдер
                 if (categoryRulesList.children.length === 0) {
-                    categoryRulesList.innerHTML = '<p class="text-muted small">No category rules defined for this shelf yet.</p>';
+                    categoryRulesList.innerHTML = '<p class="text-muted small">Не найдено правил размещения категорий для полки.</p>';
                 }
             });
         }
@@ -1420,70 +1426,41 @@
         function updateRulesUI(rulesData) {
             const global_rules = rulesData.global_rules || rulesData.global;
             if (global_rules) {
-                // 1. Установка значения для "Sort Brands By"
-                if (global_rules.brand_sort_by !== undefined) {
-                    // Проверяем, существует ли такая опция в select
-                    if (Array.from(brandSortSelect.options).some(option => option.value === global_rules.brand_sort_by)) {
-                        brandSortSelect.value = global_rules.brand_sort_by;
-                    } else {
-                        console.warn(`Value "${global_rules.brand_sort_by}" not found in brandSortSelect options. Select not changed.`);
-                        if (brandSortSelect.options.length > 0) brandSortSelect.selectedIndex = 0; // Сброс на первую опцию
-                    }
-                } else {
-                    console.warn("'brand_sort_by' is undefined in global_rules. Brand sort select will not be set.");
-                    // Можно сбросить к дефолту, если нужно
-                    // if (brandSortSelect.options.length > 0) brandSortSelect.selectedIndex = 0;
-                }
-
-                // 2. Установка значения для "Sort Products By"
-                if (global_rules.product_sort_by !== undefined) {
-                    if (Array.from(productSortSelect.options).some(option => option.value === global_rules.product_sort_by)) {
-                        productSortSelect.value = global_rules.product_sort_by;
-                    } else {
-                        console.warn(`Value "${global_rules.product_sort_by}" not found in productSortSelect options. Select not changed.`);
-                        if (productSortSelect.options.length > 0) productSortSelect.selectedIndex = 0; // Сброс на первую опцию
-                    }
-                } else {
-                    console.warn("'product_sort_by' is undefined in global_rules. Product sort select will not be set.");
-                    // if (productSortSelect.options.length > 0) productSortSelect.selectedIndex = 0;
-                }
-
-                // 3. Установка значения для "Default Product Spacing (cm)"
-                // Ваш JSON использует "spacing", а input ожидает числовое значение.
-                // В HTML у вас стоит id="product-spacing-input"
-                if (global_rules.spacing !== undefined && global_rules.spacing !== null) {
-                    const spacingValue = parseFloat(global_rules.spacing);
-                    if (!isNaN(spacingValue)) {
-                        productSpacingInput.value = spacingValue;
-                    } else {
-                        console.warn(`Invalid value for 'spacing': "${global_rules.spacing}". Could not parse as float. Input not changed.`);
-                        // productSpacingInput.value = 0.5; // Можно установить дефолт
-                    }
-                } else {
-                    console.warn("'spacing' is undefined or null in global_rules. Product spacing input will not be set.");
-                    // productSpacingInput.value = 0.5; // Можно установить дефолт
-                }
+                if (global_rules.brand_sort_by !== undefined) brandSortSelect.value = global_rules.brand_sort_by;
+                if (global_rules.product_sort_by !== undefined) productSortSelect.value = global_rules.product_sort_by;
+                if (global_rules.spacing !== undefined) productSpacingInput.value = parseFloat(global_rules.spacing);
             } 
-            else {
-                // Если global_rules не предоставлен (например, null), сбрасываем к дефолтным значениям
-                console.warn("updateGlobalRulesUI called with no or invalid data. Resetting global rules UI to defaults.");
-                setDefaultGlobalRules();
-            }
 
-            const shelves_rules = rulesData.shelves_rules
+            const allRuleLists = shelfSpecificRulesContainer.querySelectorAll('.category-rules-list');
+            allRuleLists.forEach(list => {
+                list.innerHTML = '<p class="text-muted small">Не найдено правил размещения категорий для полки.</p>';
+            });
+
+            const shelves_rules = rulesData.shelves_rules;
             if (shelves_rules) {
-                shelves_rules.forEach(rule => {
-                    const shelfId = rule.shelf_id;
-                    const a = document.getElementById(`category-rules-shelf-` + shelfId);
-                    if (a) { a.innerHTML = ''; }
-                    rule.category_rules.forEach(cr => {
-                        addCategoryRuleRow("shelf-" + shelfId, cr);
-                    });
+                shelves_rules.forEach(shelfRule => {
+                    const shelfId = shelfRule.shelf_id;
+                    const shelfSelectorId = `shelf-${shelfId}`;
+                    
+                    const categoryRulesList = document.getElementById(`category-rules-${shelfSelectorId}`);
+                    
+                    if (categoryRulesList) {
+                        categoryRulesList.innerHTML = '';
+                        
+                        shelfRule.category_rules.forEach(cr => {
+                            addCategoryRuleRow(shelfSelectorId, cr);
+                        });
+
+                        if (categoryRulesList.children.length === 0) {
+                            categoryRulesList.innerHTML = '<p class="text-muted small">Не найдено правил размещения категорий для полки.</p>';
+                        }
+                    }
                 });
             }
         }
 
         function collectAllRulesData() {
+            // Сбор глобальных правил
             const globalRules = {
                 brandSortBy: brandSortSelect.value,
                 productSortBy: productSortSelect.value,
@@ -1497,17 +1474,24 @@
                 const shelfDbId = shelfItem.dataset.shelfDbId;
                 const shelfNumber = shelfItem.dataset.shelfNumber;
                 const categoryAllocations = [];
-
-                shelfItem.querySelectorAll('.category-rule-row').forEach(row => {
+                const categoryRuleRows = shelfItem.querySelectorAll('.category-rule-row');
+                
+                categoryRuleRows.forEach(row => {
                     const categorySelect = row.querySelector('.category-select');
                     const percentageInput = row.querySelector('.percentage-input');
                     const minWeightInput = row.querySelector('.min-weight-input');
                     const maxWeightInput = row.querySelector('.max-weight-input');
 
-                    if (categorySelect.value) { // Только если категория выбрана
+                    if (!categorySelect || !percentageInput || !minWeightInput || !maxWeightInput) {
+                        console.warn("Не удалось найти все элементы ввода в строке правила.", row);
+                        return;
+                    }
+
+                    // Обрабатываем данные только если категория выбрана
+                    if (categorySelect.value) { 
                         categoryAllocations.push({
                             categoryId: parseInt(categorySelect.value),
-                            categoryName: categorySelect.options[categorySelect.selectedIndex].text, // для отладки
+                            categoryName: categorySelect.options[categorySelect.selectedIndex].text,
                             percentage: parseFloat(percentageInput.value) || null,
                             minWeight: minWeightInput.value ? parseFloat(minWeightInput.value) : null,
                             maxWeight: maxWeightInput.value ? parseFloat(maxWeightInput.value) : null,
@@ -1515,10 +1499,10 @@
                     }
                 });
                 
-                if (categoryAllocations.length > 0) { // Добавляем полку только если для нее есть правила
+                if (categoryAllocations.length > 0) {
                     shelfRules.push({
                         shelfDbId: parseInt(shelfDbId),
-                        shelfNumber: parseInt(shelfNumber), // для отладки
+                        shelfNumber: parseInt(shelfNumber),
                         categoryAllocations: categoryAllocations,
                     });
                 }

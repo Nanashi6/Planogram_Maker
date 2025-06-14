@@ -4,8 +4,8 @@ from flask import Blueprint, render_template, jsonify, request
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO, RuleDAO, ShelfRuleDAO, CategoryRuleDAO, CategoryDAO
 from DataLayer.shemas import Planogram, PlacedProduct, Category, Rule, ShelfRule, CategoryRule
 from DataLayer.enums import *
-from app.blueprints.editor.exceptions import AutoPlacementError
-from .models import rules_data
+from app.blueprints.editor.exceptions import AutoPlacementError, CommandError
+from .models import rules_data, server_message
 from .commands_handlers import commands_handler
 from .auto_placement import calculate_auto_placement
 
@@ -182,25 +182,34 @@ async def message_handle():
         
         user_message = data.get('message')
         planogram_data = data.get('planogram')
-        rules = data.get('rules')
+        rules_data_dict = data.get('rules') 
 
-        if user_message is None:
-            return jsonify({"message": "Ошибка: Ключ 'message' отсутствует в JSON."}), 400
-        if not isinstance(user_message, str):
-            return jsonify({"message": "Ошибка: Значение 'message' должно быть строкой."}), 400
+        if not user_message:
+            return jsonify({"message": "Ошибка: Ключ 'message' отсутствует или пуст."}), 400
+        
+        success_response_message = commands_handler(user_message, planogram_data, rules_data_dict)
+        return jsonify(success_response_message.to_json()), 200
 
-        message = commands_handler(user_message, planogram_data, rules)
-
-        return message.to_json(), 200
+    except CommandError as e:
+        print(f"Command Error: {e}")
+        error_response = server_message(
+            message=str(e),
+            data=data.get('planogram'),
+            rules=rules_data.from_dict(data.get('rules')) 
+        )
+        return jsonify(error_response.to_json()), 200
 
     except Exception as e:
         import traceback
         print("Critical error in /chat_message endpoint:")
         print(e)
         traceback.print_exc()
-        return jsonify({
-            "message": "Внутренняя ошибка сервера при обработке сообщения."
-        }), 200
+        critical_error_response = server_message(
+            message="Внутренняя ошибка сервера. Не удалось обработать команду.",
+            data=request.get_json().get('planogram'),
+            rules=rules_data.from_dict(request.get_json().get('rules'))
+        )
+        return jsonify(critical_error_response.to_json()), 200
 
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 def calculate_auto_placement_route():
