@@ -115,6 +115,24 @@ class CommandParser:
                     re.IGNORECASE | re.UNICODE
                 )
 
+            elif command_name == "СОРТИРОВКА БРЕНДОВ":
+                cmd_def['regex'] = re.compile(
+                    r"^СОРТИРОВКА\s+БРЕНДОВ\s+'(?P<тип_сортировки>[^']+)'$",
+                    re.IGNORECASE | re.UNICODE
+                )
+
+            elif command_name == "СОРТИРОВКА ТОВАРОВ":
+                cmd_def['regex'] = re.compile(
+                    r"^СОРТИРОВКА\s+ТОВАРОВ\s+'(?P<тип_сортировки>[^']+)'$",
+                    re.IGNORECASE | re.UNICODE
+                )
+
+            elif command_name == "ГОРИЗОНТАЛЬНЫЙ ПРОМЕЖУТОК МЕЖДУ ТОВАРАМИ":
+                cmd_def['regex'] = re.compile(
+                    r"^\s*ГОРИЗОНТАЛЬНЫЙ\s+ПРОМЕЖУТОК\s+МЕЖДУ\s+ТОВАРАМИ\s+(?P<размер_см>\d+(?:[.,]\d+)?)\s*$",
+                    re.IGNORECASE | re.UNICODE
+                )
+
     def _parse_parameters(self, cmd_def: dict, match_object, group_names_ordered=None, param_names_from_groups_legacy=None) -> dict:
         """
         Стандартный парсер параметров.
@@ -176,7 +194,7 @@ class CommandParser:
         """
         Главный метод, который разбирает входящую текстовую команду.
         """
-        text = text.strip().upper()
+        text = text.strip()
 
         for cmd_def in self.commands_meta:
             if 'regex_variants' in cmd_def:

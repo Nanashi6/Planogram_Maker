@@ -5,6 +5,11 @@ from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO
 from DataLayer.shemas import ShelfUnit as SU, Category as Cat, Product as P, Brand as B
 from .models import category_rule, shelf_rule, rules_data
 from .check_rules import can_place_product, get_all_categories_for_shelf, check_total_percentage, get_free_percentage
+from .sort_dictionaries import *
+
+
+REVERSE_PRODUCT_SORT_MAP = {v: k for k, v in p_sort_keys.items()}
+REVERSE_BRAND_SORT_MAP = {v: k for k, v in b_sort_keys.items()}
 
 COMANDS_EXAMPLE = """
 [
@@ -102,6 +107,58 @@ COMANDS_EXAMPLE = """
     "parameters": [
       {"name": "номер_полки", "type": "integer", "required": true, "description": "Номер полки для заполнения."},
       {"name": "название_категории", "type": "string", "required": true, "description": "Название категории, товары которой будут использованы для заполнения. Должно быть в кавычках."}
+    ]
+  },
+  {
+    "command": "СОРТИРОВКА БРЕНДОВ",
+    "description": "Устанавливает глобальное правило для сортировки брендов внутри категорий.",
+    "syntax": "СОРТИРОВКА БРЕНДОВ '<тип_сортировки>'",
+    "examples": [
+      "СОРТИРОВКА БРЕНДОВ 'Название бренда (А-Я)'",
+      "СОРТИРОВКА БРЕНДОВ 'Рейтинг бренда (по убыванию)'"
+    ],
+    "parameters": [
+      {
+        "name": "тип_сортировки", 
+        "type": "string", 
+        "required": true, 
+        "description": "Тип сортировки для брендов. Должен быть в кавычках и соответствовать одному из доступных вариантов."
+      }
+    ]
+  },
+  {
+    "command": "СОРТИРОВКА ТОВАРОВ",
+    "description": "Устанавливает глобальное правило для сортировки товаров внутри брендов.",
+    "syntax": "СОРТИРОВКА ТОВАРОВ '<тип_сортировки>'",
+    "examples": [
+      "СОРТИРОВКА ТОВАРОВ 'Цена по возрастанию'",
+      "СОРТИРОВКА ТОВАРОВ 'Название (А-Я)'"
+    ],
+    "parameters": [
+      {
+        "name": "тип_сортировки", 
+        "type": "string", 
+        "required": true, 
+        "description": "Тип сортировки для товаров. Должен быть в кавычках и соответствовать одному из доступных вариантов."
+      }
+    ]
+  },
+  {
+    "command": "ГОРИЗОНТАЛЬНЫЙ ПРОМЕЖУТОК МЕЖДУ ТОВАРАМИ",
+    "description": "Устанавливает глобальное правило для стандартного отступа между продуктами на полке.",
+    "syntax": "ГОРИЗОНТАЛЬНЫЙ ПРОМЕЖУТОК МЕЖДУ ТОВАРАМИ <размер_см>",
+    "examples": [
+      "ГОРИЗОНТАЛЬНЫЙ ПРОМЕЖУТОК МЕЖДУ ТОВАРАМИ 0.5",
+      "ГОРИЗОНТАЛЬНЫЙ ПРОМЕЖУТОК МЕЖДУ ТОВАРАМИ 2"
+    ],
+    "parameters": [
+      {
+        "name": "размер_см", 
+        "type": "float", 
+        "required": true,
+        "min": 0,
+        "description": "Размер отступа между товарами в сантиметрах. Может быть целым или дробным числом."
+      }
     ]
   }
 ]
@@ -284,6 +341,54 @@ def fill_free_space_handler(parameters, current_rules: rules_data, planogram: di
     
     return success_message, current_rules
 
+#INFO Заменяет правило сортировки брендов на новое
+def set_brand_sorting_handler(parameters, current_rules: rules_data):
+    """Устанавливает глобальное правило сортировки для брендов."""
+    sort_type_str = parameters['тип_сортировки']
+    
+    if sort_type_str not in REVERSE_BRAND_SORT_MAP:
+        available_options = ",\n- ".join(f"'{opt}'" for opt in REVERSE_BRAND_SORT_MAP.keys())
+        raise CommandError(
+            f"Неверный тип сортировки: '{sort_type_str}'.\n"
+            f"Доступные варианты для брендов:\n- {available_options}"
+        )
+        
+    sort_enum_value = REVERSE_BRAND_SORT_MAP[sort_type_str]
+    current_rules.brand_sort = sort_enum_value.value
+    
+    success_message = f"Правило сортировки брендов установлено на: '{sort_type_str}'."
+    return success_message, current_rules
+
+#INFO Заменяет правило сортировки товаров на новое
+def set_product_sorting_handler(parameters, current_rules: rules_data):
+    """Устанавливает глобальное правило сортировки для товаров."""
+    sort_type_str = parameters['тип_сортировки']
+    
+    if sort_type_str not in REVERSE_PRODUCT_SORT_MAP:
+        available_options = ",\n- ".join(f"'{opt}'" for opt in REVERSE_PRODUCT_SORT_MAP.keys())
+        raise CommandError(
+            f"Неверный тип сортировки: '{sort_type_str}'.\n"
+            f"Доступные варианты для товаров:\n- {available_options}"
+        )
+        
+    sort_enum_value = REVERSE_PRODUCT_SORT_MAP[sort_type_str]
+    current_rules.product_sort = sort_enum_value.value
+    
+    success_message = f"Правило сортировки товаров установлено на: '{sort_type_str}'."
+    return success_message, current_rules
+
+#INFO Заменяет промежуток на указанный
+def set_spacing_handler(parameters, current_rules: rules_data):
+    """Устанавливает глобальное правило для отступа между товарами."""
+    spacing_size = parameters['размер_см']
+    
+    if spacing_size < 0:
+        raise CommandError("Размер промежутка не может быть отрицательным.")
+        
+    current_rules.spacing = spacing_size
+    
+    success_message = f"Горизонтальный промежуток между товарами установлен на: {spacing_size} см."
+    return success_message, current_rules
 
 def commands_handler(user_message: str, planogram_dict: dict, rules_dict: dict) -> server_message:
     """
@@ -308,6 +413,12 @@ def commands_handler(user_message: str, planogram_dict: dict, rules_dict: dict) 
         message_to_return, rules_to_return = define_shelf_rules_handler(parameters, current_rules, planogram_dict)
     elif command_name.upper() == "ЗАПОЛНИ ОСТАТОК ПОЛКИ":
         message_to_return, rules_to_return = fill_free_space_handler(parameters, current_rules, planogram_dict)
+    elif command_name.upper() == "СОРТИРОВКА БРЕНДОВ":
+        message_to_return, rules_to_return = set_brand_sorting_handler(parameters, current_rules)
+    elif command_name.upper() == "СОРТИРОВКА ТОВАРОВ":
+        message_to_return, rules_to_return = set_product_sorting_handler(parameters, current_rules)
+    elif command_name.upper() == "ГОРИЗОНТАЛЬНЫЙ ПРОМЕЖУТОК МЕЖДУ ТОВАРАМИ":
+        message_to_return, rules_to_return = set_spacing_handler(parameters, current_rules)
     else:
         raise CommandError(f"Команда '{command_name}' распознана, но ее обработка пока не реализована.")
 

@@ -8,6 +8,7 @@ from app.blueprints.editor.exceptions import AutoPlacementError, CommandError
 from .models import rules_data, server_message
 from .commands_handlers import commands_handler
 from .auto_placement import calculate_auto_placement
+from .sort_dictionaries import *
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -42,12 +43,11 @@ def enum_to_select_options(enum_class: Type[enum.Enum], custom_labels: Dict[str,
         custom_labels = {}
 
     for member in enum_class:
-        # Пытаемся создать "человекочитаемую" метку, если нет кастомной
         default_label = member.name.replace('_', ' ')
         if default_label.endswith(" Asc"):
-            default_label = f"{default_label[:-4]} (Low to High / A-Z)"
+            default_label = f"{default_label[:-4]} (По возрастанию / А-Я)"
         elif default_label.endswith(" Desc"):
-            default_label = f"{default_label[:-5]} (High to Low / Z-A)"
+            default_label = f"{default_label[:-5]} (По убыванию / Я-А)"
         
         label = custom_labels.get(member.value, default_label)
         
@@ -56,22 +56,6 @@ def enum_to_select_options(enum_class: Type[enum.Enum], custom_labels: Dict[str,
 
 @editor_bp.route('/get_sorting_rules', methods=['GET'])
 async def get_sorting_rules():
-    p_sort_keys = {
-        ProductSorting.PriceAsc:    "Цена по возрастанию",
-        ProductSorting.PriceDesc:   "Цена по убыванию",
-        ProductSorting.RatingAsc:   "Рейтинг по возрастанию",
-        ProductSorting.RatingDesc:  "Рейтинг по убыванию",
-        ProductSorting.NameAsc:     "Название (А-Я)",
-        ProductSorting.NameDesc:    "Название (Я-А)",
-    }
-
-    b_sort_keys = {
-        BrandSorting.NameAsc:    "Название бренда (А-Я)",
-        BrandSorting.NameDesc:   "Название бренда (Я-А)",
-        BrandSorting.RatingAsc:  "Рейтинг бренда (по возрастанию)",
-        BrandSorting.RatingDesc: "Рейтинг бренда (по убыванию)",
-    }
-
     brand_sorting_options = enum_to_select_options(BrandSorting, b_sort_keys)
     product_sorting_options = enum_to_select_options(ProductSorting, p_sort_keys)
 
