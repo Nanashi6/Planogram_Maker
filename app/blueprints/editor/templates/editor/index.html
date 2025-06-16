@@ -296,10 +296,10 @@
                     <div id="chat-messages-container" style="height: calc(94.95vh - 100px); overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background-color: #fff;">
                         <!-- Сообщения будут здесь -->
                     </div>
-                    <div class="input-group">
-                        <textarea id="chat-input" class="form-control form-control-sm" placeholder="Введите ваше сообщение... (Shift+Enter для новой строки)" rows="2" style="resize: none;"></textarea>
-                        <button id="chat-send-btn" class="btn btn-primary btn-sm align-self-end">Отправить</button>
-                    </div>
+                <div class="d-flex align-items-stretch">
+                    <textarea id="chat-input" class="form-control form-control-sm flex-grow-1" placeholder="Введите ваше сообщение... (Shift+Enter для новой строки)" rows="2" style="resize: none; border-top-right-radius: 0; border-bottom-right-radius: 0;"></textarea>
+                    <button id="chat-send-btn" class="btn btn-primary btn-sm flex-shrink-0" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">Отправить</button>
+                </div>
                 </div>
             </div>
         </div>
