@@ -195,6 +195,51 @@ async def message_handle():
         )
         return jsonify(critical_error_response.to_json()), 200
 
+@editor_bp.route('/process_rules_file', methods=['POST'])
+async def process_rules_file():
+    if 'rules_file' not in request.files:
+        return jsonify({"error": "Файл не найден в запросе."}), 400
+
+    file = request.files['rules_file']
+    if file.filename == '':
+        return jsonify({"error": "Файл не выбран."}), 400
+
+    shelf_unit_id = request.form.get('shelf_unit_id', type=int)
+    if not shelf_unit_id:
+        return jsonify({"error": "Не указан ID стеллажа для применения правил."}), 400
+
+    shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
+    if not shelf_unit:
+        return jsonify({"error": f"Стеллаж с ID {shelf_unit_id} не найден."}), 404
+
+    try:
+        file_content = file.read().decode('utf-8')
+        commands = file_content.splitlines()
+
+        current_rules = rules_data()
+        current_planogram_dict = {'shelf_unit_id': shelf_unit.id, 'shelf_unit': shelf_unit.to_dict()}
+
+        for i, command_str in enumerate(commands):
+            command_str = command_str.strip()
+            if not command_str or command_str.startswith('#'):
+                continue 
+            print(command_str)
+            response_message = commands_handler(command_str, current_planogram_dict, current_rules.to_json())
+            print(current_rules.to_json())
+            current_planogram_dict = response_message.data
+            current_rules = response_message.rules
+        
+        
+        return jsonify(current_rules.to_json()), 200
+
+    except CommandError as e:
+        line_num = i + 1 if 'i' in locals() else 'N/A'
+        return jsonify({"error": f"Ошибка в файле на строке {line_num}: {e}"}), 400
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Произошла внутренняя ошибка сервера при обработке файла: {e}"}), 500
+    
 @editor_bp.route('/calculate_auto_placement', methods=['POST'])
 def calculate_auto_placement_route():
     try: 

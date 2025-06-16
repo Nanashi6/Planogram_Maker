@@ -54,11 +54,11 @@ class category_rule():
             raise TypeError("Input data for category_rule must be a dictionary.")
             
         return category_rule(
-            category_name=data.get("categoryName"),
-            category_id=data.get("categoryId"),
+            category_name=data.get("categoryName", data.get('category_name')),
+            category_id=data.get("categoryId", data.get('category_id')),
             percentage=data.get("percentage"),
-            min_weight=data.get("minWeight"),
-            max_weight=data.get("maxWeight")
+            min_weight=data.get("minWeight", data.get('min_weight')),
+            max_weight=data.get("maxWeight", data.get('max_weight'))
         )
 
 class shelf_rule():
@@ -138,7 +138,7 @@ class shelf_rule():
         if not isinstance(data, dict):
             raise TypeError("Input data for shelf_rule must be a dictionary.")
 
-        category_allocations_data = data.get("categoryAllocations", [])
+        category_allocations_data = data.get("categoryAllocations", data.get('category_rules', []))
         parsed_category_rules = []
         if isinstance(category_allocations_data, list):
             for cat_rule_data in category_allocations_data:
@@ -153,8 +153,8 @@ class shelf_rule():
             print(f"Warning: categoryAllocations is not a list, it's {type(category_allocations_data)}. No category rules loaded.")
             
         return shelf_rule(
-            shelf_id=data.get("shelfDbId"),
-            shelf_number=data.get("shelfNumber"),
+            shelf_id=data.get("shelfDbId", data.get('shelf_id')),
+            shelf_number=data.get("shelfNumber", data.get('shelf_number')),
             category_rules=parsed_category_rules
         )
 
@@ -243,12 +243,12 @@ class rules_data():
         if not isinstance(data, dict):
             raise TypeError("Input data for rules_data must be a dictionary.")
 
-        global_rules_data = data.get("global", {})
+        global_rules_data = data.get("global", data.get('global_rules', {}))
         if not isinstance(global_rules_data, dict):
             print(f"Warning: 'global' key in rules_data is not a dictionary. Using defaults.")
             global_rules_data = {}
             
-        shelves_data = data.get("shelves", [])
+        shelves_data = data.get("shelves", data.get('shelves_rules', []))
         parsed_shelves_rules = []
         if isinstance(shelves_data, list):
             for shelf_data_item in shelves_data:
@@ -265,8 +265,8 @@ class rules_data():
 
 
         return rules_data(
-            brand_sort=global_rules_data.get("brandSortBy"),
-            product_sort=global_rules_data.get("productSortBy"),
+            brand_sort=global_rules_data.get("brandSortBy", global_rules_data.get('brand_sort_by')),
+            product_sort=global_rules_data.get("productSortBy", global_rules_data.get('product_sort_by')),
             spacing=global_rules_data.get("spacing", 0.5),
             shelves_rules=parsed_shelves_rules
         )

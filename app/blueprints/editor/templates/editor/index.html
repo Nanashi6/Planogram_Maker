@@ -281,9 +281,15 @@
                     <p id="apply-rules-status" class="mt-2 text-muted small"></p>
 
                     {# Старый загрузчик файла#}
-                    <input type="file" id="rules-file-input" class="d-none" accept=".xml, .json">
-                    {# <button id="load-rules-btn" class="btn btn-info btn-sm">Загрузить правила из файла</button> #}
-                    {# <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small"></span> #}
+                    <div class="mt-3 p-2 border rounded">
+                        <h6 class="mb-2">Импорт правил из файла</h6>
+                        <div class="d-flex align-items-center">
+                            <input type="file" id="rules-file-input" class="d-none" accept=".txt, text/plain">
+                            <button id="load-rules-btn" class="btn btn-secondary btn-sm">Выбрать файл...</button>
+                            <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small">Файл не выбран</span>
+                        </div>
+                        <p id="file-upload-status" class="mt-2 text-muted small"></p>
+                    </div>
                 </div>
 
                 <div class="tab-pane fade" id="chat-vtab-pane" role="tabpanel" aria-labelledby="chat-vtab">
@@ -597,7 +603,7 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
         renderer.setClearColor(0xDDDDDD);
         renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.sortObjects = true; // Важно для renderOrder
+        renderer.sortObjects = true; // Важно для renderOrder      
 
         // Настройка ортографической камеры
         const frustumSize = 700;
@@ -1851,6 +1857,60 @@
         const loadRulesButton = document.getElementById('load-rules-btn');
         const rulesFileInput = document.getElementById('rules-file-input');
         const loadedRulesFilenameSpan = document.getElementById('loaded-rules-filename');
+        const fileUploadStatus = document.getElementById('file-upload-status');  
+
+        // Загрузка правил из файла
+        if (loadRulesButton && rulesFileInput && loadedRulesFilenameSpan) {
+            loadRulesButton.addEventListener('click', () => {
+                if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave || !currentShelfUnitDataForSave.id) {
+                     alert("Сначала выберите стеллаж. Правила применяются к конкретному стеллажу.");
+                     return;
+                }
+                rulesFileInput.click();
+            });
+
+            rulesFileInput.addEventListener('change', async (event) => {
+                if (event.target.files.length === 0) {
+                    return;
+                }
+                
+                const file = event.target.files[0];
+                loadedRulesFilenameSpan.textContent = file.name;
+                fileUploadStatus.textContent = "Обработка файла...";
+                loadRulesButton.disabled = true;
+
+                const formData = new FormData();
+                formData.append('rules_file', file);
+                formData.append('shelf_unit_id', currentShelfUnitDataForSave.id);
+
+                try {
+                    const response = await fetch('/editor/process_rules_file', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP ${response.status}: Ошибка сервера`);
+                    }
+
+                    const finalRules = await response.json();
+                    
+                    updateRulesUI(finalRules);
+                    
+                    fileUploadStatus.textContent = "Файл успешно обработан. Правила применены.";
+                    console.log("Правила из файла успешно загружены и применены:", finalRules);
+                    
+                } catch (error) {
+                    console.error("Ошибка при обработке файла правил:", error);
+                    fileUploadStatus.textContent = `Ошибка: ${error.message}`;
+                    // alert(`Ошибка при обработке файла: ${error.message}`);
+                } finally {
+                    loadRulesButton.disabled = false;
+                    rulesFileInput.value = '';
+                }
+            });
+        }
 
         if (applyRulesButton) {
             applyRulesButton.addEventListener('click', async () => {
