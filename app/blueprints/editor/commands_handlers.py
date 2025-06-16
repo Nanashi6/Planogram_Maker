@@ -1,7 +1,7 @@
 from app.blueprints.editor.exceptions import CommandError, ParsingError
 from .models import server_message, planogram_data, rules_data
 from .parser import CommandParser
-from DataLayer.dao import ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO
+from DataLayer.dao import PlanogramDAO, ShelfUnitDAO, CategoryDAO, ProductDAO, BrandDAO
 from DataLayer.shemas import ShelfUnit as SU, Category as Cat, Product as P, Brand as B
 from .models import category_rule, shelf_rule, rules_data
 from .check_rules import can_place_product, get_all_categories_for_shelf, check_total_percentage, get_free_percentage
@@ -317,7 +317,7 @@ def fill_free_space_handler(parameters, current_rules: rules_data, planogram: di
     if not shelf:
         raise CommandError(f"Полка с номером {shelf_number} не найдена на текущем стеллаже.")
 
-    free_share = get_free_percentage(category_name, current_rules, shelf_number, shelf.id)
+    free_share = get_free_percentage('', current_rules, shelf_number, shelf.id)
 
     if free_share <= 0:
         raise CommandError(f"На полке №{shelf_number} нет свободного места для заполнения.")
@@ -422,8 +422,32 @@ def commands_handler(user_message: str, planogram_dict: dict, rules_dict: dict) 
     else:
         raise CommandError(f"Команда '{command_name}' распознана, но ее обработка пока не реализована.")
 
+    if isinstance(planogram_to_return, dict) and planogram_to_return.get('shelf_unit_id') and not planogram_to_return.get('shelf_unit'):
+        shelf_unit_id = planogram_to_return.get('shelf_unit_id')
+        shelf_unit_obj = ShelfUnitDAO.get_by_id(shelf_unit_id)
+        if shelf_unit_obj:
+            planogram_to_return['shelf_unit'] = shelf_unit_obj.to_dict()
+    elif isinstance(planogram_to_return, planogram_data) and planogram_to_return.shelf_unit is None and hasattr(planogram_to_return, 'id'):
+        p_obj = PlanogramDAO.get_by_id(planogram_to_return.id)
+        if p_obj and p_obj.shelf_unit:
+            planogram_to_return.shelf_unit = p_obj.shelf_unit
+
+    final_data_to_send = planogram_to_return
+    if isinstance(planogram_to_return, dict):
+        shelf_unit_data = planogram_to_return.get('shelf_unit')
+        shelf_unit_obj = None
+        if shelf_unit_data:
+            pass
+
+        final_data_to_send = planogram_data(
+            id=planogram_to_return.get('id'),
+            name=planogram_to_return.get('name'),
+            shelf_unit=ShelfUnitDAO.get_by_id(planogram_to_return.get('shelf_unit_id')) if planogram_to_return.get('shelf_unit_id') else None,
+            placed_products=planogram_to_return.get('placed_products')
+        )
+
     return server_message(
         message=message_to_return,
-        data=planogram_to_return,
+        data=final_data_to_send,
         rules=rules_to_return
     )

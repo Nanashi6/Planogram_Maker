@@ -2048,7 +2048,7 @@
                 if (serverResponse.message) {
                     addChatMessage(serverResponse.message, false);
                     if (serverResponse.data) {
-                        handle_commands(serverResponse.data, serverResponse.rules.global_rules.spacing)
+                        // handle_commands(serverResponse.data, serverResponse.rules.global_rules.spacing)
                         updateRulesUI(serverResponse.rules)
                     }
                 } else {
