@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Dict, List, Type
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, send_file
 from DataLayer.dao import ProductDAO, ShelfUnitDAO, PlanogramDAO, PlacedProductDAO, RuleDAO, ShelfRuleDAO, CategoryRuleDAO, CategoryDAO
 from DataLayer.shemas import Planogram, PlacedProduct, Category, Rule, ShelfRule, CategoryRule
 from DataLayer.enums import *
@@ -9,6 +9,11 @@ from .models import rules_data, server_message
 from .commands_handlers import commands_handler
 from .auto_placement import calculate_auto_placement
 from .sort_dictionaries import *
+
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
 
 BASE_URL = 'editor'
 editor_bp = Blueprint(BASE_URL, __name__, static_folder='static', template_folder='templates', url_prefix=f'/{BASE_URL}')
@@ -218,15 +223,15 @@ async def process_rules_file():
 
         current_rules = rules_data()
         current_planogram_dict = {'shelf_unit_id': shelf_unit.id, 'shelf_unit': shelf_unit.to_dict()}
-
+        print(current_planogram_dict)
         for i, command_str in enumerate(commands):
             command_str = command_str.strip()
             if not command_str or command_str.startswith('#'):
                 continue 
             print(command_str)
             response_message = commands_handler(command_str, current_planogram_dict, current_rules.to_json())
-            print(current_rules.to_json())
-            current_planogram_dict = response_message.data
+            current_planogram_dict = response_message.data.to_json()
+            print(current_planogram_dict)
             current_rules = response_message.rules
         
         
@@ -267,5 +272,76 @@ def calculate_auto_placement_route():
         return jsonify({
             "message": "Внутренняя ошибка сервера. Пожалуйста, обратитесь к администратору."
         }), 500
+
+@editor_bp.route('/download_xlsx', methods=['POST'])
+def download_xlsx():
+    try:
+        planogram_data = request.get_json()
+        if not planogram_data:
+            return jsonify({"error": "No data provided"}), 400
+
+        workbook = Workbook()
+        sheet = workbook.active
+        
+        planogram_name = planogram_data.get('planogramName', 'Планограмма')
+        sheet.title = planogram_name[:31]
+
+        shelves_content = {}
+        sorted_shelves = sorted(planogram_data.get('shelves', []), key=lambda s: s.get('shelfNumber', 0))
+
+        for shelf in sorted_shelves:
+            shelf_title = f"Полка {shelf.get('shelfNumber', 'N/A')}"
+            products_on_shelf = []
+            
+            all_products = []
+            for category in shelf.get('categories', []):
+                all_products.extend(category.get('products', []))
+            
+            sorted_products = sorted(all_products, key=lambda p: p.get('positionOnShelf', 0))
+            
+            products_on_shelf = [p.get('name', 'Без названия') for p in sorted_products]
+            shelves_content[shelf_title] = products_on_shelf
+        
+        headers = list(shelves_content.keys())
+        for col_num, header_text in enumerate(headers, 1):
+            cell = sheet.cell(row=1, column=col_num, value=header_text)
+            cell.font = Font(bold=True)
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        max_rows = 0
+        if shelves_content:
+            max_rows = max(len(products) for products in shelves_content.values())
+
+        for col_num, shelf_title in enumerate(headers, 1):
+            products = shelves_content.get(shelf_title, [])
+            for row_num, product_name in enumerate(products, 2):
+                sheet.cell(row=row_num, column=col_num, value=product_name)
+
+        for col_num, _ in enumerate(headers, 1):
+            column_letter = get_column_letter(col_num)
+            max_length = 0
+            for i in range(1, max_rows + 2): 
+                cell_value = sheet.cell(row=i, column=col_num).value
+                if cell_value:
+                    max_length = max(max_length, len(str(cell_value)))
+            adjusted_width = (max_length + 2)
+            sheet.column_dimensions[column_letter].width = adjusted_width
+
+        buffer = io.BytesIO()
+        workbook.save(buffer)
+        buffer.seek(0)
+
+        filename = f"{planogram_name.replace(' ', '_')}.xlsx"
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Произошла внутренняя ошибка сервера: {str(e)}"}), 500
 
 # # TODO Учитывать доли брендов на полках

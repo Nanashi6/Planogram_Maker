@@ -236,6 +236,7 @@
                         <input type="text" id="planogram-name-input" class="form-control form-control-sm flex-grow-1" placeholder="Название планограммы">
                         <button id="save-planogram-btn" class="btn btn-primary btn-sm flex-shrink-0">Сохранить</button>
                         <button id="download-planogram-btn" class="btn btn-secondary btn-sm flex-shrink-0">Скачать JSON</button>
+                        <button id="download-xlsx-btn" class="btn btn-success btn-sm flex-shrink-0">Скачать XLSX</button> 
                     </div>
                     <div id="planogram-list" class="list-group list-group-flush small mb-3">
                         {# Элементы будут '.list-group-item list-group-item-action planogram-item' #}
@@ -595,6 +596,7 @@
         const savePlanogramButton = document.getElementById('save-planogram-btn');
         const planogramNameInput = document.getElementById('planogram-name-input');
         const downloadPlanogramButton = document.getElementById('download-planogram-btn');
+        const downloadXlsxButton = document.getElementById('download-xlsx-btn');
 
         let currentDisplayedShelfUnit = null;
         let currentPlanogramId = null;
@@ -1162,8 +1164,61 @@
         }
 
 
-        
-        // --- Save JSON --- # FIXME Отображать в xlsx 
+        // --- Save XLSX ---
+        if (downloadXlsxButton) {
+            downloadXlsxButton.addEventListener('click', async () => {
+                // Используем ту же функцию, что и для JSON, чтобы собрать данные
+                const planogramDataForExport = collectFullPlanogramDataForDownload();
+                if (!planogramDataForExport) {
+                    alert("Не удалось собрать данные для скачивания. Убедитесь, что стеллаж выбран и на нем есть товары.");
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/editor/download_xlsx', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(planogramDataForExport),
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP ${response.status}: Ошибка сервера`);
+                    }
+
+                    // Получаем имя файла из заголовков ответа
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = "planogram.xlsx"; // Имя по умолчанию
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="(.+?)"/);
+                        if (filenameMatch && filenameMatch.length > 1) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+
+                    // Получаем файл как Blob и создаем ссылку для скачивания
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+
+                } catch (error) {
+                    console.error("Ошибка при скачивании XLSX:", error);
+                    alert(`Ошибка при скачивании файла: ${error.message}`);
+                }
+            });
+        }
+        // --- Save XLSX ---
+
+        // --- Save JSON ---
         function collectFullPlanogramDataForDownload() {
             if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
                 console.warn("Стеллаж не выбран или не загружен для скачивания.");

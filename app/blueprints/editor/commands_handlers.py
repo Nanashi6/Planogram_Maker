@@ -170,7 +170,7 @@ def fill_free_space_on_shelf(parameters, reply, planogram):
     category_name = parameters['название_категории']
     shelf_number = parameters['номер_полки']
 
-    shelf_unit_id = planogram['shelf_unit_id']
+    shelf_unit_id = planogram.get('shelf_unit_id') if isinstance(planogram, dict) else getattr(planogram, 'id', None)
      
     category = CategoryDAO.get_one(Cat(name=category_name))
     if category and shelf_unit_id:
@@ -211,7 +211,7 @@ def place_category_handler(parameters, current_rules: rules_data, planogram: dic
     share = parameters.get('доля_процентов')
     min_weight = parameters.get('минимальный_вес')
     max_weight = parameters.get('максимальный_вес')
-    shelf_unit_id = planogram.get('shelf_unit_id')
+    shelf_unit_id = planogram.get('shelf_unit_id') if isinstance(planogram, dict) else getattr(planogram, 'id', None)
 
     if not shelf_unit_id:
         raise CommandError("Сначала нужно установить стеллаж командой 'УСТАНОВИ СТЕЛЛАЖ' или при помощи графического интерфейса.")
@@ -249,7 +249,7 @@ def define_shelf_rules_handler(parameters, current_rules: rules_data, planogram:
     """Полностью определяет правила для одной полки."""
     shelf_number = parameters['номер_полки']
     category_rules_payload = parameters['правила_категорий']
-    shelf_unit_id = planogram.get('shelf_unit_id')
+    shelf_unit_id = planogram.get('shelf_unit_id') if isinstance(planogram, dict) else getattr(planogram, 'id', None)
     
     if not shelf_unit_id:
         raise CommandError("Ошибка: Сначала необходимо установить стеллаж.")
