@@ -184,7 +184,8 @@ async def message_handle():
         error_response = server_message(
             message=str(e),
             data=data.get('planogram'),
-            rules=rules_data.from_dict(data.get('rules')) 
+            rules=rules_data.from_dict(data.get('rules')),
+            type=MessageTypes.Error
         )
         return jsonify(error_response.to_json()), 200
 
@@ -196,7 +197,8 @@ async def message_handle():
         critical_error_response = server_message(
             message="Внутренняя ошибка сервера. Не удалось обработать команду.",
             data=request.get_json().get('planogram'),
-            rules=rules_data.from_dict(request.get_json().get('rules'))
+            rules=rules_data.from_dict(request.get_json().get('rules')),
+            type=MessageTypes.Error
         )
         return jsonify(critical_error_response.to_json()), 200
 

@@ -38,3 +38,9 @@ class ProductSorting(str, enum.Enum):
     RatingDesc = "RatingDesc"
     NameAsc = "NameAsc"
     NameDesc = "NameDesc"
+
+class MessageTypes(str, enum.Enum):
+    Error = 'error'
+    Warning = 'warning'
+    Info = 'info'
+    Success = 'success'

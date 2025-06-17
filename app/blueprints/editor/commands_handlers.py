@@ -1,3 +1,4 @@
+from DataLayer.enums import MessageTypes
 from app.blueprints.editor.exceptions import CommandError, ParsingError
 from .models import server_message, planogram_data, rules_data
 from .parser import CommandParser
@@ -425,5 +426,6 @@ def commands_handler(user_message: str, planogram_dict: dict, rules_dict: dict) 
     return server_message(
         message=message_to_return,
         data=planogram_to_return,
-        rules=rules_to_return
+        rules=rules_to_return,
+        type=MessageTypes.Success
     )

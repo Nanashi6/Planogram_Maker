@@ -2122,7 +2122,7 @@
                 console.warn(serverResponse)
 
                 if (serverResponse.message) {
-                    addChatMessage(serverResponse.message, false);
+                    addChatMessage(serverResponse.message, false, serverResponse.type);
                     if (serverResponse.data) {
                         updateRulesUI(serverResponse.rules)
                     }

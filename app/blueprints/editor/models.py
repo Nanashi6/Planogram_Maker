@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 from DataLayer.models import ShelfUnit
-from DataLayer.enums import BrandSorting, ProductSorting
+from DataLayer.enums import BrandSorting, MessageTypes, ProductSorting
 
 class planogram_data():
     """
@@ -275,10 +275,11 @@ class server_message():
     """
     Серверное сообщение клиенту.
     """
-    def __init__(self, message = "", data: any = None, rules : rules_data = None):
+    def __init__(self, message = "", data: any = None, rules : rules_data = None, type : MessageTypes = MessageTypes.Info):
         self.message = message
         self.data = data
         self.rules = rules if rules is not None else rules_data()
+        self.type = type
 
     def to_json(self):
         """
@@ -296,5 +297,6 @@ class server_message():
         return {
             "message": self.message,
             "data": data_json,
-            "rules": rules_json
+            "rules": rules_json,
+            "type": self.type
         }
