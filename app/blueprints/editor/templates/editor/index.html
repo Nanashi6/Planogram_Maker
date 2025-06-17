@@ -172,18 +172,45 @@
         text-align: left;
     }
 
+    /* Базовый стиль для всех сообщений сервера */
     #chat-messages-container .server-message {
-        background-color: #f8f9fa; 
-        color: #212529; 
         border: 1px solid #dee2e6; 
         margin-right: auto;
         text-align: left;
     }
 
+    /* Информационное сообщение (серый, как и был) */
+    #chat-messages-container .server-message.info {
+        background-color: #f8f9fa; 
+        color: #212529; 
+        border-color: #dee2e6; 
+    }
+
+    /* Сообщение об успехе (зеленый) */
+    #chat-messages-container .server-message.success {
+        color: #0f5132;
+        background-color: #d1e7dd;
+        border-color: #badbcc;
+    }
+
+    /* Предупреждение (желтый) */
+    #chat-messages-container .server-message.warning {
+        color: #664d03;
+        background-color: #fff3cd;
+        border-color: #ffecb5;
+    }
+
+    /* Ошибка (красный) */
+    #chat-messages-container .server-message.error {
+        color: #842029;
+        background-color: #f8d7da;
+        border-color: #f5c2c7;
+    }
+
     #chat-input {
         min-height: calc(1.5em + .5rem + 2px);
     }
-    /* Стили для чата */
+    /* Конец стилей для чата */
 </style>
 {% endblock %}
 
@@ -289,7 +316,6 @@
                             <button id="load-rules-btn" class="btn btn-secondary btn-sm">Выбрать файл...</button>
                             <span id="loaded-rules-filename" class="ms-2 text-muted fst-italic small">Файл не выбран</span>
                         </div>
-                        <p id="file-upload-status" class="mt-2 text-muted small"></p>
                     </div>
                 </div>
 
@@ -1164,7 +1190,7 @@
         }
 
 
-        // --- Save XLSX ---
+        // Save XLSX
         if (downloadXlsxButton) {
             downloadXlsxButton.addEventListener('click', async () => {
                 // Используем ту же функцию, что и для JSON, чтобы собрать данные
@@ -1212,13 +1238,13 @@
 
                 } catch (error) {
                     console.error("Ошибка при скачивании XLSX:", error);
-                    alert(`Ошибка при скачивании файла: ${error.message}`);
+                    // alert(`Ошибка при скачивании файла: ${error.message}`);
                 }
             });
         }
-        // --- Save XLSX ---
+        // Save XLSX
 
-        // --- Save JSON ---
+        // Save JSON
         function collectFullPlanogramDataForDownload() {
             if (!currentDisplayedShelfUnit || !currentShelfUnitDataForSave) {
                 console.warn("Стеллаж не выбран или не загружен для скачивания.");
@@ -1326,11 +1352,11 @@
                 }
             });
         }
-        // --- Save JSON ---
+        // Save JSON
 
 
 
-        // --- Rules UI ---
+        // Rules UI
         const brandSortSelect = document.getElementById('brand-sort-select');
         const productSortSelect = document.getElementById('product-sort-select');
         const productSpacingInput = document.getElementById('product-spacing-input');
@@ -1455,14 +1481,6 @@
             });
         }
 
-        // Добавить слушатель на показ вкладки (если Bootstrap tabs)
-        /* const stackingRulesTab = document.getElementById('stackingRules-vtab');
-        if (stackingRulesTab) {
-            stackingRulesTab.addEventListener('shown.bs.tab', function () {
-                renderShelfSpecificRulesUI(); // Перерисовать при показе вкладки
-            });
-        } */
-
         function setDefaultGlobalRules() {
             if (brandSortSelect.options.length > 0) {
                 // Попытка установить значение по умолчанию, если оно есть от getSortingRules, иначе - первое
@@ -1574,7 +1592,7 @@
                 shelves: shelfRules,
             };
         }
-        // --- Rules UI ---
+        // Rules UI
 
 
         /**
@@ -1864,7 +1882,7 @@
                 
                 if(result.errors) {
                     result.errors.forEach(err => {
-                        addChatMessage(err, false);
+                        addChatMessage(err, false, 'error'); 
                     });
 
                     const chatTabButton = document.getElementById('chat-vtab');
@@ -1911,8 +1929,7 @@
 
         const loadRulesButton = document.getElementById('load-rules-btn');
         const rulesFileInput = document.getElementById('rules-file-input');
-        const loadedRulesFilenameSpan = document.getElementById('loaded-rules-filename');
-        const fileUploadStatus = document.getElementById('file-upload-status');  
+        const loadedRulesFilenameSpan = document.getElementById('loaded-rules-filename'); 
 
         // Загрузка правил из файла
         if (loadRulesButton && rulesFileInput && loadedRulesFilenameSpan) {
@@ -1931,7 +1948,7 @@
                 
                 const file = event.target.files[0];
                 loadedRulesFilenameSpan.textContent = file.name;
-                fileUploadStatus.textContent = "Обработка файла...";
+                addChatMessage("Обработка файла...", false, 'info');
                 loadRulesButton.disabled = true;
 
                 const formData = new FormData();
@@ -1950,15 +1967,14 @@
                     }
 
                     const finalRules = await response.json();
-                    
                     updateRulesUI(finalRules);
                     
-                    fileUploadStatus.textContent = "Файл успешно обработан. Правила применены.";
+                    addChatMessage("Файл успешно обработан. Правила применены.", false, 'success');
                     console.log("Правила из файла успешно загружены и применены:", finalRules);
                     
                 } catch (error) {
                     console.error("Ошибка при обработке файла правил:", error);
-                    fileUploadStatus.textContent = `Ошибка: ${error.message}`;
+                    addChatMessage(`Ошибка: ${error.message}`, false, 'error');
                     // alert(`Ошибка при обработке файла: ${error.message}`);
                 } finally {
                     loadRulesButton.disabled = false;
@@ -2005,7 +2021,7 @@
 
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({ error: "Unknown server error" }));
-                        addChatMessage(response.message, false);
+                        addChatMessage(response.message, false, 'error');
                         console.warn(response.message)
                         throw new Error(`HTTP error ${response.status}: ${errorData.error || 'Failed to calculate auto placement'}`);
                     }
@@ -2019,7 +2035,7 @@
                         await displayPlanogram(calculatedPlanogramData.data, calculatedPlanogramData.rules.global_rules.spacing); // Отображаем результат
 
                         updateRulesUI(calculatedPlanogramData.rules);
-                        addChatMessage(calculatedPlanogramData.message, false);
+                        addChatMessage(calculatedPlanogramData.message, false, 'success');
                     }
                 } catch (error) {
                     console.error('Error calculating auto placement:', error);
@@ -2032,7 +2048,7 @@
         }
 
 
-        // --- CHAT FUNCTIONALITY ---
+        // CHAT FUNCTIONALITY
         const chatMessagesContainer = document.getElementById('chat-messages-container');
         const chatInput = document.getElementById('chat-input');
         const chatSendButton = document.getElementById('chat-send-btn');
@@ -2042,25 +2058,30 @@
          * Добавляет сообщение в контейнер чата.
          * @param {string} message - Текст сообщения.
          * @param {boolean} isUser - true, если сообщение от пользователя, false - от сервера.
+         * @param {string} type - Тип серверного сообщения ('info', 'success', 'warning', 'error').
          */
-        function addChatMessage(message, isUser) {
+        function addChatMessage(message, isUser, type = 'info') {
             if (!chatMessagesContainer) return;
+            
             const messageElement = document.createElement('div');
             messageElement.classList.add('chat-message');
+
             if (isUser) {
                 messageElement.classList.add('user-message');
             } else {
                 messageElement.classList.add('server-message');
+                // Добавляем класс в зависимости от типа сообщения
+                const validTypes = ['info', 'success', 'warning', 'error'];
+                if (validTypes.includes(type)) {
+                    messageElement.classList.add(type);
+                } else {
+                    messageElement.classList.add('info'); // Класс по умолчанию, если тип неверный
+                }
             }
             messageElement.textContent = message; // textContent автоматически экранирует HTML
 
             chatMessagesContainer.appendChild(messageElement);
             chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-        }
-
-        function handle_commands(data, spacing) {
-            if (data.id || data.name) displayPlanogram(data, spacing);
-            else if (data.shelf_unit) displayShelfUnit(data.shelf_unit);
         }
 
         /**
@@ -2103,16 +2124,15 @@
                 if (serverResponse.message) {
                     addChatMessage(serverResponse.message, false);
                     if (serverResponse.data) {
-                        // handle_commands(serverResponse.data, serverResponse.rules.global_rules.spacing)
                         updateRulesUI(serverResponse.rules)
                     }
                 } else {
-                    addChatMessage("Received an empty reply from the server.", false);
+                    addChatMessage("Получен \"пустой\" ответ сервера.", false, 'error');
                 }
 
             } catch (error) {
                 console.error("Error sending chat message:", error);
-                addChatMessage(`Error: ${error.message}`, false);
+                addChatMessage(`Ошибка: ${error.message}`, false, 'error');
             } finally {
                 chatInput.disabled = false;
                 chatSendButton.disabled = false;
@@ -2129,7 +2149,7 @@
                 }
             });
         }
-        // --- END CHAT FUNCTIONALITY ---
+        // END CHAT FUNCTIONALITY
 
 
         // Цикл рендеринга

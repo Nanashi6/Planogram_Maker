@@ -228,9 +228,10 @@ async def process_rules_file():
             command_str = command_str.strip()
             if not command_str or command_str.startswith('#'):
                 continue 
-            print(command_str)
+            # print(command_str)
             response_message = commands_handler(command_str, current_planogram_dict, current_rules.to_json())
-            print(current_rules.to_json())
+            # print(response_message.data)
+            # print(current_rules.to_json())
             current_planogram_dict = response_message.data
             current_rules = response_message.rules        
         

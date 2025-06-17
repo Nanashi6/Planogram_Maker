@@ -166,30 +166,6 @@ COMANDS_EXAMPLE = """
 parser = CommandParser(COMANDS_EXAMPLE)
 
 
-def fill_free_space_on_shelf(parameters, reply, planogram):
-    category_name = parameters['название_категории']
-    shelf_number = parameters['номер_полки']
-
-    shelf_unit_id = planogram.get('shelf_unit_id') if isinstance(planogram, dict) else getattr(planogram, 'id', None)
-     
-    category = CategoryDAO.get_one(Cat(name=category_name))
-    if category and shelf_unit_id:
-        shelf_unit = ShelfUnitDAO.get_by_id(shelf_unit_id)
-        shelf = shelf_unit.get_shelf_by_number(shelf_number)
-        if shelf:
-            free_share = get_free_percentage(category_name, reply, shelf_number, shelf.id)   
-            
-            c_rule = category_rule(category_name, category.id, free_share)
-
-            reply.rules.delete_category_rule(shelf_number, shelf.id, c_rule)
-            reply.rules.add_category_rule(shelf_number, shelf.id, c_rule)
-
-            reply.message = f'Категория {category_name} добавлена к правилам полки и будет занимать {free_share}% от общего пространтва полки'
-        else:
-            reply.message = f"Не найдена полка {shelf_number}"
-    else:
-        reply.message = f"Не найдена категория {category_name} или рабочий стеллаж."
-
 #INFO Меняет стеллаж и обнуляет правила
 def place_shelf_unit_handler(parameters):
     """Устанавливает стеллаж. В случае успеха возвращает новый planogram_data."""
