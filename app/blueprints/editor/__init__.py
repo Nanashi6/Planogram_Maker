@@ -223,17 +223,16 @@ async def process_rules_file():
 
         current_rules = rules_data()
         current_planogram_dict = {'shelf_unit_id': shelf_unit.id, 'shelf_unit': shelf_unit.to_dict()}
-        print(current_planogram_dict)
+
         for i, command_str in enumerate(commands):
             command_str = command_str.strip()
             if not command_str or command_str.startswith('#'):
                 continue 
             print(command_str)
             response_message = commands_handler(command_str, current_planogram_dict, current_rules.to_json())
-            current_planogram_dict = response_message.data.to_json()
-            print(current_planogram_dict)
-            current_rules = response_message.rules
-        
+            print(current_rules.to_json())
+            current_planogram_dict = response_message.data
+            current_rules = response_message.rules        
         
         return jsonify(current_rules.to_json()), 200
 
