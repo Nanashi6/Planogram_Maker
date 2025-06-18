@@ -2047,6 +2047,9 @@
             });
         }
 
+        function handle_commands(data, spacing) {
+            if (data.shelf_unit) displayShelfUnit(data.shelf_unit);
+        }
 
         // CHAT FUNCTIONALITY
         const chatMessagesContainer = document.getElementById('chat-messages-container');
@@ -2124,6 +2127,7 @@
                 if (serverResponse.message) {
                     addChatMessage(serverResponse.message, false, serverResponse.type);
                     if (serverResponse.data) {
+                        handle_commands(serverResponse.data, serverResponse.rules.global_rules.spacing)
                         updateRulesUI(serverResponse.rules)
                     }
                 } else {
